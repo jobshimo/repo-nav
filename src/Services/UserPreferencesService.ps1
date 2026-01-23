@@ -66,6 +66,7 @@ class UserPreferencesService {
         $defaults = [PSCustomObject]@{
             display = [PSCustomObject]@{
                 favoritesOnTop = $true
+                selectedBackground = "DarkGray"
             }
         }
         
@@ -90,6 +91,11 @@ class UserPreferencesService {
         # Ensure it's a boolean
         if ($preferences.display.favoritesOnTop -isnot [bool]) {
             $preferences.display.favoritesOnTop = [bool]$preferences.display.favoritesOnTop
+        }
+        
+        # Ensure selectedBackground exists with default value
+        if (-not ($preferences.display.PSObject.Properties.Name -contains 'selectedBackground')) {
+            $preferences.display | Add-Member -NotePropertyName 'selectedBackground' -NotePropertyValue "DarkGray" -Force
         }
         
         return $preferences

@@ -17,10 +17,12 @@
 
 class UIRenderer {
     [ConsoleHelper] $Console
+    [UserPreferencesService] $PreferencesService
     
     # Constructor with dependency injection
-    UIRenderer([ConsoleHelper]$console) {
+    UIRenderer([ConsoleHelper]$console, [UserPreferencesService]$preferencesService) {
         $this.Console = $console
+        $this.PreferencesService = $preferencesService
     }
     
     # Render header
@@ -87,7 +89,15 @@ class UIRenderer {
             [Constants]::ColorUnselected
         }
         
-        $backgroundColor = if ($isSelected) { [Constants]::ColorSelectedBackground } else { $null }
+        $backgroundColor = $null
+        if ($isSelected) {
+            $preferences = $this.PreferencesService.LoadPreferences()
+            $bgColor = $preferences.display.selectedBackground
+            if ($bgColor -ne 'None') {
+                $backgroundColor = $bgColor
+            }
+        }
+        
         $prefix = if ($isSelected) { "  > " } else { "    " }
         
         # Get git status display
@@ -135,9 +145,22 @@ class UIRenderer {
     
     # Render color selection item
     [void] RenderColorItem([string]$color, [bool]$isSelected) {
+        $backgroundColor = $null
+        if ($isSelected) {
+            $preferences = $this.PreferencesService.LoadPreferences()
+            $bgColor = $preferences.display.selectedBackground
+            if ($bgColor -ne 'None') {
+                $backgroundColor = $bgColor
+            }
+        }
+        
         if ($isSelected) {
             Write-Host "  > " -NoNewline -ForegroundColor ([Constants]::ColorSelected)
-            Write-Host $color -ForegroundColor $color -BackgroundColor ([Constants]::ColorSelectedBackground)
+            if ($backgroundColor) {
+                Write-Host $color -ForegroundColor $color -BackgroundColor $backgroundColor
+            } else {
+                Write-Host $color -ForegroundColor $color
+            }
         } else {
             Write-Host "    " -NoNewline
             Write-Host $color -ForegroundColor $color

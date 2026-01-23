@@ -54,6 +54,10 @@ class Constants {
     static [string] $ColorUnselected = "White"
     static [string] $ColorSelectedBackground = "DarkGray"
     static [string] $ColorFavorite = "Yellow"
+    
+    # Available background color options for selected items
+    static [string[]] $AvailableBackgroundColors = @('None', 'Black', 'DarkGray', 'DarkBlue', 'DarkMagenta', 'DarkCyan', 'DarkGreen', 'DarkRed', 'DarkYellow')
+    
     static [string] $ColorError = "Red"
     static [string] $ColorSuccess = "Green"
     static [string] $ColorWarning = "Yellow"

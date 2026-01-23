@@ -38,6 +38,10 @@ function Show-PreferencesMenu {
                 @{
                     Name = "Favorites Position"
                     CurrentValue = if ($preferences.display.favoritesOnTop) { "Top of list" } else { "Original position" }
+                },
+                @{
+                    Name = "Selected Item Background"
+                    CurrentValue = $preferences.display.selectedBackground
                 }
             )
             
@@ -116,6 +120,33 @@ function Show-PreferencesMenu {
                             # Set confirmation message
                             $statusText = if ($newValue) { "Top of list" } else { "Original position" }
                             $confirmationMessage = "Favorites will be shown at: $statusText"
+                            $confirmationTimeout = 2
+                        }
+                    }
+                    elseif ($selectedOption -eq 1) {
+                        # Edit Selected Background using OptionSelector
+                        $backgroundOptions = @()
+                        foreach ($bg in [Constants]::AvailableBackgroundColors) {
+                            $displayText = if ($bg -eq 'None') { 'No background' } else { $bg }
+                            $backgroundOptions += @{ DisplayText = $displayText; Value = $bg }
+                        }
+                        
+                        $currentValue = $preferences.display.selectedBackground
+                        $newValue = $OptionSelector.ShowSelection(
+                            "SELECTED ITEM BACKGROUND",
+                            $backgroundOptions,
+                            $currentValue,
+                            "Back to preferences"
+                        )
+                        
+                        # If user selected something (not cancelled)
+                        if ($null -ne $newValue -and $newValue -ne $currentValue) {
+                            $PreferencesService.SetPreference("display", "selectedBackground", $newValue)
+                            $preferences = $PreferencesService.LoadPreferences()
+                            
+                            # Set confirmation message
+                            $statusText = if ($newValue -eq 'None') { "No background" } else { $newValue }
+                            $confirmationMessage = "Background color changed to: $statusText"
                             $confirmationTimeout = 2
                         }
                     }
