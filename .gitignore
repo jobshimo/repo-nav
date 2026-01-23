@@ -1,5 +1,6 @@
-# Archivo de aliases - no subir (contiene configuración local del usuario)
+# Archivos de configuración local - no subir (contienen información sensible del usuario)
 .repo-aliases.json
+.repo-config.json
 
 # Archivos de backup y legacy
 legacy/

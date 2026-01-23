@@ -140,24 +140,25 @@ function Update-ConfigurationFiles {
         [string]$scriptPath
     )
     
-    # Update Constants.ps1
-    $constantsPath = Join-Path $scriptPath "src\Config\Constants.ps1"
-    $constantsContent = Get-Content $constantsPath -Raw
+    # Create or update .repo-config.json
+    $configPath = Join-Path $scriptPath ".repo-config.json"
     
-    # Replace the ReposBasePath
-    $constantsContent = $constantsContent -replace 'static \[string\] \$ReposBasePath = ".*?"', "static [string] `$ReposBasePath = `"$reposPath`""
+    # Extract username from path
+    $userName = ($reposPath -split '\\Users\\')[1] -split '\\' | Select-Object -First 1
     
-    # Update AliasFileName to include full path inside app
-    $aliasFilePath = Join-Path $scriptPath ".repo-aliases.json"
-    $constantsContent = $constantsContent -replace 'static \[string\] GetAliasFilePath\(\) \{[^}]+\}', @"
-static [string] GetAliasFilePath() {
-        return "$aliasFilePath"
+    if ([string]::IsNullOrWhiteSpace($userName)) {
+        # Fallback: use current user
+        $userName = $env:USERNAME
     }
-"@
     
-    Set-Content -Path $constantsPath -Value $constantsContent
+    $config = @{
+        reposBasePath = $reposPath
+        userName = $userName
+    }
     
-    Write-Host "[OK] Configuration updated" -ForegroundColor Green
+    $config | ConvertTo-Json | Set-Content -Path $configPath -Encoding UTF8
+    
+    Write-Host "[OK] Configuration file created: .repo-config.json" -ForegroundColor Green
 }
 #endregion
 

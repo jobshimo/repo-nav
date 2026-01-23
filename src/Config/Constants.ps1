@@ -5,12 +5,17 @@
 .DESCRIPTION
     Following SRP (Single Responsibility Principle):
     This class only holds constants and provides static access to them.
+    User-specific configuration is loaded from .repo-config.json
 #>
 
 class Constants {
-    # Paths
-    static [string] $ReposBasePath = "C:\Users\X518795\repos"
+    # Paths (loaded from config file)
+    static [string] $ReposBasePath
+    static [string] $UserName
     static [string] $AliasFileName = ".repo-aliases.json"
+    
+    # Script root path
+    static [string] $ScriptRoot
     
     # Virtual Key Codes
     static [int] $KEY_UP_ARROW = 38
@@ -40,9 +45,44 @@ class Constants {
     # Favorite Symbol
     static [string] $FavoriteSymbol = [char]0x2605      # ★
     
+    # Initialize configuration from file
+    static [void] Initialize([string]$scriptRoot) {
+        [Constants]::ScriptRoot = $scriptRoot
+        
+        $configPath = Join-Path $scriptRoot ".repo-config.json"
+        $exampleConfigPath = Join-Path $scriptRoot ".repo-config.example.json"
+        
+        # Check if config file exists, if not, create from example
+        if (-not (Test-Path $configPath)) {
+            if (Test-Path $exampleConfigPath) {
+                Write-Host "No se encontro el archivo de configuracion .repo-config.json" -ForegroundColor Yellow
+                Write-Host "Por favor, copia .repo-config.example.json a .repo-config.json y configura tus rutas" -ForegroundColor Cyan
+                Write-Host ""
+                Copy-Item $exampleConfigPath $configPath
+                Write-Host "Archivo .repo-config.json creado. Editando..." -ForegroundColor Green
+                Start-Process notepad $configPath
+                Write-Host ""
+                Write-Host "Presiona Enter despues de guardar el archivo de configuracion..." -ForegroundColor Yellow
+                Read-Host
+            } else {
+                throw "No se encontro el archivo de configuracion. Debe existir .repo-config.json o .repo-config.example.json"
+            }
+        }
+        
+        # Load configuration
+        try {
+            $config = Get-Content $configPath -Raw | ConvertFrom-Json
+            [Constants]::ReposBasePath = $config.reposBasePath
+            [Constants]::UserName = $config.userName
+        }
+        catch {
+            throw "Error al cargar la configuracion desde $configPath : $_"
+        }
+    }
+    
     # Methods to get derived values
     static [string] GetAliasFilePath() {
-        return "C:\Users\X518795\repos\repo-nav\.repo-aliases.json"
+        return Join-Path ([Constants]::ScriptRoot) ([Constants]::AliasFileName)
     }
 }
 

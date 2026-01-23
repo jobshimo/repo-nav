@@ -59,6 +59,9 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Config\Constants.ps1"
 . "$srcPath\Config\ColorPalette.ps1"
 
+# Initialize Constants with configuration
+[Constants]::Initialize($scriptRoot)
+
 # Models (no dependencies)
 . "$srcPath\Models\GitStatusModel.ps1"
 . "$srcPath\Models\AliasInfo.ps1"
