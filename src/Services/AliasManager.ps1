@@ -103,21 +103,23 @@ class AliasManager {
     # Get all favorites
     [string[]] GetFavorites() {
         $config = $this.ConfigService.LoadConfiguration()
-        return $config.favorites
+        [string[]]$favorites = @($config.favorites)
+        return $favorites
     }
     
     # Check if repository is favorite
     [bool] IsFavorite([string]$repoName) {
-        $favorites = $this.GetFavorites()
+        [string[]]$favorites = $this.GetFavorites()
         return $favorites -contains $repoName
     }
     
     # Add repository to favorites
     [bool] AddFavorite([string]$repoName) {
         $config = $this.ConfigService.LoadConfiguration()
+        [string[]]$currentFavorites = @($config.favorites)
         
-        if ($config.favorites -notcontains $repoName) {
-            $config.favorites += $repoName
+        if ($currentFavorites -notcontains $repoName) {
+            $config.favorites = @($currentFavorites + $repoName)
             return $this.ConfigService.SaveConfiguration($config)
         }
         
@@ -127,9 +129,10 @@ class AliasManager {
     # Remove repository from favorites
     [bool] RemoveFavorite([string]$repoName) {
         $config = $this.ConfigService.LoadConfiguration()
+        [string[]]$currentFavorites = @($config.favorites)
         
-        if ($config.favorites -contains $repoName) {
-            $config.favorites = $config.favorites | Where-Object { $_ -ne $repoName }
+        if ($currentFavorites -contains $repoName) {
+            $config.favorites = @($currentFavorites | Where-Object { $_ -ne $repoName })
             return $this.ConfigService.SaveConfiguration($config)
         }
         

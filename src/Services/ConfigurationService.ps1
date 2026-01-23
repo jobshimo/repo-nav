@@ -48,9 +48,20 @@ class ConfigurationService {
             if (-not $config.aliases) {
                 $config | Add-Member -NotePropertyName 'aliases' -NotePropertyValue ([PSCustomObject]@{}) -Force
             }
-            if (-not $config.favorites) {
-                $config | Add-Member -NotePropertyName 'favorites' -NotePropertyValue @() -Force
+            
+            # Normalize favorites to always be an array
+            $normalizedFavorites = @()
+            if ($config.favorites) {
+                if ($config.favorites -is [string]) {
+                    # Convert single string to array
+                    $normalizedFavorites = @($config.favorites)
+                }
+                elseif ($config.favorites -is [array]) {
+                    # Already an array, ensure all items are strings
+                    $normalizedFavorites = @($config.favorites | Where-Object { $_ -is [string] })
+                }
             }
+            $config | Add-Member -NotePropertyName 'favorites' -NotePropertyValue $normalizedFavorites -Force
             
             return $config
         }
