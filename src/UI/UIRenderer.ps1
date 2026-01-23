@@ -158,14 +158,10 @@ class UIRenderer {
             }
         }
         
-        # Render alias if exists
+        # Render alias if exists (always without background)
         if ($repo.HasAlias -and $repo.AliasInfo) {
             $aliasText = " - $($repo.AliasInfo.Alias)"
-            if ($backgroundColor) {
-                Write-Host $aliasText -ForegroundColor $repo.AliasInfo.Color -BackgroundColor $backgroundColor
-            } else {
-                Write-Host $aliasText -ForegroundColor $repo.AliasInfo.Color
-            }
+            Write-Host $aliasText -ForegroundColor $repo.AliasInfo.Color
         } else {
             Write-Host ""
         }

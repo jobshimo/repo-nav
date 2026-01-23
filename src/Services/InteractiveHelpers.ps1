@@ -124,17 +124,38 @@ function Invoke-AliasRemove {
         return $false
     }
     
-    $result = $RepoManager.RemoveAlias($Repository)
-    
     Clear-Host
-    if ($result) {
-        Write-Host "Alias removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
-    } else {
-        Write-Host "Failed to remove alias." -ForegroundColor ([Constants]::ColorError)
-    }
-    Start-Sleep -Seconds 1
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+    Write-Host "    REMOVE ALIAS" -ForegroundColor ([Constants]::ColorHeader)
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+    Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+    Write-Host $Repository.Name -ForegroundColor ([Constants]::ColorValue)
+    Write-Host "Alias: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+    Write-Host "$($Repository.AliasInfo.Alias)" -ForegroundColor $Repository.AliasInfo.Color
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+    Write-Host ""
+    Write-Host "This will remove the alias for this repository." -ForegroundColor ([Constants]::ColorWarning)
+    Write-Host "Continue? (Y/n): " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
     
-    return $result
+    $confirm = Read-Host
+    
+    if ($confirm -eq '' -or $confirm -eq 'Y' -or $confirm -eq 'y') {
+        $result = $RepoManager.RemoveAlias($Repository)
+        
+        Clear-Host
+        if ($result) {
+            Write-Host "Alias removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
+        } else {
+            Write-Host "Failed to remove alias." -ForegroundColor ([Constants]::ColorError)
+        }
+        Start-Sleep -Seconds 1
+        
+        return $result
+    } else {
+        Write-Host "Operation cancelled." -ForegroundColor ([Constants]::ColorWarning)
+        Start-Sleep -Seconds 1
+        return $false
+    }
 }
 
 function Invoke-NodeModulesRemove {
