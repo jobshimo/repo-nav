@@ -39,7 +39,8 @@ function Invoke-NpmInstall {
     
     Push-Location $Repository.FullPath
     try {
-        npm install
+        # Force npm output to be visible by calling it with explicit output redirection
+        & npm install *>&1 | Write-Host
         Write-Host ""
         Write-Host "Dependencies installed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
         Start-Sleep -Seconds 2
