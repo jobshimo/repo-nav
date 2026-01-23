@@ -18,6 +18,8 @@ function Show-PreferencesMenu {
     $preferences = $PreferencesService.LoadPreferences()
     $selectedOption = 0
     $running = $true
+    $confirmationMessage = ""
+    $confirmationTimeout = 0
     
     try {
         $Console.HideCursor()
@@ -33,7 +35,7 @@ function Show-PreferencesMenu {
             $option2 = "  Back to main menu"
             
             if ($selectedOption -eq 0) {
-                Write-Host "→ $option1" -ForegroundColor Yellow
+                Write-Host "> $option1" -ForegroundColor Yellow
             } else {
                 Write-Host "  $option1" -ForegroundColor Gray
             }
@@ -41,12 +43,23 @@ function Show-PreferencesMenu {
             Write-Host ""
             
             if ($selectedOption -eq 1) {
-                Write-Host "→ $option2" -ForegroundColor Yellow
+                Write-Host "> $option2" -ForegroundColor Yellow
             } else {
                 Write-Host "  $option2" -ForegroundColor Gray
             }
             
             Write-Host ""
+            
+            # Show confirmation message if exists
+            if ($confirmationMessage -ne "" -and $confirmationTimeout -gt 0) {
+                $Renderer.RenderSuccess($confirmationMessage)
+                Write-Host ""
+                $confirmationTimeout--
+                if ($confirmationTimeout -eq 0) {
+                    $confirmationMessage = ""
+                }
+            }
+            
             Write-Host "  Use Arrows to navigate | Enter to toggle/select | Q to go back" -ForegroundColor DarkGray
             
             # Wait for input
@@ -76,15 +89,10 @@ function Show-PreferencesMenu {
                         $PreferencesService.SetPreference("display", "favoritesOnTop", $newValue)
                         $preferences = $PreferencesService.LoadPreferences()
                         
-                        # Show confirmation
-                        $Console.ClearScreen()
-                        $Renderer.RenderHeader("USER PREFERENCES")
-                        Write-Host ""
+                        # Set confirmation message
                         $statusText = if ($newValue) { "Top of list" } else { "Original position" }
-                        $Renderer.RenderSuccess("Favorites will be shown at: $statusText")
-                        Write-Host ""
-                        Write-Host "  Press any key to continue..." -ForegroundColor Gray
-                        $Console.ReadKey() | Out-Null
+                        $confirmationMessage = "Favorites will be shown at: $statusText"
+                        $confirmationTimeout = 2
                     }
                     elseif ($selectedOption -eq 1) {
                         # Back to main menu
