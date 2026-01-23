@@ -59,20 +59,23 @@ class NpmService {
         }
         
         try {
-            Write-Host "Removing node_modules from $repoPath..." -ForegroundColor ([Constants]::ColorWarning)
-            Remove-Item -Path $nodeModulesPath -Recurse -Force -ErrorAction Stop
-            Write-Host "node_modules removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
+            # Use the helper function with animated progress
+            $result = Invoke-NpmRemoveNodeModules -NodeModulesPath $nodeModulesPath
             
-            # Remove package-lock.json if requested
-            if ($removePackageLock) {
-                $packageLockPath = Join-Path $repoPath "package-lock.json"
-                if (Test-Path $packageLockPath) {
-                    Remove-Item -Path $packageLockPath -Force -ErrorAction Stop
-                    Write-Host "package-lock.json removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
+            if ($result) {
+                Write-Host "node_modules removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
+                
+                # Remove package-lock.json if requested
+                if ($removePackageLock) {
+                    $packageLockPath = Join-Path $repoPath "package-lock.json"
+                    if (Test-Path $packageLockPath) {
+                        Remove-Item -Path $packageLockPath -Force -ErrorAction Stop
+                        Write-Host "package-lock.json removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
+                    }
                 }
             }
             
-            return $true
+            return $result
         }
         catch {
             Write-Error "Error removing node_modules: $_"

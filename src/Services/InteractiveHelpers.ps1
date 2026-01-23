@@ -206,7 +206,6 @@ function Invoke-NodeModulesRemove {
         }
         
         Write-Host ""
-        Write-Host "Removing node_modules..." -ForegroundColor ([Constants]::ColorWarning)
         
         $result = $RepoManager.RemoveNodeModules($Repository, $removePackageLock)
         

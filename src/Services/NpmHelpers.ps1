@@ -60,7 +60,7 @@ function Invoke-NpmInstall {
 function Invoke-NpmRemoveNodeModules {
     <#
     .SYNOPSIS
-        Removes node_modules folder
+        Removes node_modules folder with visual progress indicator
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -68,8 +68,51 @@ function Invoke-NpmRemoveNodeModules {
     )
     
     try {
-        Remove-Item -Path $NodeModulesPath -Recurse -Force -ErrorAction Stop
-        return $true
+        # Save cursor position
+        $cursorPos = $host.UI.RawUI.CursorPosition
+        
+        # Start the removal in a background job
+        $job = Start-Job -ScriptBlock {
+            param($path)
+            Remove-Item -Path $path -Recurse -Force -ErrorAction Stop
+        } -ArgumentList $NodeModulesPath
+        
+        # Show animated progress while job runs
+        $dots = ""
+        $maxDots = 3
+        while ($job.State -eq 'Running') {
+            # Restore cursor position
+            $host.UI.RawUI.CursorPosition = $cursorPos
+            
+            # Update dots animation
+            $dots += "."
+            if ($dots.Length -gt $maxDots) {
+                $dots = "."
+            }
+            
+            # Display progress indicator
+            Write-Host ("Removing node_modules" + $dots.PadRight($maxDots + 1)) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
+            
+            Start-Sleep -Milliseconds 300
+        }
+        
+        # Wait for job to complete and get result
+        $jobResult = Wait-Job -Job $job
+        $jobError = Receive-Job -Job $job -ErrorAction SilentlyContinue -ErrorVariable jobErrors
+        Remove-Job -Job $job
+        
+        # Clear the progress line
+        $host.UI.RawUI.CursorPosition = $cursorPos
+        Write-Host (" " * 50) -NoNewline
+        $host.UI.RawUI.CursorPosition = $cursorPos
+        
+        if ($jobResult.State -eq 'Completed' -and $jobErrors.Count -eq 0) {
+            return $true
+        }
+        else {
+            Write-Error "Error removing node_modules: $($jobErrors -join '; ')"
+            return $false
+        }
     }
     catch {
         Write-Error "Error removing node_modules: $_"
