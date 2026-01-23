@@ -1,60 +1,42 @@
-<#
-.SYNOPSIS
-    Navigation command - handles UP and DOWN arrow keys
-    
-.DESCRIPTION
-    Moves selection between repositories with wraparound.
-    Uses partial redraw for performance optimization.
-    
-.NOTES
-    Implements INavigationCommand interface
-    Keys: UP_ARROW, DOWN_ARROW
-    
-    IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
-#>
+# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
 
 class NavigationCommand : INavigationCommand {
-    # Configuration
-    [string] $Direction    # "Up" or "Down"
-    
-    # Constructor
-    NavigationCommand([string]$direction) {
-        if ($direction -ne "Up" -and $direction -ne "Down") {
-            throw "Direction must be 'Up' or 'Down'"
-        }
-        $this.Direction = $direction
+    [string] GetDescription() {
+        return "Navigate (UP/DOWN arrows)"
     }
-    
-    <#
-    .SYNOPSIS
-        Can always execute if there are repositories
-    #>
-    [bool] CanExecute([object]$state) {
-        return $state.GetTotalCount() -gt 0
+
+    [bool] CanExecute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+        $key = $keyPress.Key
+        return $key -eq [System.ConsoleKey]::UpArrow -or $key -eq [System.ConsoleKey]::DownArrow
     }
-    
-    <#
-    .SYNOPSIS
-        Moves selection up or down
-    #>
-    [void] Execute([object]$state, [hashtable]$context) {
-        # Update selection
-        if ($this.Direction -eq "Up") {
-            $state.SelectPrevious()
+
+    [void] Execute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+        $state = $context.State
+        $repos = $state.GetRepositories()
+        
+        if ($repos.Count -eq 0) { return }
+        
+        $currentIndex = $state.GetCurrentIndex()
+        $key = $keyPress.Key
+        
+        # Calculate new index
+        if ($key -eq [System.ConsoleKey]::UpArrow) {
+            if ($currentIndex -gt 0) {
+                $state.SetCurrentIndex($currentIndex - 1)
+            }
+            else {
+                $state.SetCurrentIndex($repos.Count - 1)
+            }
         }
-        else {
-            $state.SelectNext()
+        elseif ($key -eq [System.ConsoleKey]::DownArrow) {
+            if ($currentIndex -lt ($repos.Count - 1)) {
+                $state.SetCurrentIndex($currentIndex + 1)
+            }
+            else {
+                $state.SetCurrentIndex(0)
+            }
         }
         
-        # Mark for partial redraw (only affected items)
-        $state.MarkForPartialRedraw()
-    }
-    
-    <#
-    .SYNOPSIS
-        Returns command description
-    #>
-    [string] GetDescription() {
-        return "Navigate $($this.Direction)"
+        # Selection changed flag is automatically set by SetCurrentIndex()
     }
 }

@@ -29,13 +29,14 @@ class NpmCommand : INavigationCommand {
                 Invoke-NpmInstall -Repository $currentRepo
             }
             elseif ($key -eq [System.ConsoleKey]::X) {
-                # Remove node_modules
-                Invoke-NodeModulesRemove -Repository $currentRepo
+                # Remove node_modules - Pass required parameters
+                Invoke-NodeModulesRemove -RepoManager $context.RepoManager -Repository $currentRepo
             }
             
             # Reload repositories to reflect changes (e.g., node_modules presence)
             $repoManager = $context.RepoManager
             if ($null -ne $repoManager) {
+                $repoManager.LoadRepositories($context.BasePath)
                 $updatedRepos = $repoManager.GetRepositories()
                 $state.SetRepositories($updatedRepos)
                 

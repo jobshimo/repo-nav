@@ -24,10 +24,11 @@ class NavigationState {
     [int] $SelectedIndex
     [array] $Repositories
     [bool] $IsRunning
+    [string] $ExitState  # Can be: "None", "Cancelled", "OpenRepository"
     
     # Rendering optimization flags
     [bool] $RequiresFullRedraw
-    [bool] $RequiresPartialRedraw
+    [bool] $SelectionChanged
     [int] $PreviousIndex
     
     # Constructor
@@ -36,8 +37,9 @@ class NavigationState {
         $this.SelectedIndex = 0
         $this.PreviousIndex = 0
         $this.IsRunning = $true
+        $this.ExitState = "None"
         $this.RequiresFullRedraw = $false
-        $this.RequiresPartialRedraw = $false
+        $this.SelectionChanged = $false
     }
     
     #region Navigation Methods
@@ -151,7 +153,7 @@ class NavigationState {
     #>
     [void] MarkForFullRedraw() {
         $this.RequiresFullRedraw = $true
-        $this.RequiresPartialRedraw = $false
+        $this.SelectionChanged = $false
     }
     
     <#
@@ -160,7 +162,7 @@ class NavigationState {
     #>
     [void] MarkForPartialRedraw() {
         if (-not $this.RequiresFullRedraw) {
-            $this.RequiresPartialRedraw = $true
+            $this.SelectionChanged = $true
         }
     }
     
@@ -170,7 +172,39 @@ class NavigationState {
     #>
     [void] ClearRedrawFlags() {
         $this.RequiresFullRedraw = $false
-        $this.RequiresPartialRedraw = $false
+        $this.SelectionChanged = $false
+    }
+    
+    <#
+    .SYNOPSIS
+        Clears the full redraw flag
+    #>
+    [void] ClearFullRedrawFlag() {
+        $this.RequiresFullRedraw = $false
+    }
+    
+    <#
+    .SYNOPSIS
+        Clears the selection changed flag
+    #>
+    [void] ClearSelectionChangedFlag() {
+        $this.SelectionChanged = $false
+    }
+    
+    <#
+    .SYNOPSIS
+        Checks if a full redraw is needed
+    #>
+    [bool] NeedsFullRedraw() {
+        return $this.RequiresFullRedraw
+    }
+    
+    <#
+    .SYNOPSIS
+        Checks if selection has changed
+    #>
+    [bool] HasSelectionChanged() {
+        return $this.SelectionChanged
     }
     
     <#
@@ -178,7 +212,99 @@ class NavigationState {
         Checks if any redrawing is needed
     #>
     [bool] NeedsRedraw() {
-        return $this.RequiresFullRedraw -or $this.RequiresPartialRedraw
+        return $this.RequiresFullRedraw -or $this.SelectionChanged
+    }
+    
+    #endregion
+    
+    #region Exit State Management
+    
+    <#
+    .SYNOPSIS
+        Sets the exit state
+    #>
+    [void] SetExitState([string]$exitState) {
+        $this.ExitState = $exitState
+    }
+    
+    <#
+    .SYNOPSIS
+        Gets the exit state
+    #>
+    [string] GetExitState() {
+        return $this.ExitState
+    }
+    
+    <#
+    .SYNOPSIS
+        Checks if the loop should exit
+    #>
+    [bool] ShouldExit() {
+        return -not $this.IsRunning
+    }
+    
+    <#
+    .SYNOPSIS
+        Resumes the navigation loop (used after interactive commands)
+    #>
+    [void] Resume() {
+        $this.IsRunning = $true
+    }
+    
+    #endregion
+    
+    #region Getters and Setters (for compatibility with commands)
+    
+    <#
+    .SYNOPSIS
+        Gets current repositories array
+    #>
+    [array] GetRepositories() {
+        return $this.Repositories
+    }
+    
+    <#
+    .SYNOPSIS
+        Sets repositories array
+    #>
+    [void] SetRepositories([array]$repositories) {
+        $this.Repositories = $repositories
+        
+        # Adjust index if it's out of bounds
+        if ($this.SelectedIndex -ge $repositories.Count -and $repositories.Count -gt 0) {
+            $this.SelectedIndex = $repositories.Count - 1
+        }
+        elseif ($repositories.Count -eq 0) {
+            $this.SelectedIndex = 0
+        }
+    }
+    
+    <#
+    .SYNOPSIS
+        Gets current index
+    #>
+    [int] GetCurrentIndex() {
+        return $this.SelectedIndex
+    }
+    
+    <#
+    .SYNOPSIS
+        Sets current index
+    #>
+    [void] SetCurrentIndex([int]$index) {
+        if ($index -ge 0 -and $index -lt $this.Repositories.Count) {
+            $this.PreviousIndex = $this.SelectedIndex
+            $this.SelectedIndex = $index
+            $this.SelectionChanged = $true
+        }
+    }
+    
+    <#
+    .SYNOPSIS
+        Gets previous index
+    #>
+    [int] GetPreviousIndex() {
+        return $this.PreviousIndex
     }
     
     #endregion

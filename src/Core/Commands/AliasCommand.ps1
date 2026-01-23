@@ -25,17 +25,18 @@ class AliasCommand : INavigationCommand {
         
         try {
             if ($key -eq [System.ConsoleKey]::E) {
-                # Edit alias
-                Invoke-AliasEdit -Repository $currentRepo
+                # Edit alias - Pass required parameters
+                Invoke-AliasEdit -RepoManager $context.RepoManager -Repository $currentRepo -ColorSelector $context.ColorSelector
             }
             elseif ($key -eq [System.ConsoleKey]::R) {
-                # Remove alias
-                Invoke-AliasRemove -Repository $currentRepo
+                # Remove alias - Pass required parameters
+                Invoke-AliasRemove -RepoManager $context.RepoManager -Repository $currentRepo
             }
             
             # Reload repositories to reflect alias changes
             $repoManager = $context.RepoManager
             if ($null -ne $repoManager) {
+                $repoManager.LoadRepositories($context.BasePath)
                 $updatedRepos = $repoManager.GetRepositories()
                 $state.SetRepositories($updatedRepos)
                 

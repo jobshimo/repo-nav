@@ -21,20 +21,21 @@ class RepositoryManagementCommand : INavigationCommand {
         
         try {
             if ($key -eq [System.ConsoleKey]::C) {
-                # Clone repository
-                Invoke-RepositoryClone
+                # Clone repository - Pass required parameters
+                Invoke-RepositoryClone -RepoManager $context.RepoManager -BasePath $context.BasePath
             }
             elseif ($key -eq [System.ConsoleKey]::Delete) {
-                # Delete repository (CRITICAL: requires confirmation)
+                # Delete repository (CRITICAL: requires confirmation) - Pass required parameters
                 if ($repos.Count -gt 0) {
                     $currentRepo = $repos[$currentIndex]
-                    Invoke-RepositoryDelete -Repository $currentRepo
+                    Invoke-RepositoryDelete -RepoManager $context.RepoManager -Repository $currentRepo
                 }
             }
             
             # Reload repositories after clone/delete
             $repoManager = $context.RepoManager
             if ($null -ne $repoManager) {
+                $repoManager.LoadRepositories($context.BasePath)
                 $updatedRepos = $repoManager.GetRepositories()
                 $state.SetRepositories($updatedRepos)
                 

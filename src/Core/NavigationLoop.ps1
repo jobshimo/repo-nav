@@ -1,6 +1,10 @@
 <#
 .SYNOPSIS
-    Main navigation loop - outside classes to avoid PowerShell command output issues
+    Main navigation loop - Refactored with Command Pattern
+    
+.DESCRIPTION
+    Orchestrates the navigation UI using NavigationState, CommandFactory, 
+    InputHandler, and RenderOrchestrator. Reduced from 409 lines to ~100 lines.
 #>
 
 function Start-NavigationLoop {
@@ -33,373 +37,123 @@ function Start-NavigationLoop {
         return
     }
     
-    $SelectedIndex = 0
-    $Running = $true
-    
     try {
         $Console.HideCursor()
+        
+        # Initialize NavigationState
+        $state = [NavigationState]::new($repos)
+        
+        # Initialize RenderOrchestrator with cursor start line
+        $cursorStartLine = [Constants]::CursorStartLine
+        $renderOrchestrator = [RenderOrchestrator]::new($Renderer, $Console, $cursorStartLine)
+        
+        # Load command infrastructure
+        . "$PSScriptRoot\Commands\INavigationCommand.ps1"
+        . "$PSScriptRoot\Commands\ExitCommand.ps1"
+        . "$PSScriptRoot\Commands\NavigationCommand.ps1"
+        . "$PSScriptRoot\Commands\RepositoryCommand.ps1"
+        . "$PSScriptRoot\Commands\GitCommand.ps1"
+        . "$PSScriptRoot\Commands\FavoriteCommand.ps1"
+        . "$PSScriptRoot\Commands\AliasCommand.ps1"
+        . "$PSScriptRoot\Commands\NpmCommand.ps1"
+        . "$PSScriptRoot\Commands\RepositoryManagementCommand.ps1"
+        . "$PSScriptRoot\Commands\PreferencesCommand.ps1"
+        . "$PSScriptRoot\CommandFactory.ps1"
+        . "$PSScriptRoot\InputHandler.ps1"
+        
+        # Initialize CommandFactory and InputHandler
+        $factory = [CommandFactory]::new()
+        $inputHandler = [InputHandler]::new($factory)
+        
+        # Create context hashtable for commands
+        $context = @{
+            State = $state
+            RepoManager = $RepoManager
+            Renderer = $Renderer
+            Console = $Console
+            ColorSelector = $ColorSelector
+            OptionSelector = $OptionSelector
+            BasePath = $BasePath
+        }
         
         # Initial full render
         $Console.ClearScreen()
         $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
         $Renderer.RenderMenu()
         
+        $repos = $state.GetRepositories()
+        $currentIndex = $state.GetCurrentIndex()
+        
         for ($i = 0; $i -lt $repos.Count; $i++) {
-            $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
+            $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $currentIndex))
         }
         
         Write-Host ""
         $totalRepos = $repos.Count
         $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-        $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
+        $Renderer.RenderGitStatusFooter($repos[$currentIndex], $totalRepos, $loadedRepos)
         
-        $previousIndex = $SelectedIndex
-        
-        # Main input loop - OUTSIDE CLASS
-        while ($Running) {
-            $key = $Console.ReadKey()
+        # Main input loop - Simplified using Command Pattern
+        while (-not $state.ShouldExit()) {
+            $keyPress = $Console.ReadKey()
             
-            switch ($key.VirtualKeyCode) {
-                ([Constants]::KEY_UP_ARROW) {
-                    $previousIndex = $SelectedIndex
-                    if ($SelectedIndex -gt 0) {
-                        $SelectedIndex--
-                    } else {
-                        $SelectedIndex = $repos.Count - 1
-                    }
-                    
-                    # Update display
-                    $startLine = [Constants]::CursorStartLine
-                    $Renderer.UpdateRepositoryItemAt(($startLine + $previousIndex), $repos[$previousIndex], $false)
-                    $Renderer.UpdateRepositoryItemAt(($startLine + $SelectedIndex), $repos[$SelectedIndex], $true)
-                    
-                    $footerLine = $startLine + $repos.Count + 1
-                    $Console.SetCursorPosition(0, $footerLine)
-                    $Renderer.ClearGitStatusFooter($footerLine)
-                    $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                }
-                
-                ([Constants]::KEY_DOWN_ARROW) {
-                    $previousIndex = $SelectedIndex
-                    if ($SelectedIndex -lt ($repos.Count - 1)) {
-                        $SelectedIndex++
-                    } else {
-                        $SelectedIndex = 0
-                    }
-                    
-                    # Update display
-                    $startLine = [Constants]::CursorStartLine
-                    $Renderer.UpdateRepositoryItemAt(($startLine + $previousIndex), $repos[$previousIndex], $false)
-                    $Renderer.UpdateRepositoryItemAt(($startLine + $SelectedIndex), $repos[$SelectedIndex], $true)
-                    
-                    $footerLine = $startLine + $repos.Count + 1
-                    $Console.SetCursorPosition(0, $footerLine)
-                    $Renderer.ClearGitStatusFooter($footerLine)
-                    $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                }
-                
-                ([Constants]::KEY_ENTER) {
-                    $selectedRepo = $repos[$SelectedIndex]
-                    $Console.ClearScreen()
-                    $Renderer.RenderSuccess("Opening: $($selectedRepo.Name)")
-                    Set-Location $selectedRepo.FullPath
-                    $Running = $false
-                }
-                
-                ([Constants]::KEY_E) {
-                    # Edit alias
-                    $selectedRepo = $repos[$SelectedIndex]
-                    if (Invoke-AliasEdit -RepoManager $RepoManager -Repository $selectedRepo -ColorSelector $ColorSelector) {
-                        # Refresh and redraw
-                        $RepoManager.LoadRepositories($BasePath)
-                        $repos = $RepoManager.GetRepositories()
-                    }
-                    
-                    $Console.ClearScreen()
-                    $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
-                    $Renderer.RenderMenu()
-                    
-                    for ($i = 0; $i -lt $repos.Count; $i++) {
-                        $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
-                    }
-                    
-                    Write-Host ""
-                    $totalRepos = $repos.Count
-                    $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-                    $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                    $Console.HideCursor()
-                }
-                
-                ([Constants]::KEY_R) {
-                    # Remove alias
-                    $selectedRepo = $repos[$SelectedIndex]
-                    if (Invoke-AliasRemove -RepoManager $RepoManager -Repository $selectedRepo) {
-                        # Refresh and redraw
-                        $RepoManager.LoadRepositories($BasePath)
-                        $repos = $RepoManager.GetRepositories()
-                    }
-                    
-                    $Console.ClearScreen()
-                    $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
-                    $Renderer.RenderMenu()
-                    
-                    for ($i = 0; $i -lt $repos.Count; $i++) {
-                        $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
-                    }
-                    
-                    Write-Host ""
-                    $totalRepos = $repos.Count
-                    $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-                    $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                    $Console.HideCursor()
-                }
-                
-                ([Constants]::KEY_I) {
-                    # Call helper function directly - OUTSIDE CLASS
-                    $selectedRepo = $repos[$SelectedIndex]
-                    Invoke-NpmInstall -Repository $selectedRepo
-                    
-                    # Refresh and redraw
-                    $repos = $RepoManager.GetRepositories()
-                    $Console.ClearScreen()
-                    $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
-                    $Renderer.RenderMenu()
-                    
-                    for ($i = 0; $i -lt $repos.Count; $i++) {
-                        $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
-                    }
-                    
-                    Write-Host ""
-                    $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-                    $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                    $Console.HideCursor()
-                }
-                
-                ([Constants]::KEY_X) {
-                    # Remove node_modules
-                    $selectedRepo = $repos[$SelectedIndex]
-                    if (Invoke-NodeModulesRemove -RepoManager $RepoManager -Repository $selectedRepo) {
-                        # Refresh and redraw
-                        $RepoManager.LoadRepositories($BasePath)
-                        $repos = $RepoManager.GetRepositories()
-                    }
-                    
-                    $Console.ClearScreen()
-                    $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
-                    $Renderer.RenderMenu()
-                    
-                    for ($i = 0; $i -lt $repos.Count; $i++) {
-                        $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
-                    }
-                    
-                    Write-Host ""
-                    $totalRepos = $repos.Count
-                    $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-                    $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                    $Console.HideCursor()
-                }
-                
-                ([Constants]::KEY_C) {
-                    # Clone repository
-                    if (Invoke-RepositoryClone -RepoManager $RepoManager -BasePath $BasePath) {
-                        # Refresh and redraw
-                        $RepoManager.LoadRepositories($BasePath)
-                        $repos = $RepoManager.GetRepositories()
-                    }
-                    
-                    if ($repos.Count -eq 0) {
-                        $Console.ClearScreen()
-                        $Renderer.RenderWarning("No repositories found.")
-                        $Running = $false
-                    } else {
-                        # Adjust index if needed
-                        if ($SelectedIndex -ge $repos.Count) {
-                            $SelectedIndex = $repos.Count - 1
-                        }
-                        
-                        $Console.ClearScreen()
-                        $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
-                        $Renderer.RenderMenu()
-                        
-                        for ($i = 0; $i -lt $repos.Count; $i++) {
-                            $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
-                        }
-                        
-                        Write-Host ""
-                        $totalRepos = $repos.Count
-                        $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-                        $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                        $Console.HideCursor()
-                    }
-                }
-                
-                ([Constants]::KEY_DELETE) {
-                    # Delete repository
-                    $selectedRepo = $repos[$SelectedIndex]
-                    $deleted = Invoke-RepositoryDelete -RepoManager $RepoManager -Repository $selectedRepo
-                    
-                    if ($deleted) {
-                        # Refresh and redraw
-                        $RepoManager.LoadRepositories($BasePath)
-                        $repos = $RepoManager.GetRepositories()
-                        
-                        if ($repos.Count -eq 0) {
-                            $Console.ClearScreen()
-                            $Renderer.RenderWarning("No more repositories found.")
-                            $Running = $false
-                        } else {
-                            # Adjust index if needed
-                            if ($SelectedIndex -ge $repos.Count) {
-                                $SelectedIndex = $repos.Count - 1
-                            }
-                            
-                            $Console.ClearScreen()
-                            $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
-                            $Renderer.RenderMenu()
-                            
-                            for ($i = 0; $i -lt $repos.Count; $i++) {
-                                $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
-                            }
-                            
-                            Write-Host ""
-                            $totalRepos = $repos.Count
-                            $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-                            $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                            $Console.HideCursor()
-                        }
-                    } else {
-                        # Redraw if deletion was cancelled
-                        $Console.ClearScreen()
-                        $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
-                        $Renderer.RenderMenu()
-                        
-                        for ($i = 0; $i -lt $repos.Count; $i++) {
-                            $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
-                        }
-                        
-                        Write-Host ""
-                        $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                        $Console.HideCursor()
-                    }
-                }
-                
-                ([Constants]::KEY_L) {
-                    # Load git status for current repository
-                    $selectedRepo = $repos[$SelectedIndex]
-                    $RepoManager.LoadGitStatus($selectedRepo)
-                    
-                    # Update display
-                    $startLine = [Constants]::CursorStartLine
-                    $Renderer.UpdateRepositoryItemAt(($startLine + $SelectedIndex), $repos[$SelectedIndex], $true)
-                    
-                    $footerLine = $startLine + $repos.Count + 1
-                    $Console.SetCursorPosition(0, $footerLine)
-                    $totalRepos = $repos.Count
-                    $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-                    $Renderer.ClearGitStatusFooter($footerLine)
-                    $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                }
-                
-                ([Constants]::KEY_G) {
-                    # Load git status for all repositories
-                    $RepoManager.LoadMissingGitStatus()
-                    
-                    # Full redraw
-                    $Console.ClearScreen()
-                    $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
-                    $Renderer.RenderMenu()
-                    
-                    for ($i = 0; $i -lt $repos.Count; $i++) {
-                        $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
-                    }
-                    
-                    Write-Host ""
-                    $totalRepos = $repos.Count
-                    $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-                    $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                }
-                
-                ([Constants]::KEY_F) {
-                    # Toggle favorite status
-                    $selectedRepo = $repos[$SelectedIndex]
-                    $RepoManager.ToggleFavorite($selectedRepo)
-                    
-                    # Refresh repositories list (re-sorted)
-                    $repos = $RepoManager.GetRepositories()
-                    
-                    # Find new index of current repo (it may have moved)
-                    $newIndex = 0
-                    for ($i = 0; $i -lt $repos.Count; $i++) {
-                        if ($repos[$i].Name -eq $selectedRepo.Name) {
-                            $newIndex = $i
-                            break
-                        }
-                    }
-                    $SelectedIndex = $newIndex
-                    
-                    # Full redraw
-                    $Console.ClearScreen()
-                    $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
-                    $Renderer.RenderMenu()
-                    
-                    for ($i = 0; $i -lt $repos.Count; $i++) {
-                        $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
-                    }
-                    
-                    Write-Host ""
-                    $totalRepos = $repos.Count
-                    $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-                    $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                    $Console.HideCursor()
-                }
-                
-                ([Constants]::KEY_U) {
-                    # Open user preferences menu
-                    Show-PreferencesMenu -PreferencesService $RepoManager.PreferencesService -Console $Console -Renderer $Renderer -OptionSelector $OptionSelector
-                    
-                    # Reload repositories with potentially new sorting preference
-                    $selectedRepoName = $repos[$SelectedIndex].Name
-                    $RepoManager.LoadRepositories($BasePath)
-                    $repos = $RepoManager.GetRepositories()
-                    
-                    # Find the previously selected repo
-                    $newIndex = 0
-                    for ($i = 0; $i -lt $repos.Count; $i++) {
-                        if ($repos[$i].Name -eq $selectedRepoName) {
-                            $newIndex = $i
-                            break
-                        }
-                    }
-                    $SelectedIndex = $newIndex
-                    
-                    # Full redraw
-                    $Console.ClearScreen()
-                    $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
-                    $Renderer.RenderMenu()
-                    
-                    for ($i = 0; $i -lt $repos.Count; $i++) {
-                        $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
-                    }
-                    
-                    Write-Host ""
-                    $totalRepos = $repos.Count
-                    $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-                    $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
-                    $Console.HideCursor()
-                }
-                
-                ([Constants]::KEY_Q) {
-                    $Console.ClearScreen()
-                    $Renderer.RenderWarning("Navigation cancelled.")
-                    $Running = $false
-                }
-                
-                ([Constants]::KEY_ESC) {
-                    $Console.ClearScreen()
-                    $Renderer.RenderWarning("Navigation cancelled.")
-                    $Running = $false
-                }
+            # Delegate input handling to InputHandler
+            $handled = $inputHandler.HandleInput($keyPress, $context)
+            
+            if (-not $handled) {
+                # Key not handled by any command - ignore silently
+                continue
             }
+            
+            # Handle rendering based on state flags
+            if ($state.NeedsFullRedraw()) {
+                # Full redraw requested
+                $repos = $state.GetRepositories()
+                $currentIndex = $state.GetCurrentIndex()
+                
+                $Console.ClearScreen()
+                $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
+                $Renderer.RenderMenu()
+                
+                for ($i = 0; $i -lt $repos.Count; $i++) {
+                    $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $currentIndex))
+                }
+                
+                Write-Host ""
+                $totalRepos = $repos.Count
+                $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
+                $Renderer.RenderGitStatusFooter($repos[$currentIndex], $totalRepos, $loadedRepos)
+                $Console.HideCursor()
+                
+                $state.ClearFullRedrawFlag()
+            }
+            elseif ($state.HasSelectionChanged()) {
+                # Partial redraw - only update changed items
+                $repos = $state.GetRepositories()
+                $currentIndex = $state.GetCurrentIndex()
+                $previousIndex = $state.GetPreviousIndex()
+                
+                $renderOrchestrator.RenderPartial($repos, $currentIndex, $previousIndex)
+                
+                $state.ClearSelectionChangedFlag()
+            }
+        }
+        
+        # Handle exit state
+        $exitState = $state.GetExitState()
+        if ($exitState -eq "OpenRepository") {
+            $repos = $state.GetRepositories()
+            $currentIndex = $state.GetCurrentIndex()
+            if ($currentIndex -lt $repos.Count) {
+                $selectedRepo = $repos[$currentIndex]
+                $Console.ClearScreen()
+                $Renderer.RenderSuccess("Opening: $($selectedRepo.Name)")
+                Set-Location $selectedRepo.FullPath
+            }
+        }
+        elseif ($exitState -eq "Cancelled") {
+            $Console.ClearScreen()
+            $Renderer.RenderWarning("Navigation cancelled.")
         }
     }
     finally {

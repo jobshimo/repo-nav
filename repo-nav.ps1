@@ -76,12 +76,16 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Services\NpmService.ps1"
 . "$srcPath\Services\InteractiveHelpers.ps1"
 . "$srcPath\Services\PreferencesHelpers.ps1"
+. "$srcPath\Services\RenderOrchestrator.ps1"
 
 # UI (depend on models and config)
 . "$srcPath\UI\ConsoleHelper.ps1"
 . "$srcPath\UI\UIRenderer.ps1"
 . "$srcPath\UI\ColorSelector.ps1"
 . "$srcPath\UI\OptionSelector.ps1"
+
+# Core - Navigation State
+. "$srcPath\Core\NavigationState.ps1"
 
 # Core (depend on everything)
 . "$srcPath\Core\RepositoryManager.ps1"
