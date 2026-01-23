@@ -1,0 +1,67 @@
+# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
+
+class RepositoryManagementCommand : INavigationCommand {
+    [string] GetDescription() {
+        return "Clone (C) or Delete (DELETE) repository"
+    }
+
+    [bool] CanExecute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+        $key = $keyPress.Key
+        return $key -eq [System.ConsoleKey]::C -or $key -eq [System.ConsoleKey]::Delete
+    }
+
+    [void] Execute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+        $state = $context.State
+        $repos = $state.GetRepositories()
+        $currentIndex = $state.GetCurrentIndex()
+        $key = $keyPress.Key
+        
+        # Stop the navigation loop to allow interactive input
+        $state.Stop()
+        
+        try {
+            if ($key -eq [System.ConsoleKey]::C) {
+                # Clone repository
+                Invoke-RepositoryClone
+            }
+            elseif ($key -eq [System.ConsoleKey]::Delete) {
+                # Delete repository (CRITICAL: requires confirmation)
+                if ($repos.Count -gt 0) {
+                    $currentRepo = $repos[$currentIndex]
+                    Invoke-RepositoryDelete -Repository $currentRepo
+                }
+            }
+            
+            # Reload repositories after clone/delete
+            $repoManager = $context.RepoManager
+            if ($null -ne $repoManager) {
+                $updatedRepos = $repoManager.GetRepositories()
+                $state.SetRepositories($updatedRepos)
+                
+                # Adjust selection after deletion or addition
+                if ($key -eq [System.ConsoleKey]::Delete) {
+                    # If we deleted the last item, move selection up
+                    if ($currentIndex -ge $updatedRepos.Count -and $updatedRepos.Count -gt 0) {
+                        $state.SetCurrentIndex($updatedRepos.Count - 1)
+                    }
+                    elseif ($updatedRepos.Count -eq 0) {
+                        $state.SetCurrentIndex(0)
+                    }
+                }
+                elseif ($key -eq [System.ConsoleKey]::C) {
+                    # After clone, try to select the newly added repository (last one)
+                    if ($updatedRepos.Count -gt 0) {
+                        $state.SetCurrentIndex($updatedRepos.Count - 1)
+                    }
+                }
+            }
+            
+            # Mark for full redraw
+            $state.MarkForFullRedraw()
+        }
+        finally {
+            # Resume navigation loop
+            $state.Resume()
+        }
+    }
+}

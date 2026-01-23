@@ -1,74 +1,50 @@
-<#
-.SYNOPSIS
-    Favorite command - handles F key to toggle favorite status
-    
-.DESCRIPTION
-    Toggles the favorite status of the selected repository.
-    After toggling, the list is re-sorted (favorites first) and
-    the selection is maintained on the same repository.
-    
-.NOTES
-    Implements INavigationCommand interface
-    Key: F
-#>
-
-. "$PSScriptRoot\INavigationCommand.ps1"
+# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
 
 class FavoriteCommand : INavigationCommand {
-    # No dependencies needed - uses context
-    
-    # Constructor
-    FavoriteCommand() {
+    [string] GetDescription() {
+        return "Toggle favorite status (F)"
     }
-    
-    <#
-    .SYNOPSIS
-        Can execute if there's a selected repository
-    #>
-    [bool] CanExecute([object]$state) {
-        $repo = $state.GetSelectedRepository()
-        return $null -ne $repo
+
+    [bool] CanExecute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+        return $keyPress.Key -eq [System.ConsoleKey]::F
     }
-    
-    <#
-    .SYNOPSIS
-        Toggles favorite status and updates display
-    #>
-    [void] Execute([object]$state, [hashtable]$context) {
-        $repoManager = $context["RepoManager"]
+
+    [void] Execute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+        $state = $context.State
+        $repos = $state.GetRepositories()
+        $currentIndex = $state.GetCurrentIndex()
         
-        if ($null -eq $repoManager) {
-            throw "RepoManager not found in context"
-        }
+        if ($repos.Count -eq 0) { return }
         
-        # Get current repository name (to find it after re-sort)
-        $selectedRepo = $state.GetSelectedRepository()
-        if ($null -eq $selectedRepo) {
-            return
-        }
-        
-        $selectedRepoName = $selectedRepo.Name
+        # Get current repository before toggle
+        $currentRepo = $repos[$currentIndex]
+        $repoName = $currentRepo.Name
         
         # Toggle favorite status
-        $repoManager.ToggleFavorite($selectedRepo)
+        $repos[$currentIndex].IsFavorite = -not $repos[$currentIndex].IsFavorite
         
-        # Refresh repositories list (will be re-sorted)
-        $repos = $repoManager.GetRepositories()
-        $state.UpdateRepositories($repos)
+        # Re-sort the list (favorites first)
+        $sortedRepos = $repos | Sort-Object -Property @(
+            @{Expression = {-not $_.IsFavorite}; Ascending = $true}
+            @{Expression = {$_.Name}; Ascending = $true}
+        )
         
-        # Find the new index of the repository (it may have moved)
-        $newIndex = $state.FindRepositoryIndex($selectedRepoName)
-        $state.SelectIndex($newIndex)
+        # Update state with sorted repositories
+        $state.SetRepositories($sortedRepos)
         
-        # Full redraw needed (list was re-sorted)
+        # Find the new index of the current repository after sorting
+        $newIndex = 0
+        for ($i = 0; $i -lt $sortedRepos.Count; $i++) {
+            if ($sortedRepos[$i].Name -eq $repoName) {
+                $newIndex = $i
+                break
+            }
+        }
+        
+        # Update selection to the same repository
+        $state.SetCurrentIndex($newIndex)
+        
+        # Mark for full redraw because list order changed
         $state.MarkForFullRedraw()
-    }
-    
-    <#
-    .SYNOPSIS
-        Returns command description
-    #>
-    [string] GetDescription() {
-        return "Toggle favorite"
     }
 }
