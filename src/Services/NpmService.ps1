@@ -39,8 +39,8 @@ class NpmService {
     # Install npm dependencies
     # Delegates to helper function outside class to avoid PowerShell output issues
     [bool] InstallDependencies([string]$repoPath) {
-        # Note: This is not used directly anymore, but kept for compatibility
-        # The NavigatorController calls Invoke-NpmInstall directly
+        # Note: This method is not used directly anymore
+        # NavigationLoop calls Invoke-NpmInstall from InteractiveHelpers.ps1 instead
         if (-not $this.HasPackageJson($repoPath)) {
             Write-Warning "No package.json found in $repoPath"
             return $false
