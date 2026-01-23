@@ -80,22 +80,29 @@ class UIRenderer {
     
     # Render a single repository list item
     [void] RenderRepositoryItem([RepositoryModel]$repo, [bool]$isSelected) {
-        # Determine colors
-        $nameColor = if (-not $repo.HasNodeModules) { 
-            [Constants]::ColorRepoWithoutModules
-        } elseif ($isSelected) { 
-            [Constants]::ColorSelected
-        } else { 
-            [Constants]::ColorUnselected
-        }
-        
+        # Get user-configured background color
         $backgroundColor = $null
+        $selectedTextColor = [Constants]::ColorSelected
+        
         if ($isSelected) {
             $preferences = $this.PreferencesService.LoadPreferences()
             $bgColor = $preferences.display.selectedBackground
+            
             if ($bgColor -ne 'None') {
                 $backgroundColor = $bgColor
             }
+            
+            # Get optimal text color based on background for better contrast
+            $selectedTextColor = [Constants]::GetTextColorForBackground($bgColor)
+        }
+        
+        # Determine name color
+        $nameColor = if (-not $repo.HasNodeModules) { 
+            [Constants]::ColorRepoWithoutModules  # Red si no tiene node_modules
+        } elseif ($isSelected) { 
+            $selectedTextColor  # Color optimizado según fondo
+        } else { 
+            [Constants]::ColorUnselected  # Blanco cuando no está seleccionado
         }
         
         $prefix = if ($isSelected) { "  > " } else { "    " }
@@ -103,8 +110,8 @@ class UIRenderer {
         # Get git status display
         $gitDisplay = $this.GetGitStatusDisplay($repo.GitStatus)
         
-        # Render prefix
-        Write-Host $prefix -NoNewline -ForegroundColor $(if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorUnselected })
+        # Render prefix - usar color optimizado
+        Write-Host $prefix -NoNewline -ForegroundColor $(if ($isSelected) { $selectedTextColor } else { [Constants]::ColorUnselected })
         
         # Render favorite indicator
         if ($repo.IsFavorite) {

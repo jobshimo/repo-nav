@@ -58,6 +58,29 @@ class Constants {
     # Available background color options for selected items
     static [string[]] $AvailableBackgroundColors = @('None', 'Black', 'DarkGray', 'DarkBlue', 'DarkMagenta', 'DarkCyan', 'DarkGreen', 'DarkRed', 'DarkYellow')
     
+    # Get optimal text color for repository name based on background color
+    # Returns the best contrasting color (White or Green) for readability
+    static [string] GetTextColorForBackground([string]$backgroundColor) {
+        # Default color
+        $color = 'Green'
+        
+        if (-not [string]::IsNullOrWhiteSpace($backgroundColor)) {
+            switch ($backgroundColor) {
+                'DarkGreen'   { $color = 'White' }   # Verde texto sobre verde fondo = mal contraste
+                'DarkRed'     { $color = 'White' }   # Mejor contraste con blanco
+                'DarkYellow'  { $color = 'Black' }   # Amarillo oscuro + negro = buen contraste
+                'DarkMagenta' { $color = 'White' }   # Magenta + blanco = buen contraste
+                'DarkCyan'    { $color = 'White' }   # Cyan + blanco = buen contraste
+                'DarkBlue'    { $color = 'White' }   # Azul + blanco = buen contraste
+                'DarkGray'    { $color = 'Black' }   # Gris + verde = contraste clásico (tu original)
+                'Black'       { $color = 'Green' }   # Negro + verde = buen contraste
+                'None'        { $color = 'Green' }   # Sin fondo = verde normal
+            }
+        }
+        
+        return $color
+    }
+    
     static [string] $ColorError = "Red"
     static [string] $ColorSuccess = "Green"
     static [string] $ColorWarning = "Yellow"
