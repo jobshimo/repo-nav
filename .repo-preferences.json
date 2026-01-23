@@ -1,6 +1,7 @@
 ﻿{
     "display":  {
                     "favoritesOnTop":  false,
-                    "selectedBackground":  "DarkBlue"
+                    "selectedBackground":  "DarkBlue",
+                    "selectedDelimiter":  "Arrows"
                 }
 }

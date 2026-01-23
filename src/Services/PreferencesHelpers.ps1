@@ -42,6 +42,10 @@ function Show-PreferencesMenu {
                 @{
                     Name = "Selected Item Background"
                     CurrentValue = $preferences.display.selectedBackground
+                },
+                @{
+                    Name = "Selected Item Delimiter"
+                    CurrentValue = $preferences.display.selectedDelimiter
                 }
             )
             
@@ -147,6 +151,31 @@ function Show-PreferencesMenu {
                             # Set confirmation message
                             $statusText = if ($newValue -eq 'None') { "No background" } else { $newValue }
                             $confirmationMessage = "Background color changed to: $statusText"
+                            $confirmationTimeout = 2
+                        }
+                    }
+                    elseif ($selectedOption -eq 2) {
+                        # Edit Selected Delimiter using OptionSelector
+                        $delimiterOptions = @()
+                        foreach ($delim in [Constants]::AvailableDelimiters) {
+                            $delimiterOptions += @{ DisplayText = $delim.Name; Value = $delim.Name }
+                        }
+                        
+                        $currentValue = $preferences.display.selectedDelimiter
+                        $newValue = $OptionSelector.ShowSelection(
+                            "SELECTED ITEM DELIMITER",
+                            $delimiterOptions,
+                            $currentValue,
+                            "Back to preferences"
+                        )
+                        
+                        # If user selected something (not cancelled)
+                        if ($null -ne $newValue -and $newValue -ne $currentValue) {
+                            $PreferencesService.SetPreference("display", "selectedDelimiter", $newValue)
+                            $preferences = $PreferencesService.LoadPreferences()
+                            
+                            # Set confirmation message
+                            $confirmationMessage = "Delimiter changed to: $newValue"
                             $confirmationTimeout = 2
                         }
                     }

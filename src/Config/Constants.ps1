@@ -58,6 +58,17 @@ class Constants {
     # Available background color options for selected items
     static [string[]] $AvailableBackgroundColors = @('None', 'Black', 'DarkGray', 'DarkBlue', 'DarkMagenta', 'DarkCyan', 'DarkGreen', 'DarkRed', 'DarkYellow')
     
+    # Available delimiter options for selected items
+    static [hashtable[]] $AvailableDelimiters = @(
+        @{ Name = 'None'; Left = ''; Right = '' },
+        @{ Name = 'Brackets'; Left = '[ '; Right = ' ]' },
+        @{ Name = 'Braces'; Left = '{ '; Right = ' }' },
+        @{ Name = 'Arrows'; Left = '< '; Right = ' >' },
+        @{ Name = 'Double Arrows'; Left = '<< '; Right = ' >>' },
+        @{ Name = 'Stars'; Left = '* '; Right = ' *' },
+        @{ Name = 'Pipes'; Left = '| '; Right = ' |' }
+    )
+    
     # Get optimal text color for repository name based on background color
     # Returns the best contrasting color (White or Green) for readability
     static [string] GetTextColorForBackground([string]$backgroundColor) {

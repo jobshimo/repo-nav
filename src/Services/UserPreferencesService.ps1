@@ -67,6 +67,7 @@ class UserPreferencesService {
             display = [PSCustomObject]@{
                 favoritesOnTop = $true
                 selectedBackground = "DarkGray"
+                selectedDelimiter = "None"
             }
         }
         
@@ -96,6 +97,11 @@ class UserPreferencesService {
         # Ensure selectedBackground exists with default value
         if (-not ($preferences.display.PSObject.Properties.Name -contains 'selectedBackground')) {
             $preferences.display | Add-Member -NotePropertyName 'selectedBackground' -NotePropertyValue "DarkGray" -Force
+        }
+        
+        # Ensure selectedDelimiter exists with default value
+        if (-not ($preferences.display.PSObject.Properties.Name -contains 'selectedDelimiter')) {
+            $preferences.display | Add-Member -NotePropertyName 'selectedDelimiter' -NotePropertyValue "None" -Force
         }
         
         return $preferences

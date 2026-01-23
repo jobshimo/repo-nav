@@ -80,9 +80,11 @@ class UIRenderer {
     
     # Render a single repository list item
     [void] RenderRepositoryItem([RepositoryModel]$repo, [bool]$isSelected) {
-        # Get user-configured background color
+        # Get user-configured background color and delimiter
         $backgroundColor = $null
         $selectedTextColor = [Constants]::ColorSelected
+        $leftDelimiter = ''
+        $rightDelimiter = ''
         
         if ($isSelected) {
             $preferences = $this.PreferencesService.LoadPreferences()
@@ -94,6 +96,14 @@ class UIRenderer {
             
             # Get optimal text color based on background for better contrast
             $selectedTextColor = [Constants]::GetTextColorForBackground($bgColor)
+            
+            # Get delimiter
+            $delimiterName = $preferences.display.selectedDelimiter
+            $delimiter = [Constants]::AvailableDelimiters | Where-Object { $_.Name -eq $delimiterName } | Select-Object -First 1
+            if ($delimiter) {
+                $leftDelimiter = $delimiter.Left
+                $rightDelimiter = $delimiter.Right
+            }
         }
         
         # Determine name color
@@ -123,11 +133,29 @@ class UIRenderer {
         # Render git indicator
         Write-Host "$($gitDisplay.Symbol) " -NoNewline -ForegroundColor $gitDisplay.Color
         
+        # Render left delimiter
+        if ($leftDelimiter -ne '') {
+            if ($backgroundColor) {
+                Write-Host $leftDelimiter -NoNewline -ForegroundColor $selectedTextColor -BackgroundColor $backgroundColor
+            } else {
+                Write-Host $leftDelimiter -NoNewline -ForegroundColor $selectedTextColor
+            }
+        }
+        
         # Render repo name
         if ($backgroundColor) {
             Write-Host $repo.Name -NoNewline -ForegroundColor $nameColor -BackgroundColor $backgroundColor
         } else {
             Write-Host $repo.Name -NoNewline -ForegroundColor $nameColor
+        }
+        
+        # Render right delimiter
+        if ($rightDelimiter -ne '') {
+            if ($backgroundColor) {
+                Write-Host $rightDelimiter -NoNewline -ForegroundColor $selectedTextColor -BackgroundColor $backgroundColor
+            } else {
+                Write-Host $rightDelimiter -NoNewline -ForegroundColor $selectedTextColor
+            }
         }
         
         # Render alias if exists
