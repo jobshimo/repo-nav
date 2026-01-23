@@ -1,4 +1,4 @@
-# 📁 Repository Navigator# 📁 Repository Navigator# 📁 Repository Navigator
+# 📁 Repository Navigator# 📁 Repository Navigator# 📁 Repository Navigator# 📁 Repository Navigator
 
 
 
@@ -6,7 +6,7 @@
 
 
 
-[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://github.com/PowerShell/PowerShell)> **Una herramienta interactiva en PowerShell para gestionar múltiples repositorios Git con aliases, operaciones npm y seguimiento de estado.**> **Una herramienta interactiva en PowerShell para gestionar múltiples repositorios Git con aliases, operaciones npm y seguimiento de estado.**
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://github.com/PowerShell/PowerShell)> **Una herramienta interactiva en PowerShell para gestionar múltiples repositorios Git con aliases, operaciones npm y seguimiento de estado.**
 
 [![License](https://img.shields.io/badge/License-Internal-red.svg)](LICENSE)
 
@@ -14,11 +14,11 @@
 
 
 
----[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://github.com/PowerShell/PowerShell)[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://github.com/PowerShell/PowerShell)
+---[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://github.com/PowerShell/PowerShell)> **Una herramienta interactiva en PowerShell para gestionar múltiples repositorios Git con aliases, operaciones npm y seguimiento de estado.**> **Una herramienta interactiva en PowerShell para gestionar múltiples repositorios Git con aliases, operaciones npm y seguimiento de estado.**
 
 
 
-## 📖 Tabla de Contenidos[![License](https://img.shields.io/badge/License-Internal-red.svg)](LICENSE)[![License](https://img.shields.io/badge/License-Internal-red.svg)](LICENSE)
+## 📖 Tabla de Contenidos[![License](https://img.shields.io/badge/License-Internal-red.svg)](LICENSE)
 
 
 
@@ -26,59 +26,59 @@
 
 - [Instalación](#-instalación)
 
-- [Uso Rápido](#-uso-rápido)![Demo Preview](https://img.shields.io/badge/Status-Active-success)
+- [Uso Rápido](#-uso-rápido)
 
 - [Controles](#-controles)
 
-- [Características](#-características)---
+- [Características](#-características)---[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://github.com/PowerShell/PowerShell)[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://github.com/PowerShell/PowerShell)
 
 - [Configuración](#-configuración)
 
-- [Estructura del Proyecto](#-estructura-del-proyecto)---
+- [Estructura del Proyecto](#-estructura-del-proyecto)
 
 - [Troubleshooting](#-troubleshooting)
 
-## 📖 Tabla de Contenidos
+## 📖 Tabla de Contenidos[![License](https://img.shields.io/badge/License-Internal-red.svg)](LICENSE)[![License](https://img.shields.io/badge/License-Internal-red.svg)](LICENSE)
 
 ---
 
-## 📖 Tabla de Contenidos
+
 
 ## 🎯 ¿Qué es esto?
 
-- [¿Qué es esto?](#-qué-es-esto)
+- [¿Qué es esto?](#-qué-es-esto)![Status](https://img.shields.io/badge/Status-Active-success)
 
 **Repository Navigator** es una interfaz de terminal interactiva que te permite:
 
-- [Instalación](#-instalación)- [¿Qué es esto?](#-qué-es-esto)
+- [Instalación](#-instalación)
 
 - 📂 Navegar rápidamente entre todos tus repositorios
 
-- 🏷️ Crear **aliases con colores** para identificar proyectos importantes- [Uso Rápido](#-uso-rápido)- [Instalación](#-instalación)
+- 🏷️ Crear **aliases con colores** para identificar proyectos importantes- [Uso Rápido](#-uso-rápido)![Demo Preview](https://img.shields.io/badge/Status-Active-success)
 
 - 📊 Ver el **estado de Git** (branch, commits pendientes, cambios)
 
-- 📦 Gestionar **node_modules** (instalar/eliminar)- [Controles](#-controles)- [Uso Rápido](#-uso-rápido)
+- 📦 Gestionar **node_modules** (instalar/eliminar)- [Controles](#-controles)
 
 - 🔄 **Clonar** nuevos repositorios
 
-- 🗑️ Eliminar repositorios con confirmación de seguridad- [Características](#-características)- [Controles](#-controles)
+- 🗑️ Eliminar repositorios con confirmación de seguridad- [Características](#-características)---
 
 
 
----- [Configuración](#-configuración)- [Características](#-características)
+---- [Configuración](#-configuración)
 
 
 
-## 🚀 Instalación- [Estructura del Proyecto](#-estructura-del-proyecto)- [Configuración](#-configuración)
+## 🚀 Instalación- [Estructura del Proyecto](#-estructura-del-proyecto)---
 
 
 
-### Requisitos- [Troubleshooting](#-troubleshooting)- [Estructura del Proyecto](#-estructura-del-proyecto)
+### Requisitos- [Troubleshooting](#-troubleshooting)
 
 
 
-- **PowerShell 5.1+** (viene con Windows)- [Troubleshooting](#-troubleshooting)
+- **PowerShell 5.1+** (viene con Windows)## 📖 Tabla de Contenidos
 
 - **Git** instalado
 
@@ -86,7 +86,7 @@
 
 
 
-### Pasos---
+### Pasos## 📖 Tabla de Contenidos
 
 
 
@@ -94,7 +94,7 @@
 
 
 
-```powershell## 🎯 ¿Qué es esto?
+```powershell- [¿Qué es esto?](#-qué-es-esto)
 
 git clone https://github.com/jobshimo/repo-nav.git
 
@@ -102,7 +102,7 @@ cd repo-nav**Repository Navigator** es una interfaz de terminal interactiva que 
 
 ```
 
-**Repository Navigator** es una interfaz de terminal interactiva que te permite:
+- [Instalación](#-instalación)- [¿Qué es esto?](#-qué-es-esto)
 
 **2️⃣ Ejecuta el instalador interactivo**
 
@@ -110,317 +110,740 @@ cd repo-nav**Repository Navigator** es una interfaz de terminal interactiva que 
 
 ```powershell
 
-.\Install.ps1- 🏷️ Crear **aliases con colores** para identificar proyectos importantes- 📂 Navegar rápidamente entre todos tus repositorios
+.\Install.ps1- 🏷️ Crear **aliases con colores** para identificar proyectos importantes- [Uso Rápido](#-uso-rápido)- [Instalación](#-instalación)
 
 ```
 
-- 📊 Ver el **estado de Git** (branch, commits pendientes, cambios)- 🏷️ Crear **aliases con colores** para identificar proyectos importantes
+- 📊 Ver el **estado de Git** (branch, commits pendientes, cambios)
 
 **3️⃣ Sigue las instrucciones**
 
-- 📦 Gestionar **node_modules** (instalar/eliminar)- 📊 Ver el **estado de Git** (branch, commits pendientes, cambios)
+- 📦 Gestionar **node_modules** (instalar/eliminar)- [Controles](#-controles)- [Uso Rápido](#-uso-rápido)
 
 El instalador te preguntará:
 
-- 📁 **Ruta de tus repositorios** (ej: `C:\Users\TuUsuario\repos`)- 🔄 **Clonar** nuevos repositorios- 📦 Gestionar **node_modules** (instalar/eliminar)
+- 🔄 **Clonar** nuevos repositorios
 
-- 🔤 **Nombre del comando** (por defecto: `list`, pero puedes usar `repos`, `nav`, etc.)
+- 📁 **Ruta de tus repositorios** (ej: `C:\Users\TuUsuario\repos`)
 
-- 🗑️ Eliminar repositorios con confirmación de seguridad- 🔄 **Clonar** nuevos repositorios
+- 🔤 **Nombre del comando** (por defecto: `list`, pero puedes usar `repos`, `nav`, etc.)- 🗑️ Eliminar repositorios con confirmación de seguridad- [Características](#-características)- [Controles](#-controles)
+
+
 
 El instalador creará automáticamente tu archivo de configuración `.repo-config.json` con tus datos.
 
-- 🗑️ Eliminar repositorios con confirmación de seguridad
 
-**4️⃣ Recarga tu perfil de PowerShell**
 
----
+**4️⃣ Recarga tu perfil de PowerShell**---- [Configuración](#-configuración)- [Características](#-características)
+
+
 
 ```powershell
 
-. $PROFILE---
+. $PROFILE
 
-```
+```## 🚀 Instalación- [Estructura del Proyecto](#-estructura-del-proyecto)- [Configuración](#-configuración)
 
-## 🚀 Instalación
+
 
 **5️⃣ ¡Listo! Ejecuta el comando**
 
-## 🚀 Instalación
 
-```powershell
 
-list  # o el nombre que hayas elegido### Requisitos
+```powershell### Requisitos- [Troubleshooting](#-troubleshooting)- [Estructura del Proyecto](#-estructura-del-proyecto)
 
-```
-
-### Requisitos
-
----
-
-- **PowerShell 5.1+** (viene con Windows)
-
-## 💡 Uso Rápido
-
-- **Git** instalado- **PowerShell 5.1+** (viene con Windows)
-
-Simplemente escribe el comando que configuraste (por defecto `list`) y navega con las flechas del teclado:
-
-- **npm** (opcional, solo si trabajas con proyectos Node.js)- **Git** instalado
-
-```powershell
-
-list- **npm** (opcional, solo si trabajas con proyectos Node.js)
+list  # o el nombre que hayas elegido
 
 ```
 
-### Pasos
+
+
+---- **PowerShell 5.1+** (viene con Windows)- [Troubleshooting](#-troubleshooting)
+
+
+
+## 💡 Uso Rápido- **Git** instalado
+
+
+
+Simplemente escribe el comando que configuraste (por defecto `list`) y navega con las flechas del teclado:- **npm** (opcional, solo si trabajas con proyectos Node.js)---
+
+
+
+```powershell
+
+list
+
+```### Pasos---
+
+
 
 **Acciones disponibles:**
 
-### Pasos
 
-- 🔼🔽 Navega con las flechas
 
-- ⏎ Presiona `Enter` para abrir el repositorio en esa ubicación**1️⃣ Clona o descarga este repositorio**
+- 🔼🔽 Navega con las flechas**1️⃣ Clona o descarga este repositorio**## 🎯 ¿Qué es esto?
+
+- ⏎ Presiona `Enter` para abrir el repositorio en esa ubicación
 
 - 🏷️ Presiona `E` para asignar un alias con color
 
-- 🔄 Presiona `G` para cargar el estado de Git de todos los repos1️⃣ **Clona o descarga este repositorio**
+- 🔄 Presiona `G` para cargar el estado de Git de todos los repos
+
+```powershell## 🎯 ¿Qué es esto?
+
+---
+
+git clone https://github.com/jobshimo/repo-nav.git
+
+## ⌨️ Controles
+
+cd repo-nav**Repository Navigator** es una interfaz de terminal interactiva que te permite:
+
+| Tecla | Acción | Descripción |
+
+|:-----:|:-------|:------------|```
+
+| <kbd>↑</kbd> <kbd>↓</kbd> | **Navegar** | Muévete entre repositorios |
+
+| <kbd>Enter</kbd> | **Abrir** | Abre el repositorio seleccionado (cambia el directorio) |**Repository Navigator** es una interfaz de terminal interactiva que te permite:
+
+| <kbd>E</kbd> | **Editar Alias** | Crea o modifica el alias del repositorio |
+
+| <kbd>R</kbd> | **Remover Alias** | Elimina el alias del repositorio |**2️⃣ Ejecuta el instalador interactivo**
+
+| <kbd>I</kbd> | **Install** | Ejecuta `npm install` en el repositorio |
+
+| <kbd>X</kbd> | **Remove** | Elimina la carpeta `node_modules` |- 📂 Navegar rápidamente entre todos tus repositorios
+
+| <kbd>C</kbd> | **Clone** | Clona un nuevo repositorio desde URL |
+
+| <kbd>Del</kbd> | **Delete** | Elimina el repositorio (con confirmación) |```powershell
+
+| <kbd>L</kbd> | **Load Status** | Carga el estado de Git del repo actual |
+
+| <kbd>G</kbd> | **Load All** | Carga el estado de Git de **todos** los repos |.\Install.ps1- 🏷️ Crear **aliases con colores** para identificar proyectos importantes- 📂 Navegar rápidamente entre todos tus repositorios
+
+| <kbd>Q</kbd> / <kbd>Esc</kbd> | **Salir** | Cierra el navegador |
+
+```
+
+---
+
+- 📊 Ver el **estado de Git** (branch, commits pendientes, cambios)- 🏷️ Crear **aliases con colores** para identificar proyectos importantes
+
+## ✨ Características
+
+**3️⃣ Sigue las instrucciones**
+
+### 🏷️ Sistema de Aliases
+
+- 📦 Gestionar **node_modules** (instalar/eliminar)- 📊 Ver el **estado de Git** (branch, commits pendientes, cambios)
+
+Asigna **nombres cortos y colores** a tus repositorios favoritos:
+
+El instalador te preguntará:
+
+```json
+
+{- 📁 **Ruta de tus repositorios** (ej: `C:\Users\TuUsuario\repos`)- 🔄 **Clonar** nuevos repositorios- 📦 Gestionar **node_modules** (instalar/eliminar)
+
+  "mi-proyecto-largo-nombre": {
+
+    "alias": "MPN",- 🔤 **Nombre del comando** (por defecto: `list`, pero puedes usar `repos`, `nav`, etc.)
+
+    "color": "Green",
+
+    "isFavorite": true- 🗑️ Eliminar repositorios con confirmación de seguridad- 🔄 **Clonar** nuevos repositorios
+
+  }
+
+}El instalador creará automáticamente tu archivo de configuración `.repo-config.json` con tus datos.
+
+```
+
+- 🗑️ Eliminar repositorios con confirmación de seguridad
+
+**Ventajas:**
+
+**4️⃣ Recarga tu perfil de PowerShell**
+
+- Los repositorios con alias aparecen **primero** en la lista
+
+- **14 colores disponibles** para categorizar proyectos---
+
+- Fácil identificación visual
+
+```powershell
+
+### 📊 Estado de Git
+
+. $PROFILE---
+
+Visualiza el estado de cada repositorio:
+
+```
+
+- 🌿 **Branch actual**
+
+- ⬆️ **Commits por enviar** (ahead)## 🚀 Instalación
+
+- ⬇️ **Commits por recibir** (behind)
+
+- 📝 **Cambios sin commitear****5️⃣ ¡Listo! Ejecuta el comando**
 
 
 
----```powershell
+### 📦 Gestión de npm## 🚀 Instalación
 
 
 
-## ⌨️ Controlesgit clone https://github.com/jobshimo/repo-nav.git```powershell
+- **Instalar dependencias** con `npm install````powershell
+
+- **Eliminar node_modules** para liberar espacio
+
+- Operaciones interactivas con confirmaciónlist  # o el nombre que hayas elegido### Requisitos
 
 
 
-| Tecla | Acción | Descripción |cd repo-navgit clone https://github.com/jobshimo/repo-nav.git
-
-|:-----:|:-------|:------------|
-
-| <kbd>↑</kbd> <kbd>↓</kbd> | **Navegar** | Muévete entre repositorios |```cd repo-nav
-
-| <kbd>Enter</kbd> | **Abrir** | Abre el repositorio seleccionado (cambia el directorio) |
-
-| <kbd>E</kbd> | **Editar Alias** | Crea o modifica el alias del repositorio |```
-
-| <kbd>R</kbd> | **Remover Alias** | Elimina el alias del repositorio |
-
-| <kbd>I</kbd> | **Install** | Ejecuta `npm install` en el repositorio |**2️⃣ Ejecuta el instalador interactivo**
-
-| <kbd>X</kbd> | **Remove** | Elimina la carpeta `node_modules` |
-
-| <kbd>C</kbd> | **Clone** | Clona un nuevo repositorio desde URL |2️⃣ **Ejecuta el instalador interactivo**
-
-| <kbd>Del</kbd> | **Delete** | Elimina el repositorio (con confirmación) |
-
-| <kbd>L</kbd> | **Load Status** | Carga el estado de Git del repo actual |```powershell
-
-| <kbd>G</kbd> | **Load All** | Carga el estado de Git de **todos** los repos |
-
-| <kbd>Q</kbd> / <kbd>Esc</kbd> | **Salir** | Cierra el navegador |.\Install.ps1```powershell
+### 🗂️ Organización Inteligente```
 
 
 
----```.\Install.ps1
+- Repositorios **favoritos primero**### Requisitos
+
+- Orden **alfabético** automático
+
+- Búsqueda visual rápida---
 
 
 
-## ✨ Características```
+---- **PowerShell 5.1+** (viene con Windows)
 
 
 
-### 🏷️ Sistema de Aliases**3️⃣ Sigue las instrucciones**
+## ⚙️ Configuración## 💡 Uso Rápido
 
 
 
-Asigna **nombres cortos y colores** a tus repositorios favoritos:3️⃣ **Sigue las instrucciones**
+### 📁 Ubicación de Archivos- **Git** instalado- **PowerShell 5.1+** (viene con Windows)
 
 
 
-```jsonEl instalador te preguntará:
+Después de la instalación:Simplemente escribe el comando que configuraste (por defecto `list`) y navega con las flechas del teclado:
 
-{
 
-  "mi-proyecto-largo-nombre": {- 📁 **Ruta de tus repositorios** (ej: `C:\Users\TuUsuario\repos`)El instalador te preguntará:
 
-    "alias": "MPN",
+```- **npm** (opcional, solo si trabajas con proyectos Node.js)- **Git** instalado
 
-    "color": "Green",- 🔤 **Nombre del comando** (por defecto: `list`, pero puedes usar `repos`, `nav`, etc.)- 📁 **Ruta de tus repositorios** (ej: `C:\Users\TuUsuario\repos`)
+repo-nav/
 
-    "isFavorite": true
+├── .repo-config.json         # ← Tu configuración personal (NO se sube a Git)```powershell
 
-  }- 🔤 **Nombre del comando** (por defecto: `list`, pero puedes usar `repos`, `nav`, etc.)
+├── .repo-config.example.json # ← Plantilla de ejemplo
+
+├── .repo-aliases.json        # ← Aliases guardados (NO se sube a Git)list- **npm** (opcional, solo si trabajas con proyectos Node.js)
+
+├── src/Config/Constants.ps1  # ← Constantes de la aplicación
+
+└── ...```
+
+```
+
+### Pasos
+
+> ⚠️ **Importante**: Los archivos `.repo-config.json` y `.repo-aliases.json` están en `.gitignore` y **NO se suben** al repositorio por contener información personal.
+
+**Acciones disponibles:**
+
+### 🔧 Archivo de Configuración
+
+### Pasos
+
+El archivo `.repo-config.json` contiene tu configuración personal:
+
+- 🔼🔽 Navega con las flechas
+
+```json
+
+{- ⏎ Presiona `Enter` para abrir el repositorio en esa ubicación**1️⃣ Clona o descarga este repositorio**
+
+  "reposBasePath": "C:\\Users\\TuUsuario\\repos",
+
+  "userName": "TuUsuario"- 🏷️ Presiona `E` para asignar un alias con color
 
 }
 
-```**4️⃣ Recarga tu perfil de PowerShell**
+```- 🔄 Presiona `G` para cargar el estado de Git de todos los repos1️⃣ **Clona o descarga este repositorio**
 
 
-
-- Los repositorios con alias aparecen **primero** en la lista4️⃣ **Recarga tu perfil de PowerShell**
-
-- **14 colores disponibles** para categorizar proyectos
-
-- Fácil identificación visual```powershell
-
-
-
-### 📊 Estado de Git. $PROFILE```powershell
-
-
-
-Visualiza el estado de cada repositorio:```. $PROFILE
-
-
-
-- 🌿 **Branch actual**```
-
-- ⬆️ **Commits por enviar** (ahead)
-
-- ⬇️ **Commits por recibir** (behind)**5️⃣ ¡Listo! Ejecuta el comando**
-
-- 📝 **Cambios sin commitear**
-
-5️⃣ **¡Listo! Ejecuta el comando**
-
-### 📦 Gestión de npm
-
-```powershell
-
-- **Instalar dependencias** con `npm install`
-
-- **Eliminar node_modules** para liberar espaciolist  # o el nombre que hayas elegido```powershell
-
-- Operaciones interactivas con confirmación
-
-```list  # o el nombre que hayas elegido
-
-### 🗂️ Organización Inteligente
-
-```
-
-- Repositorios **favoritos primero**
-
-- Orden **alfabético** automático---
-
-- Búsqueda visual rápida
-
----
-
----
-
-## 💡 Uso Rápido
-
-## ⚙️ Configuración
-
-## 💡 Uso Rápido
-
-### 📁 Ubicación de Archivos
-
-Simplemente escribe el comando que configuraste (por defecto `list`) y navega con las flechas del teclado:
-
-Después de la instalación:
-
-Simplemente escribe el comando que configuraste (por defecto `list`) y navega con las flechas del teclado:
-
-```
-
-repo-nav/```powershell
-
-├── .repo-config.json         # ← Tu configuración personal (NO se sube a Git)
-
-├── .repo-config.example.json # ← Plantilla de ejemplolist```powershell
-
-├── .repo-aliases.json        # ← Aliases guardados (NO se sube a Git)
-
-├── src/Config/Constants.ps1  # ← Constantes de la aplicación```list
-
-└── ...
-
-``````
-
-
-
-> ⚠️ **Importante**: Los archivos `.repo-config.json` y `.repo-aliases.json` están en `.gitignore` y **NO se suben** al repositorio por contener información personal.**Acciones disponibles:**
-
-
-
-### 🔧 Archivo de Configuración![Navigation Example](https://img.shields.io/badge/Example-Interactive%20UI-informational)
-
-
-
-El archivo `.repo-config.json` contiene tu configuración personal:- 🔼🔽 Navega con las flechas
-
-
-
-```json- ⏎ Presiona `Enter` para abrir el repositorio en esa ubicación
-
-{
-
-  "reposBasePath": "C:\\Users\\TuUsuario\\repos",- 🏷️ Presiona `E` para asignar un alias con color**Acciones disponibles:**
-
-  "userName": "TuUsuario"
-
-}- 🔄 Presiona `G` para cargar el estado de Git de todos los repos
-
-```
-
-- 🔼🔽 Navega con las flechas
 
 **Para cambiar la configuración:**
 
----- ⏎ Presiona `Enter` para abrir el repositorio en esa ubicación
 
-**Opción 1:** Vuelve a ejecutar el instalador
 
-- 🏷️ Presiona `E` para asignar un alias con color
+**Opción 1:** Vuelve a ejecutar el instalador---```powershell
+
+
 
 ```powershell
 
-.\Install.ps1## ⌨️ Controles- 🔄 Presiona `G` para cargar el estado de Git de todos los repos
+.\Install.ps1
 
-```
+```## ⌨️ Controlesgit clone https://github.com/jobshimo/repo-nav.git```powershell
 
 
 
 **Opción 2:** Edita manualmente `.repo-config.json`
 
-| Tecla | Acción | Descripción |---
 
-```powershell
 
-notepad .repo-config.json|:-----:|:-------|:------------|
+```powershell| Tecla | Acción | Descripción |cd repo-navgit clone https://github.com/jobshimo/repo-nav.git
+
+notepad .repo-config.json
+
+```|:-----:|:-------|:------------|
+
+
+
+### 🎨 Colores Disponibles| <kbd>↑</kbd> <kbd>↓</kbd> | **Navegar** | Muévete entre repositorios |```cd repo-nav
+
+
+
+| Color | Variante Oscura || <kbd>Enter</kbd> | **Abrir** | Abre el repositorio seleccionado (cambia el directorio) |
+
+|-------|----------------|
+
+| `Yellow` | `DarkYellow` || <kbd>E</kbd> | **Editar Alias** | Crea o modifica el alias del repositorio |```
+
+| `Green` | `DarkGreen` |
+
+| `Cyan` | `DarkCyan` || <kbd>R</kbd> | **Remover Alias** | Elimina el alias del repositorio |
+
+| `Magenta` | `DarkMagenta` |
+
+| `Blue` | `DarkBlue` || <kbd>I</kbd> | **Install** | Ejecuta `npm install` en el repositorio |**2️⃣ Ejecuta el instalador interactivo**
+
+| `Red` | `DarkRed` |
+
+| `White` | `Gray` || <kbd>X</kbd> | **Remove** | Elimina la carpeta `node_modules` |
+
+
+
+### 📝 Formato del Archivo de Aliases| <kbd>C</kbd> | **Clone** | Clona un nuevo repositorio desde URL |2️⃣ **Ejecuta el instalador interactivo**
+
+
+
+El archivo `.repo-aliases.json` tiene esta estructura:| <kbd>Del</kbd> | **Delete** | Elimina el repositorio (con confirmación) |
+
+
+
+```json| <kbd>L</kbd> | **Load Status** | Carga el estado de Git del repo actual |```powershell
+
+{
+
+  "nombre-del-repositorio": {| <kbd>G</kbd> | **Load All** | Carga el estado de Git de **todos** los repos |
+
+    "alias": "ALIAS-CORTO",
+
+    "color": "Green",| <kbd>Q</kbd> / <kbd>Esc</kbd> | **Salir** | Cierra el navegador |.\Install.ps1```powershell
+
+    "isFavorite": true
+
+  },
+
+  "otro-repositorio": {
+
+    "alias": "OTRO",---```.\Install.ps1
+
+    "color": "Cyan",
+
+    "isFavorite": true
+
+  }
+
+}## ✨ Características```
 
 ```
 
+
+
+---
+
+### 🏷️ Sistema de Aliases**3️⃣ Sigue las instrucciones**
+
+## 📂 Estructura del Proyecto
+
+
+
+El proyecto está organizado siguiendo **principios SOLID** y **patrones de diseño OOP**:
+
+Asigna **nombres cortos y colores** a tus repositorios favoritos:3️⃣ **Sigue las instrucciones**
+
+```
+
+repo-nav/
+
+│
+
+├── 📄 repo-nav.ps1                # Punto de entrada principal```jsonEl instalador te preguntará:
+
+├── 📄 Install.ps1                 # Script de instalación
+
+├── 📄 README.md                   # Esta documentación{
+
+├── 📄 .repo-config.json           # Configuración personal (gitignored)
+
+├── 📄 .repo-config.example.json   # Ejemplo de configuración  "mi-proyecto-largo-nombre": {- 📁 **Ruta de tus repositorios** (ej: `C:\Users\TuUsuario\repos`)El instalador te preguntará:
+
+├── 📄 .repo-aliases.json          # Aliases guardados (gitignored)
+
+├── 📄 .gitignore                  # Archivos ignorados por Git    "alias": "MPN",
+
+│
+
+└── 📁 src/    "color": "Green",- 🔤 **Nombre del comando** (por defecto: `list`, pero puedes usar `repos`, `nav`, etc.)- 📁 **Ruta de tus repositorios** (ej: `C:\Users\TuUsuario\repos`)
+
+    │
+
+    ├── 📁 Config/                 # ⚙️ Configuración    "isFavorite": true
+
+    │   ├── Constants.ps1          #    Rutas y constantes
+
+    │   └── ColorPalette.ps1       #    Paleta de colores  }- 🔤 **Nombre del comando** (por defecto: `list`, pero puedes usar `repos`, `nav`, etc.)
+
+    │
+
+    ├── 📁 Models/                 # 📦 Modelos de datos}
+
+    │   ├── AliasInfo.ps1          #    Información de alias
+
+    │   ├── GitStatusModel.ps1     #    Estado de Git```**4️⃣ Recarga tu perfil de PowerShell**
+
+    │   └── RepositoryModel.ps1    #    Modelo de repositorio
+
+    │
+
+    ├── 📁 Services/               # 🔧 Lógica de negocio
+
+    │   ├── AliasManager.ps1       #    Gestión de aliases- Los repositorios con alias aparecen **primero** en la lista4️⃣ **Recarga tu perfil de PowerShell**
+
+    │   ├── ConfigurationService.ps1 #  Configuración
+
+    │   ├── GitService.ps1         #    Operaciones Git- **14 colores disponibles** para categorizar proyectos
+
+    │   ├── InteractiveHelpers.ps1 #    Helpers interactivos
+
+    │   ├── NpmHelpers.ps1         #    Helpers npm- Fácil identificación visual```powershell
+
+    │   └── NpmService.ps1         #    Servicio npm
+
+    │
+
+    ├── 📁 UI/                     # 🎨 Interfaz de usuario
+
+    │   ├── ColorSelector.ps1      #    Selector de colores### 📊 Estado de Git. $PROFILE```powershell
+
+    │   ├── ConsoleHelper.ps1      #    Utilidades de consola
+
+    │   └── UIRenderer.ps1         #    Renderizado UI
+
+    │
+
+    └── 📁 Core/                   # 🧠 Núcleo de la aplicaciónVisualiza el estado de cada repositorio:```. $PROFILE
+
+        ├── NavigationLoop.ps1     #    Loop de navegación
+
+        ├── NavigatorController.ps1 #   Controlador principal
+
+        └── RepositoryManager.ps1  #    Manager de repositorios
+
+```- 🌿 **Branch actual**```
+
+
+
+### 🏗️ Arquitectura- ⬆️ **Commits por enviar** (ahead)
+
+
+
+- **Single Responsibility**: Cada clase tiene un propósito único y claro- ⬇️ **Commits por recibir** (behind)**5️⃣ ¡Listo! Ejecuta el comando**
+
+- **Open/Closed**: Fácil de extender sin modificar código existente
+
+- **Dependency Injection**: Dependencias inyectadas vía constructores- 📝 **Cambios sin commitear**
+
+- **Facade Pattern**: `RepositoryManager` proporciona operaciones de alto nivel
+
+- **Separation of Concerns**: Capas separadas (Models, Services, UI, Core)5️⃣ **¡Listo! Ejecuta el comando**
+
+
+
+---### 📦 Gestión de npm
+
+
+
+## 🐛 Troubleshooting```powershell
+
+
+
+### ❌ "El comando no se reconoce"- **Instalar dependencias** con `npm install`
+
+
+
+**Solución:** Recarga tu perfil de PowerShell- **Eliminar node_modules** para liberar espaciolist  # o el nombre que hayas elegido```powershell
+
+
+
+```powershell- Operaciones interactivas con confirmación
+
+. $PROFILE
+
+``````list  # o el nombre que hayas elegido
+
+
+
+### ❌ "No se puede ejecutar el script (ExecutionPolicy)"### 🗂️ Organización Inteligente
+
+
+
+**Solución:** Cambia la política de ejecución```
+
+
+
+```powershell- Repositorios **favoritos primero**
+
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+
+```- Orden **alfabético** automático---
+
+
+
+Luego confirma con `Y` (Yes).- Búsqueda visual rápida
+
+
+
+### ❌ "No se encontró el archivo de configuración"---
+
+
+
+Si es la primera vez que ejecutas la aplicación después de clonar el repositorio:---
+
+
+
+```powershell## 💡 Uso Rápido
+
+# Copia el archivo de ejemplo
+
+Copy-Item .repo-config.example.json .repo-config.json## ⚙️ Configuración
+
+
+
+# Edita con tus datos## 💡 Uso Rápido
+
+notepad .repo-config.json
+
+```### 📁 Ubicación de Archivos
+
+
+
+O simplemente ejecuta el instalador:Simplemente escribe el comando que configuraste (por defecto `list`) y navega con las flechas del teclado:
+
+
+
+```powershellDespués de la instalación:
+
+.\Install.ps1
+
+```Simplemente escribe el comando que configuraste (por defecto `list`) y navega con las flechas del teclado:
+
+
+
+### ❌ "Los repositorios no se encuentran"```
+
+
+
+**Solución 1:** Re-ejecuta el instaladorrepo-nav/```powershell
+
+
+
+```powershell├── .repo-config.json         # ← Tu configuración personal (NO se sube a Git)
+
+.\Install.ps1
+
+```├── .repo-config.example.json # ← Plantilla de ejemplolist```powershell
+
+
+
+**Solución 2:** Edita manualmente `.repo-config.json`├── .repo-aliases.json        # ← Aliases guardados (NO se sube a Git)
+
+
+
+```powershell├── src/Config/Constants.ps1  # ← Constantes de la aplicación```list
+
+notepad .repo-config.json
+
+```└── ...
+
+
+
+Actualiza la ruta en `reposBasePath`.``````
+
+
+
+### ℹ️ Ver la ubicación de tu perfil
+
+
+
+```powershell> ⚠️ **Importante**: Los archivos `.repo-config.json` y `.repo-aliases.json` están en `.gitignore` y **NO se suben** al repositorio por contener información personal.**Acciones disponibles:**
+
+echo $PROFILE
+
+```
+
+
+
+---### 🔧 Archivo de Configuración![Navigation Example](https://img.shields.io/badge/Example-Interactive%20UI-informational)
+
+
+
+## 📋 Lo que hace el Instalador
+
+
+
+El script `Install.ps1` es completamente **interactivo y seguro**:El archivo `.repo-config.json` contiene tu configuración personal:- 🔼🔽 Navega con las flechas
+
+
+
+1. ✅ **Verifica** que exista tu perfil de PowerShell (lo crea si no existe)
+
+2. ❓ **Pregunta** la ruta donde están tus repositorios
+
+3. ❓ **Pregunta** qué nombre quieres para el comando```json- ⏎ Presiona `Enter` para abrir el repositorio en esa ubicación
+
+4. ✏️ **Crea** el archivo `.repo-config.json` con tu configuración
+
+5. ➕ **Agrega** una función a tu `$PROFILE` para ejecutar el script{
+
+6. 📦 **Migra** el archivo `.repo-aliases.json` si existe en tu carpeta de repos
+
+  "reposBasePath": "C:\\Users\\TuUsuario\\repos",- 🏷️ Presiona `E` para asignar un alias con color**Acciones disponibles:**
+
+---
+
+  "userName": "TuUsuario"
+
+## 🔄 Actualizar
+
+}- 🔄 Presiona `G` para cargar el estado de Git de todos los repos
+
+Si cambiaste de PC o moviste tus repositorios:
+
+```
+
+```powershell
+
+.\Install.ps1- 🔼🔽 Navega con las flechas
+
+```
+
+**Para cambiar la configuración:**
+
+El instalador actualizará todas las rutas automáticamente.
+
+---- ⏎ Presiona `Enter` para abrir el repositorio en esa ubicación
+
+---
+
+**Opción 1:** Vuelve a ejecutar el instalador
+
+## 🔒 Seguridad y Privacidad
+
+- 🏷️ Presiona `E` para asignar un alias con color
+
+Este proyecto está diseñado para **NO exponer información personal**:
+
+```powershell
+
+- ✅ Tu nombre de usuario **NO** se sube al repositorio
+
+- ✅ Las rutas de tus proyectos **NO** se suben al repositorio.\Install.ps1## ⌨️ Controles- 🔄 Presiona `G` para cargar el estado de Git de todos los repos
+
+- ✅ Tus aliases personales **NO** se suben al repositorio
+
+- ✅ Toda la configuración personal está en `.gitignore````
+
+
+
+Solo se sube el **código fuente** y archivos de ejemplo.
+
+
+
+---**Opción 2:** Edita manualmente `.repo-config.json`
+
+
+
+## 📜 Información del Proyecto| Tecla | Acción | Descripción |---
+
+
+
+**Versión:** 2.0 (Refactorizado con SOLID)  ```powershell
+
+**Autor:** Martin Miguel Bernal Garcia  
+
+**Fecha:** Enero 2026  notepad .repo-config.json|:-----:|:-------|:------------|
+
+**Licencia:** Uso interno
+
+```
+
+---
+
 | <kbd>↑</kbd> <kbd>↓</kbd> | **Navegar** | Muévete entre repositorios |## ⌨️ Controles
+
+## 🤝 Contribuir
 
 ### 🎨 Colores Disponibles
 
+Si encuentras bugs o tienes sugerencias:
+
 | <kbd>Enter</kbd> | **Abrir** | Abre el repositorio seleccionado (cambia el directorio) |
 
-| Color | Variante Oscura |
+1. 🐛 Reporta un [Issue](https://github.com/jobshimo/repo-nav/issues)
 
-|-------|----------------|| <kbd>E</kbd> | **Editar Alias** | Crea o modifica el alias del repositorio || Tecla | Acción | Descripción |
+2. 🔀 Crea un [Pull Request](https://github.com/jobshimo/repo-nav/pulls)| Color | Variante Oscura |
 
-| `Yellow` | `DarkYellow` |
 
-| `Green` | `DarkGreen` || <kbd>R</kbd> | **Remover Alias** | Elimina el alias del repositorio ||:-----:|:-------|:------------|
 
-| `Cyan` | `DarkCyan` |
+---|-------|----------------|| <kbd>E</kbd> | **Editar Alias** | Crea o modifica el alias del repositorio || Tecla | Acción | Descripción |
 
-| `Magenta` | `DarkMagenta` || <kbd>I</kbd> | **Install** | Ejecuta `npm install` en el repositorio || <kbd>↑</kbd> <kbd>↓</kbd> | **Navegar** | Muévete entre repositorios |
 
-| `Blue` | `DarkBlue` |
 
-| `Red` | `DarkRed` || <kbd>X</kbd> | **Remove** | Elimina la carpeta `node_modules` || <kbd>Enter</kbd> | **Abrir** | Abre el repositorio seleccionado (cambia el directorio) |
+## ⭐ ¿Te gusta este proyecto?| `Yellow` | `DarkYellow` |
 
-| `White` | `Gray` |
+
+
+¡Dale una ⭐ en GitHub!| `Green` | `DarkGreen` || <kbd>R</kbd> | **Remover Alias** | Elimina el alias del repositorio ||:-----:|:-------|:------------|
+
+
+
+---| `Cyan` | `DarkCyan` |
+
+
+
+<div align="center">| `Magenta` | `DarkMagenta` || <kbd>I</kbd> | **Install** | Ejecuta `npm install` en el repositorio || <kbd>↑</kbd> <kbd>↓</kbd> | **Navegar** | Muévete entre repositorios |
+
+
+
+**Hecho con ❤️ y PowerShell**| `Blue` | `DarkBlue` |
+
+
+
+[🏠 Home](https://github.com/jobshimo/repo-nav) • [📝 Issues](https://github.com/jobshimo/repo-nav/issues) • [🔀 Pull Requests](https://github.com/jobshimo/repo-nav/pulls)| `Red` | `DarkRed` || <kbd>X</kbd> | **Remove** | Elimina la carpeta `node_modules` || <kbd>Enter</kbd> | **Abrir** | Abre el repositorio seleccionado (cambia el directorio) |
+
+
+
+</div>| `White` | `Gray` |
+
 
 | <kbd>C</kbd> | **Clone** | Clona un nuevo repositorio desde URL || <kbd>E</kbd> | **Editar Alias** | Crea o modifica el alias del repositorio |
 
