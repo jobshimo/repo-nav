@@ -1,0 +1,31 @@
+# Archivo de aliases - no subir (contiene configuración local del usuario)
+.repo-aliases.json
+
+# Archivos de backup y legacy
+legacy/
+*.backup
+
+# Archivos de sistema Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Archivos de sistema macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Archivos temporales de PowerShell
+*.ps1~
+*.psm1~
+
+# Logs
+*.log
+
+# Directorios de IDE
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
