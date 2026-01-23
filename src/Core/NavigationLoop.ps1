@@ -18,6 +18,9 @@ function Start-NavigationLoop {
         $ColorSelector,
         
         [Parameter(Mandatory = $true)]
+        $OptionSelector,
+        
+        [Parameter(Mandatory = $true)]
         [string]$BasePath
     )
     
@@ -352,7 +355,7 @@ function Start-NavigationLoop {
                 
                 ([Constants]::KEY_U) {
                     # Open user preferences menu
-                    Show-PreferencesMenu -PreferencesService $RepoManager.PreferencesService -Console $Console -Renderer $Renderer
+                    Show-PreferencesMenu -PreferencesService $RepoManager.PreferencesService -Console $Console -Renderer $Renderer -OptionSelector $OptionSelector
                     
                     # Reload repositories with potentially new sorting preference
                     $selectedRepoName = $repos[$SelectedIndex].Name

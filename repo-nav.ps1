@@ -81,6 +81,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\ConsoleHelper.ps1"
 . "$srcPath\UI\UIRenderer.ps1"
 . "$srcPath\UI\ColorSelector.ps1"
+. "$srcPath\UI\OptionSelector.ps1"
 
 # Core (depend on everything)
 . "$srcPath\Core\RepositoryManager.ps1"
@@ -126,12 +127,14 @@ function Start-RepositoryNavigator {
         $consoleHelper = [ConsoleHelper]::new()
         $renderer = [UIRenderer]::new($consoleHelper)
         $colorSelector = [ColorSelector]::new($renderer, $consoleHelper)
+        $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
         
         # Start navigation loop
         Start-NavigationLoop -RepoManager $repoManager `
                             -Renderer $renderer `
                             -Console $consoleHelper `
                             -ColorSelector $colorSelector `
+                            -OptionSelector $optionSelector `
                             -BasePath $BasePath
     }
     catch {

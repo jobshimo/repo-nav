@@ -12,7 +12,10 @@ function Show-PreferencesMenu {
         $Console,
         
         [Parameter(Mandatory = $true)]
-        $Renderer
+        $Renderer,
+        
+        [Parameter(Mandatory = $true)]
+        $OptionSelector
     )
     
     $preferences = $PreferencesService.LoadPreferences()
@@ -30,23 +33,30 @@ function Show-PreferencesMenu {
             $Renderer.RenderHeader("USER PREFERENCES")
             Write-Host ""
             
-            # Display preferences
-            $option1 = "  Favorites Position: " + $(if ($preferences.display.favoritesOnTop) { "Top of list" } else { "Original position" })
-            $option2 = "  Back to main menu"
+            # Define preference items
+            $preferenceItems = @(
+                @{
+                    Name = "Favorites Position"
+                    CurrentValue = if ($preferences.display.favoritesOnTop) { "Top of list" } else { "Original position" }
+                }
+            )
             
-            if ($selectedOption -eq 0) {
-                Write-Host "> $option1" -ForegroundColor Yellow
-            } else {
-                Write-Host "  $option1" -ForegroundColor Gray
+            # Display preference items
+            for ($i = 0; $i -lt $preferenceItems.Count; $i++) {
+                $item = $preferenceItems[$i]
+                $prefix = if ($i -eq $selectedOption) { ">" } else { " " }
+                $color = if ($i -eq $selectedOption) { "Yellow" } else { "Gray" }
+                
+                Write-Host "  $prefix $($item.Name): $($item.CurrentValue)" -ForegroundColor $color
             }
             
             Write-Host ""
             
-            if ($selectedOption -eq 1) {
-                Write-Host "> $option2" -ForegroundColor Yellow
-            } else {
-                Write-Host "  $option2" -ForegroundColor Gray
-            }
+            # Back option
+            $backIndex = $preferenceItems.Count
+            $prefix = if ($selectedOption -eq $backIndex) { ">" } else { " " }
+            $color = if ($selectedOption -eq $backIndex) { "Yellow" } else { "Gray" }
+            Write-Host "  $prefix Back to main menu" -ForegroundColor $color
             
             Write-Host ""
             
@@ -60,7 +70,7 @@ function Show-PreferencesMenu {
                 }
             }
             
-            Write-Host "  Use Arrows to navigate | Enter to toggle/select | Q to go back" -ForegroundColor DarkGray
+            Write-Host "  Use Arrows to navigate | Enter to change/select | Q to go back" -ForegroundColor DarkGray
             
             # Wait for input
             $key = $Console.ReadKey()
@@ -70,12 +80,12 @@ function Show-PreferencesMenu {
                     if ($selectedOption -gt 0) {
                         $selectedOption--
                     } else {
-                        $selectedOption = 1
+                        $selectedOption = $preferenceItems.Count
                     }
                 }
                 
                 ([Constants]::KEY_DOWN_ARROW) {
-                    if ($selectedOption -lt 1) {
+                    if ($selectedOption -lt $preferenceItems.Count) {
                         $selectedOption++
                     } else {
                         $selectedOption = 0
@@ -84,17 +94,32 @@ function Show-PreferencesMenu {
                 
                 ([Constants]::KEY_ENTER) {
                     if ($selectedOption -eq 0) {
-                        # Toggle favorites position
-                        [bool]$newValue = -not $preferences.display.favoritesOnTop
-                        $PreferencesService.SetPreference("display", "favoritesOnTop", $newValue)
-                        $preferences = $PreferencesService.LoadPreferences()
+                        # Edit Favorites Position using OptionSelector
+                        $favoritesOptions = @(
+                            @{ DisplayText = "Top of list"; Value = $true },
+                            @{ DisplayText = "Original position"; Value = $false }
+                        )
                         
-                        # Set confirmation message
-                        $statusText = if ($newValue) { "Top of list" } else { "Original position" }
-                        $confirmationMessage = "Favorites will be shown at: $statusText"
-                        $confirmationTimeout = 2
+                        $currentValue = $preferences.display.favoritesOnTop
+                        $newValue = $OptionSelector.ShowSelection(
+                            "FAVORITES POSITION",
+                            $favoritesOptions,
+                            $currentValue,
+                            "Back to preferences"
+                        )
+                        
+                        # If user selected something (not cancelled)
+                        if ($null -ne $newValue -and $newValue -ne $currentValue) {
+                            $PreferencesService.SetPreference("display", "favoritesOnTop", $newValue)
+                            $preferences = $PreferencesService.LoadPreferences()
+                            
+                            # Set confirmation message
+                            $statusText = if ($newValue) { "Top of list" } else { "Original position" }
+                            $confirmationMessage = "Favorites will be shown at: $statusText"
+                            $confirmationTimeout = 2
+                        }
                     }
-                    elseif ($selectedOption -eq 1) {
+                    elseif ($selectedOption -eq $preferenceItems.Count) {
                         # Back to main menu
                         $running = $false
                     }
