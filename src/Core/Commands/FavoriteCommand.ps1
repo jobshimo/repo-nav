@@ -1,15 +1,15 @@
-# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
+﻿# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
 
 class FavoriteCommand : INavigationCommand {
     [string] GetDescription() {
         return "Toggle favorite status (F)"
     }
 
-    [bool] CanExecute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
-        return $keyPress.Key -eq [System.ConsoleKey]::F
+    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+        return $keyPress.VirtualKeyCode -eq [Constants]::KEY_F
     }
 
-    [void] Execute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [hashtable]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         $currentIndex = $state.GetCurrentIndex()
@@ -48,3 +48,5 @@ class FavoriteCommand : INavigationCommand {
         $state.MarkForFullRedraw()
     }
 }
+
+

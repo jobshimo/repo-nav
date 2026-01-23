@@ -1,15 +1,15 @@
-# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
+﻿# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
 
 class PreferencesCommand : INavigationCommand {
     [string] GetDescription() {
         return "Open preferences menu (U)"
     }
 
-    [bool] CanExecute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
-        return $keyPress.Key -eq [System.ConsoleKey]::U
+    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+        return $keyPress.VirtualKeyCode -eq [Constants]::KEY_U
     }
 
-    [void] Execute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [hashtable]$context) {
         $state = $context.State
         
         # Stop the navigation loop to allow interactive menu
@@ -40,3 +40,5 @@ class PreferencesCommand : INavigationCommand {
         }
     }
 }
+
+

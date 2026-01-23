@@ -37,7 +37,7 @@ class InputHandler {
     .RETURNS
         $true if a command was executed, $false if no command could handle the input
     #>
-    [bool] HandleInput([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+    [bool] HandleInput([object]$keyPress, [hashtable]$context) {
         if ($null -eq $keyPress) {
             return $false
         }
@@ -69,7 +69,7 @@ class InputHandler {
     .SYNOPSIS
         Gets all available commands from the factory
     #>
-    [System.Collections.Generic.List[INavigationCommand]] GetCommands() {
+    [System.Collections.ArrayList] GetCommands() {
         return $this.factory.GetCommands()
     }
     

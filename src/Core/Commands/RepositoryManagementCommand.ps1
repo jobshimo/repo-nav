@@ -1,30 +1,30 @@
-# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
+﻿# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
 
 class RepositoryManagementCommand : INavigationCommand {
     [string] GetDescription() {
         return "Clone (C) or Delete (DELETE) repository"
     }
 
-    [bool] CanExecute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
-        $key = $keyPress.Key
-        return $key -eq [System.ConsoleKey]::C -or $key -eq [System.ConsoleKey]::Delete
+    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+        $key = $keyPress.VirtualKeyCode
+        return $key -eq [Constants]::KEY_C -or $key -eq [Constants]::KEY_DELETE
     }
 
-    [void] Execute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [hashtable]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         $currentIndex = $state.GetCurrentIndex()
-        $key = $keyPress.Key
+        $key = $keyPress.VirtualKeyCode
         
         # Stop the navigation loop to allow interactive input
         $state.Stop()
         
         try {
-            if ($key -eq [System.ConsoleKey]::C) {
+            if ($key -eq [Constants]::KEY_C) {
                 # Clone repository - Pass required parameters
                 Invoke-RepositoryClone -RepoManager $context.RepoManager -BasePath $context.BasePath
             }
-            elseif ($key -eq [System.ConsoleKey]::Delete) {
+            elseif ($key -eq [Constants]::KEY_DELETE) {
                 # Delete repository (CRITICAL: requires confirmation) - Pass required parameters
                 if ($repos.Count -gt 0) {
                     $currentRepo = $repos[$currentIndex]
@@ -40,7 +40,7 @@ class RepositoryManagementCommand : INavigationCommand {
                 $state.SetRepositories($updatedRepos)
                 
                 # Adjust selection after deletion or addition
-                if ($key -eq [System.ConsoleKey]::Delete) {
+                if ($key -eq [Constants]::KEY_DELETE) {
                     # If we deleted the last item, move selection up
                     if ($currentIndex -ge $updatedRepos.Count -and $updatedRepos.Count -gt 0) {
                         $state.SetCurrentIndex($updatedRepos.Count - 1)
@@ -49,7 +49,7 @@ class RepositoryManagementCommand : INavigationCommand {
                         $state.SetCurrentIndex(0)
                     }
                 }
-                elseif ($key -eq [System.ConsoleKey]::C) {
+                elseif ($key -eq [Constants]::KEY_C) {
                     # After clone, try to select the newly added repository (last one)
                     if ($updatedRepos.Count -gt 0) {
                         $state.SetCurrentIndex($updatedRepos.Count - 1)
@@ -66,3 +66,5 @@ class RepositoryManagementCommand : INavigationCommand {
         }
     }
 }
+
+

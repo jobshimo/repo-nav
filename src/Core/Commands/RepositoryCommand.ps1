@@ -1,15 +1,15 @@
-# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
+﻿# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
 
 class RepositoryCommand : INavigationCommand {
     [string] GetDescription() {
         return "Open repository (ENTER)"
     }
 
-    [bool] CanExecute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
-        return $keyPress.Key -eq [System.ConsoleKey]::Enter
+    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+        return $keyPress.VirtualKeyCode -eq [Constants]::KEY_ENTER
     }
 
-    [void] Execute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [hashtable]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         $currentIndex = $state.GetCurrentIndex()
@@ -25,3 +25,5 @@ class RepositoryCommand : INavigationCommand {
         $state.Stop()
     }
 }
+
+

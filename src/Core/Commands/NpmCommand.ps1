@@ -1,16 +1,16 @@
-# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
+﻿# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
 
 class NpmCommand : INavigationCommand {
     [string] GetDescription() {
         return "Install npm (I) or Remove node_modules (X)"
     }
 
-    [bool] CanExecute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
-        $key = $keyPress.Key
-        return $key -eq [System.ConsoleKey]::I -or $key -eq [System.ConsoleKey]::X
+    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+        $key = $keyPress.VirtualKeyCode
+        return $key -eq [Constants]::KEY_I -or $key -eq [Constants]::KEY_X
     }
 
-    [void] Execute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [hashtable]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         $currentIndex = $state.GetCurrentIndex()
@@ -18,17 +18,17 @@ class NpmCommand : INavigationCommand {
         if ($repos.Count -eq 0) { return }
         
         $currentRepo = $repos[$currentIndex]
-        $key = $keyPress.Key
+        $key = $keyPress.VirtualKeyCode
         
         # Stop the navigation loop to allow interactive input
         $state.Stop()
         
         try {
-            if ($key -eq [System.ConsoleKey]::I) {
+            if ($key -eq [Constants]::KEY_I) {
                 # Install node_modules
                 Invoke-NpmInstall -Repository $currentRepo
             }
-            elseif ($key -eq [System.ConsoleKey]::X) {
+            elseif ($key -eq [Constants]::KEY_X) {
                 # Remove node_modules - Pass required parameters
                 Invoke-NodeModulesRemove -RepoManager $context.RepoManager -Repository $currentRepo
             }
@@ -60,3 +60,5 @@ class NpmCommand : INavigationCommand {
         }
     }
 }
+
+

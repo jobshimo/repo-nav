@@ -129,11 +129,7 @@ function Start-NavigationLoop {
             }
             elseif ($state.HasSelectionChanged()) {
                 # Partial redraw - only update changed items
-                $repos = $state.GetRepositories()
-                $currentIndex = $state.GetCurrentIndex()
-                $previousIndex = $state.GetPreviousIndex()
-                
-                $renderOrchestrator.RenderPartial($repos, $currentIndex, $previousIndex)
+                $renderOrchestrator.RenderPartial($state)
                 
                 $state.ClearSelectionChangedFlag()
             }

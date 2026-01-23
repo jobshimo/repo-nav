@@ -36,7 +36,7 @@ class RenderOrchestrator {
     .SYNOPSIS
         Renders based on state flags (main entry point)
     #>
-    [void] RenderIfNeeded([NavigationState]$state) {
+    [void] RenderIfNeeded([object]$state) {
         if ($state.RequiresFullRedraw) {
             $this.RenderFull($state)
             $state.ClearRedrawFlags()
@@ -51,7 +51,7 @@ class RenderOrchestrator {
     .SYNOPSIS
         Forces a complete screen redraw
     #>
-    [void] RenderFull([NavigationState]$state) {
+    [void] RenderFull([object]$state) {
         $this.Console.ClearScreen()
         
         # Header
@@ -79,7 +79,7 @@ class RenderOrchestrator {
     .SYNOPSIS
         Partial redraw: only affected items
     #>
-    [void] RenderPartial([NavigationState]$state) {
+    [void] RenderPartial([object]$state) {
         $startLine = $this.CursorStartLine
         $repos = $state.Repositories
         

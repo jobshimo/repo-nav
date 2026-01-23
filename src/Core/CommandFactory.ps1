@@ -13,11 +13,11 @@
 #>
 
 class CommandFactory {
-    hidden [System.Collections.Generic.List[INavigationCommand]] $commands
+    hidden [System.Collections.ArrayList] $commands
     
     # Constructor
     CommandFactory() {
-        $this.commands = [System.Collections.Generic.List[INavigationCommand]]::new()
+        $this.commands = [System.Collections.ArrayList]::new()
         $this.RegisterCommands()
     }
     
@@ -48,7 +48,7 @@ class CommandFactory {
     .SYNOPSIS
         Gets all registered commands
     #>
-    [System.Collections.Generic.List[INavigationCommand]] GetCommands() {
+    [System.Collections.ArrayList] GetCommands() {
         return $this.commands
     }
     
@@ -56,7 +56,7 @@ class CommandFactory {
     .SYNOPSIS
         Finds a command that can execute the given key press
     #>
-    [INavigationCommand] FindCommand([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+    [INavigationCommand] FindCommand([object]$keyPress, [hashtable]$context) {
         foreach ($command in $this.commands) {
             if ($command.CanExecute($keyPress, $context)) {
                 return $command

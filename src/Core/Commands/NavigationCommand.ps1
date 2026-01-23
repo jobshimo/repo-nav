@@ -1,26 +1,26 @@
-# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
+﻿# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
 
 class NavigationCommand : INavigationCommand {
     [string] GetDescription() {
         return "Navigate (UP/DOWN arrows)"
     }
 
-    [bool] CanExecute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
-        $key = $keyPress.Key
-        return $key -eq [System.ConsoleKey]::UpArrow -or $key -eq [System.ConsoleKey]::DownArrow
+    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+        $key = $keyPress.VirtualKeyCode
+        return $key -eq [Constants]::KEY_UP_ARROW -or $key -eq [Constants]::KEY_DOWN_ARROW
     }
 
-    [void] Execute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [hashtable]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         
         if ($repos.Count -eq 0) { return }
         
         $currentIndex = $state.GetCurrentIndex()
-        $key = $keyPress.Key
+        $key = $keyPress.VirtualKeyCode
         
         # Calculate new index
-        if ($key -eq [System.ConsoleKey]::UpArrow) {
+        if ($key -eq [Constants]::KEY_UP_ARROW) {
             if ($currentIndex -gt 0) {
                 $state.SetCurrentIndex($currentIndex - 1)
             }
@@ -28,7 +28,7 @@ class NavigationCommand : INavigationCommand {
                 $state.SetCurrentIndex($repos.Count - 1)
             }
         }
-        elseif ($key -eq [System.ConsoleKey]::DownArrow) {
+        elseif ($key -eq [Constants]::KEY_DOWN_ARROW) {
             if ($currentIndex -lt ($repos.Count - 1)) {
                 $state.SetCurrentIndex($currentIndex + 1)
             }
@@ -40,3 +40,5 @@ class NavigationCommand : INavigationCommand {
         # Selection changed flag is automatically set by SetCurrentIndex()
     }
 }
+
+

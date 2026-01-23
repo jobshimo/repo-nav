@@ -1,16 +1,16 @@
-# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
+﻿# IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
 
 class AliasCommand : INavigationCommand {
     [string] GetDescription() {
         return "Edit (E) or Remove (R) alias"
     }
 
-    [bool] CanExecute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
-        $key = $keyPress.Key
-        return $key -eq [System.ConsoleKey]::E -or $key -eq [System.ConsoleKey]::R
+    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+        $key = $keyPress.VirtualKeyCode
+        return $key -eq [Constants]::KEY_E -or $key -eq [Constants]::KEY_R
     }
 
-    [void] Execute([System.ConsoleKeyInfo]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [hashtable]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         $currentIndex = $state.GetCurrentIndex()
@@ -18,17 +18,17 @@ class AliasCommand : INavigationCommand {
         if ($repos.Count -eq 0) { return }
         
         $currentRepo = $repos[$currentIndex]
-        $key = $keyPress.Key
+        $key = $keyPress.VirtualKeyCode
         
         # Stop the navigation loop to allow interactive input
         $state.Stop()
         
         try {
-            if ($key -eq [System.ConsoleKey]::E) {
+            if ($key -eq [Constants]::KEY_E) {
                 # Edit alias - Pass required parameters
                 Invoke-AliasEdit -RepoManager $context.RepoManager -Repository $currentRepo -ColorSelector $context.ColorSelector
             }
-            elseif ($key -eq [System.ConsoleKey]::R) {
+            elseif ($key -eq [Constants]::KEY_R) {
                 # Remove alias - Pass required parameters
                 Invoke-AliasRemove -RepoManager $context.RepoManager -Repository $currentRepo
             }
@@ -60,3 +60,5 @@ class AliasCommand : INavigationCommand {
         }
     }
 }
+
+

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Interface for navigation commands following Command Pattern
     
@@ -55,3 +55,4 @@ class INavigationCommand {
         throw "GetDescription() must be implemented by derived class"
     }
 }
+
