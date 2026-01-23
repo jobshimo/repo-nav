@@ -18,11 +18,17 @@ class ColorPalette {
     
     # Color validation
     static [bool] IsValidColor([string]$color) {
+        if ([string]::IsNullOrWhiteSpace($color)) {
+            return $false
+        }
         return [ColorPalette]::AvailableColors -contains $color
     }
     
     # Get color or default if invalid
     static [string] GetColorOrDefault([string]$color) {
+        if ([string]::IsNullOrWhiteSpace($color)) {
+            return [ColorPalette]::DefaultAliasColor
+        }
         if ([ColorPalette]::IsValidColor($color)) {
             return $color
         }

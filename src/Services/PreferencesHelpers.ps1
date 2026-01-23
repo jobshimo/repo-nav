@@ -45,7 +45,7 @@ function Show-PreferencesMenu {
             for ($i = 0; $i -lt $preferenceItems.Count; $i++) {
                 $item = $preferenceItems[$i]
                 $prefix = if ($i -eq $selectedOption) { ">" } else { " " }
-                $color = if ($i -eq $selectedOption) { "Yellow" } else { "Gray" }
+                $color = if ($i -eq $selectedOption) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
                 
                 Write-Host "  $prefix $($item.Name): $($item.CurrentValue)" -ForegroundColor $color
             }
@@ -55,7 +55,7 @@ function Show-PreferencesMenu {
             # Back option
             $backIndex = $preferenceItems.Count
             $prefix = if ($selectedOption -eq $backIndex) { ">" } else { " " }
-            $color = if ($selectedOption -eq $backIndex) { "Yellow" } else { "Gray" }
+            $color = if ($selectedOption -eq $backIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
             Write-Host "  $prefix Back to main menu" -ForegroundColor $color
             
             Write-Host ""
@@ -70,7 +70,7 @@ function Show-PreferencesMenu {
                 }
             }
             
-            Write-Host "  Use Arrows to navigate | Enter to change/select | Q to go back" -ForegroundColor DarkGray
+            Write-Host "  Use Arrows to navigate | Enter to change/select | Q to go back" -ForegroundColor ([Constants]::ColorHint)
             
             # Wait for input
             $key = $Console.ReadKey()

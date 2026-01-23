@@ -46,6 +46,38 @@ class Constants {
     # Favorite Symbol
     static [string] $FavoriteSymbol = [char]0x2605      # ★
     
+    # UI Colors - Single source of truth for all UI colors
+    static [string] $ColorHeader = "Cyan"
+    static [string] $ColorSeparator = "Cyan"
+    static [string] $ColorMenuText = "Gray"
+    static [string] $ColorSelected = "Green"
+    static [string] $ColorUnselected = "White"
+    static [string] $ColorSelectedBackground = "DarkGray"
+    static [string] $ColorFavorite = "Yellow"
+    static [string] $ColorError = "Red"
+    static [string] $ColorSuccess = "Green"
+    static [string] $ColorWarning = "Yellow"
+    static [string] $ColorInfo = "Gray"
+    static [string] $ColorLabel = "Gray"
+    static [string] $ColorValue = "White"
+    static [string] $ColorHighlight = "Cyan"
+    static [string] $ColorPrompt = "Yellow"
+    static [string] $ColorHint = "DarkGray"
+    
+    # Git Status Colors
+    static [string] $ColorGitClean = "Green"
+    static [string] $ColorGitUncommitted = "Red"
+    static [string] $ColorGitUnpushed = "Yellow"
+    static [string] $ColorGitUnknown = "DarkGray"
+    
+    # Repository Status Colors
+    static [string] $ColorRepoWithoutModules = "Red"
+    
+    # Counter Colors
+    static [string] $ColorCounterComplete = "Green"
+    static [string] $ColorCounterPartial = "Yellow"
+    static [string] $ColorCounterEmpty = "Red"
+    
     # Initialize configuration from file
     static [void] Initialize([string]$scriptRoot) {
         [Constants]::ScriptRoot = $scriptRoot

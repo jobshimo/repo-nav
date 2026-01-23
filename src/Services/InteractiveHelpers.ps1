@@ -25,29 +25,30 @@ function Invoke-AliasEdit {
     )
     
     Clear-Host
-    Write-Host "=======================================================" -ForegroundColor Cyan
-    Write-Host "    SET ALIAS" -ForegroundColor Cyan
-    Write-Host "=======================================================" -ForegroundColor Cyan
-    Write-Host "Repository: " -NoNewline -ForegroundColor Yellow
-    Write-Host $Repository.Name -ForegroundColor White
-    Write-Host "=======================================================" -ForegroundColor Cyan
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+    Write-Host "    SET ALIAS" -ForegroundColor ([Constants]::ColorHeader)
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+    Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+    Write-Host $Repository.Name -ForegroundColor ([Constants]::ColorValue)
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
     Write-Host ""
     
     $currentAlias = ""
     $currentColor = [ColorPalette]::DefaultAliasColor
     
     # Check if repo already has an alias
-    if ($Repository.HasAlias) {
-        $currentAlias = $Repository.Alias
-        $currentColor = $Repository.AliasColor
+    if ($Repository.HasAlias -and $Repository.AliasInfo) {
+        $currentAlias = $Repository.AliasInfo.Alias
+        # Always validate and get a safe color value
+        $currentColor = [ColorPalette]::GetColorOrDefault($Repository.AliasInfo.Color)
         
-        Write-Host "Current alias: " -NoNewline -ForegroundColor Gray
+        Write-Host "Current alias: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
         Write-Host $currentAlias -ForegroundColor $currentColor
         Write-Host ""
-        Write-Host "[current: $currentAlias]" -ForegroundColor DarkGray
-        Write-Host "New alias (or press Enter to keep current): " -NoNewline -ForegroundColor Gray
+        Write-Host "[current: $currentAlias]" -ForegroundColor ([Constants]::ColorHint)
+        Write-Host "New alias (or press Enter to keep current): " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
     } else {
-        Write-Host "Enter alias (no spaces): " -NoNewline -ForegroundColor Gray
+        Write-Host "Enter alias (no spaces): " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
     }
     
     $alias = Read-Host
@@ -61,9 +62,9 @@ function Invoke-AliasEdit {
     if ([string]::IsNullOrWhiteSpace($alias) -or $alias -match '\s') {
         Write-Host ""
         if ($alias -match '\s') {
-            Write-Host "Error: Alias cannot contain spaces." -ForegroundColor Red
+            Write-Host "Error: Alias cannot contain spaces." -ForegroundColor ([Constants]::ColorError)
         } else {
-            Write-Host "Alias not saved (empty)." -ForegroundColor Yellow
+            Write-Host "Alias not saved (empty)." -ForegroundColor ([Constants]::ColorWarning)
         }
         Start-Sleep -Seconds 2
         return $false
@@ -75,9 +76,9 @@ function Invoke-AliasEdit {
     if ($currentAlias -and $alias -eq $currentAlias) {
         # Ask if want to change color
         Clear-Host
-        Write-Host "Keep current color " -NoNewline -ForegroundColor Gray
+        Write-Host "Keep current color " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
         Write-Host $currentColor -NoNewline -ForegroundColor $currentColor
-        Write-Host "? (Y/n): " -NoNewline -ForegroundColor Gray
+        Write-Host "? (Y/n): " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
         $keepColor = Read-Host
         
         if ($keepColor -ne '' -and $keepColor -ne 'Y' -and $keepColor -ne 'y') {
@@ -93,10 +94,10 @@ function Invoke-AliasEdit {
     
     Clear-Host
     if ($result) {
-        Write-Host "Alias saved successfully with color " -NoNewline -ForegroundColor Green
+        Write-Host "Alias saved successfully with color " -NoNewline -ForegroundColor ([Constants]::ColorSuccess)
         Write-Host $selectedColor -ForegroundColor $selectedColor
     } else {
-        Write-Host "Failed to save alias." -ForegroundColor Red
+        Write-Host "Failed to save alias." -ForegroundColor ([Constants]::ColorError)
     }
     Start-Sleep -Seconds 1
     
@@ -118,7 +119,7 @@ function Invoke-AliasRemove {
     
     if (-not $Repository.HasAlias) {
         Clear-Host
-        Write-Host "No alias to remove for this repository." -ForegroundColor Yellow
+        Write-Host "No alias to remove for this repository." -ForegroundColor ([Constants]::ColorWarning)
         Start-Sleep -Seconds 1
         return $false
     }
@@ -127,9 +128,9 @@ function Invoke-AliasRemove {
     
     Clear-Host
     if ($result) {
-        Write-Host "Alias removed successfully!" -ForegroundColor Green
+        Write-Host "Alias removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
     } else {
-        Write-Host "Failed to remove alias." -ForegroundColor Red
+        Write-Host "Failed to remove alias." -ForegroundColor ([Constants]::ColorError)
     }
     Start-Sleep -Seconds 1
     
@@ -153,21 +154,21 @@ function Invoke-NodeModulesRemove {
     
     if (-not (Test-Path $nodeModulesPath)) {
         Clear-Host
-        Write-Host "No node_modules folder found in this repository." -ForegroundColor Yellow
+        Write-Host "No node_modules folder found in this repository." -ForegroundColor ([Constants]::ColorWarning)
         Start-Sleep -Seconds 2
         return $false
     }
     
     Clear-Host
-    Write-Host "=======================================================" -ForegroundColor Cyan
-    Write-Host "    REMOVE NODE_MODULES" -ForegroundColor Cyan
-    Write-Host "=======================================================" -ForegroundColor Cyan
-    Write-Host "Repository: " -NoNewline -ForegroundColor Yellow
-    Write-Host $Repository.Name -ForegroundColor White
-    Write-Host "=======================================================" -ForegroundColor Cyan
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+    Write-Host "    REMOVE NODE_MODULES" -ForegroundColor ([Constants]::ColorHeader)
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+    Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+    Write-Host $Repository.Name -ForegroundColor ([Constants]::ColorValue)
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
     Write-Host ""
-    Write-Host "This will delete the node_modules folder." -ForegroundColor Yellow
-    Write-Host "Continue? (Y/n): " -NoNewline -ForegroundColor Gray
+    Write-Host "This will delete the node_modules folder." -ForegroundColor ([Constants]::ColorWarning)
+    Write-Host "Continue? (Y/n): " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
     
     $confirm = Read-Host
     
@@ -178,26 +179,26 @@ function Invoke-NodeModulesRemove {
         
         if (Test-Path $packageLockPath) {
             Write-Host ""
-            Write-Host "Do you also want to remove package-lock.json? (y/N): " -NoNewline -ForegroundColor Cyan
+            Write-Host "Do you also want to remove package-lock.json? (y/N): " -NoNewline -ForegroundColor ([Constants]::ColorHighlight)
             $packageLockConfirm = Read-Host
             $removePackageLock = ($packageLockConfirm -eq 'y' -or $packageLockConfirm -eq 'Y')
         }
         
         Write-Host ""
-        Write-Host "Removing node_modules..." -ForegroundColor Yellow
+        Write-Host "Removing node_modules..." -ForegroundColor ([Constants]::ColorWarning)
         
         $result = $RepoManager.RemoveNodeModules($Repository, $removePackageLock)
         
         Write-Host ""
         if ($result) {
-            Write-Host "node_modules removed successfully!" -ForegroundColor Green
+            Write-Host "node_modules removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
         } else {
-            Write-Host "Error removing node_modules." -ForegroundColor Red
+            Write-Host "Error removing node_modules." -ForegroundColor ([Constants]::ColorError)
         }
         Start-Sleep -Seconds 2
         return $result
     } else {
-        Write-Host "Operation cancelled." -ForegroundColor Yellow
+        Write-Host "Operation cancelled." -ForegroundColor ([Constants]::ColorWarning)
         Start-Sleep -Seconds 1
         return $false
     }

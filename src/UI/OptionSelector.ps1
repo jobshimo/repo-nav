@@ -79,7 +79,7 @@ class OptionSelector {
                 for ($i = 0; $i -lt $options.Count; $i++) {
                     $option = $options[$i]
                     $prefix = if ($i -eq $selectedIndex) { ">" } else { " " }
-                    $color = if ($i -eq $selectedIndex) { "Yellow" } else { "Gray" }
+                    $color = if ($i -eq $selectedIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
                     
                     # Add indicator if this is the current value
                     $currentMarker = if ($option.Value -eq $currentValue) { " (current)" } else { "" }
@@ -88,9 +88,9 @@ class OptionSelector {
                 }
                 
                 Write-Host ""
-                Write-Host "  $cancelText" -ForegroundColor DarkGray
+                Write-Host "  $cancelText" -ForegroundColor ([Constants]::ColorHint)
                 Write-Host ""
-                Write-Host "  Use Arrows to navigate | Enter to select | Q/Esc to cancel" -ForegroundColor DarkGray
+                Write-Host "  Use Arrows to navigate | Enter to select | Q/Esc to cancel" -ForegroundColor ([Constants]::ColorHint)
                 
                 # Wait for input
                 $key = $this.Console.ReadKey()

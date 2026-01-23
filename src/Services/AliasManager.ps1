@@ -39,6 +39,10 @@ class AliasManager {
                 else {
                     $alias = $aliasData.alias
                     $color = if ($aliasData.color) { $aliasData.color } else { [ColorPalette]::DefaultAliasColor }
+                    
+                    # Validate color - ensure it's not null or empty
+                    $color = [ColorPalette]::GetColorOrDefault($color)
+                    
                     $result[$repoName] = [AliasInfo]::new($alias, $color)
                 }
             }

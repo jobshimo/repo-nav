@@ -21,33 +21,33 @@ function Invoke-NpmInstall {
     $packageJsonPath = Join-Path $Repository.FullPath "package.json"
     if (-not (Test-Path $packageJsonPath)) {
         Clear-Host
-        Write-Host "No package.json found in this repository." -ForegroundColor Red
+        Write-Host "No package.json found in this repository." -ForegroundColor ([Constants]::ColorError)
         Start-Sleep -Seconds 2
         return $false
     }
     
     Clear-Host
-    Write-Host "=======================================================" -ForegroundColor Cyan
-    Write-Host "    INSTALL DEPENDENCIES" -ForegroundColor Cyan
-    Write-Host "=======================================================" -ForegroundColor Cyan
-    Write-Host "Repository: " -NoNewline -ForegroundColor Yellow
-    Write-Host $Repository.Name -ForegroundColor White
-    Write-Host "=======================================================" -ForegroundColor Cyan
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+    Write-Host "    INSTALL DEPENDENCIES" -ForegroundColor ([Constants]::ColorHeader)
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+    Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+    Write-Host $Repository.Name -ForegroundColor ([Constants]::ColorValue)
+    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
     Write-Host ""
-    Write-Host "Running npm install..." -ForegroundColor Yellow
+    Write-Host "Running npm install..." -ForegroundColor ([Constants]::ColorWarning)
     Write-Host ""
     
     Push-Location $Repository.FullPath
     try {
         npm install
         Write-Host ""
-        Write-Host "Dependencies installed successfully!" -ForegroundColor Green
+        Write-Host "Dependencies installed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
         Start-Sleep -Seconds 2
         return $true
     }
     catch {
         Write-Host ""
-        Write-Host "Error installing dependencies: $_" -ForegroundColor Red
+        Write-Host "Error installing dependencies: $_" -ForegroundColor ([Constants]::ColorError)
         Start-Sleep -Seconds 3
         return $false
     }

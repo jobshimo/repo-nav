@@ -44,7 +44,7 @@ class ColorSelector {
             $this.Console.ClearScreen()
             $this.Renderer.RenderHeader("SELECT ALIAS COLOR")
             Write-Host ""
-            Write-Host "  Use arrows to navigate | Enter to select" -ForegroundColor Gray
+            Write-Host "  Use arrows to navigate | Enter to select" -ForegroundColor ([Constants]::ColorMenuText)
             Write-Host ""
             
             for ($i = 0; $i -lt $colors.Count; $i++) {
@@ -52,7 +52,7 @@ class ColorSelector {
             }
             
             Write-Host ""
-            Write-Host ("=" * 55) -ForegroundColor Cyan
+            Write-Host ("=" * 55) -ForegroundColor ([Constants]::ColorSeparator)
             
             $previousIndex = $selectedIndex
             
