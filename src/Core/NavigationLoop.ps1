@@ -350,6 +350,41 @@ function Start-NavigationLoop {
                     $Console.HideCursor()
                 }
                 
+                ([Constants]::KEY_U) {
+                    # Open user preferences menu
+                    Show-PreferencesMenu -PreferencesService $RepoManager.PreferencesService -Console $Console -Renderer $Renderer
+                    
+                    # Reload repositories with potentially new sorting preference
+                    $selectedRepoName = $repos[$SelectedIndex].Name
+                    $RepoManager.LoadRepositories($BasePath)
+                    $repos = $RepoManager.GetRepositories()
+                    
+                    # Find the previously selected repo
+                    $newIndex = 0
+                    for ($i = 0; $i -lt $repos.Count; $i++) {
+                        if ($repos[$i].Name -eq $selectedRepoName) {
+                            $newIndex = $i
+                            break
+                        }
+                    }
+                    $SelectedIndex = $newIndex
+                    
+                    # Full redraw
+                    $Console.ClearScreen()
+                    $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
+                    $Renderer.RenderMenu()
+                    
+                    for ($i = 0; $i -lt $repos.Count; $i++) {
+                        $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $SelectedIndex))
+                    }
+                    
+                    Write-Host ""
+                    $totalRepos = $repos.Count
+                    $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
+                    $Renderer.RenderGitStatusFooter($repos[$SelectedIndex], $totalRepos, $loadedRepos)
+                    $Console.HideCursor()
+                }
+                
                 ([Constants]::KEY_Q) {
                     $Console.ClearScreen()
                     $Renderer.RenderWarning("Navigation cancelled.")

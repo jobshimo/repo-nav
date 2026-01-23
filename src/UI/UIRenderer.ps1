@@ -34,7 +34,7 @@ class UIRenderer {
     # Render menu/instructions
     [void] RenderMenu() {
         Write-Host ""
-        Write-Host "  Navigation: Arrows | Enter=open | Q=quit" -ForegroundColor Gray
+        Write-Host "  Navigation: Arrows | Enter=open | Q=quit | U=preferences" -ForegroundColor Gray
         Write-Host "  Aliases:    E=set | R=remove" -ForegroundColor Gray
         Write-Host "  Modules:    I=install | X=remove" -ForegroundColor Gray
         Write-Host "  Repository: C=clone | Del=delete | F=favorite" -ForegroundColor Gray

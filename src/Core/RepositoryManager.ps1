@@ -24,6 +24,7 @@ class RepositoryManager {
     [NpmService] $NpmService
     [AliasManager] $AliasManager
     [ConfigurationService] $ConfigService
+    [UserPreferencesService] $PreferencesService
     
     # Cache for loaded repositories
     [System.Collections.ArrayList] $Repositories
@@ -33,12 +34,14 @@ class RepositoryManager {
         [GitService]$gitService,
         [NpmService]$npmService,
         [AliasManager]$aliasManager,
-        [ConfigurationService]$configService
+        [ConfigurationService]$configService,
+        [UserPreferencesService]$preferencesService
     ) {
         $this.GitService = $gitService
         $this.NpmService = $npmService
         $this.AliasManager = $aliasManager
         $this.ConfigService = $configService
+        $this.PreferencesService = $preferencesService
         $this.Repositories = [System.Collections.ArrayList]::new()
     }
     
@@ -78,8 +81,18 @@ class RepositoryManager {
             $this.Repositories.Add($repo) | Out-Null
         }
         
-        # Sort: Favorites first, then alphabetically
-        $sorted = $this.Repositories | Sort-Object @{Expression = {-$_.IsFavorite}}, Name
+        # Get user preference for favorites position
+        [bool]$favoritesOnTop = $this.PreferencesService.GetPreference("display", "favoritesOnTop")
+        
+        # Sort based on user preference
+        if ($favoritesOnTop) {
+            # Favorites first, then alphabetically
+            $sorted = $this.Repositories | Sort-Object @{Expression = {-$_.IsFavorite}}, Name
+        } else {
+            # Just alphabetically (favorites stay in their position)
+            $sorted = $this.Repositories | Sort-Object Name
+        }
+        
         $this.Repositories.Clear()
         $this.Repositories.AddRange($sorted)
     }
@@ -156,8 +169,18 @@ class RepositoryManager {
         if ($result) {
             $repository.MarkAsFavorite(-not $repository.IsFavorite)
             
-            # Re-sort repositories (favorites first)
-            $sorted = $this.Repositories | Sort-Object @{Expression = {-$_.IsFavorite}}, Name
+            # Get user preference for favorites position
+            [bool]$favoritesOnTop = $this.PreferencesService.GetPreference("display", "favoritesOnTop")
+            
+            # Sort based on user preference
+            if ($favoritesOnTop) {
+                # Favorites first, then alphabetically
+                $sorted = $this.Repositories | Sort-Object @{Expression = {-$_.IsFavorite}}, Name
+            } else {
+                # Just alphabetically (favorites stay in their position)
+                $sorted = $this.Repositories | Sort-Object Name
+            }
+            
             $this.Repositories.Clear()
             $this.Repositories.AddRange($sorted)
         }

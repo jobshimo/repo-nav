@@ -32,6 +32,7 @@ class Constants {
     static [int] $KEY_G = 71
     static [int] $KEY_L = 76
     static [int] $KEY_F = 70
+    static [int] $KEY_U = 85
     
     # UI Constants
     static [int] $CursorStartLine = 10
