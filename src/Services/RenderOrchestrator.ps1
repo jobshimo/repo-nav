@@ -101,10 +101,9 @@ class RenderOrchestrator {
             $true
         )
         
-        # Update footer
+        # Update footer (reposition cursor but don't clear - just overwrite)
         $footerLine = $startLine + $repos.Count + 1
         $this.Console.SetCursorPosition(0, $footerLine)
-        $this.Renderer.ClearGitStatusFooter($footerLine)
         
         $totalRepos = $state.GetTotalCount()
         $loadedRepos = $state.GetLoadedCount()
