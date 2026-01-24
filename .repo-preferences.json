@@ -1,13 +1,13 @@
 ﻿{
     "display":  {
                     "favoritesOnTop":  false,
-                    "selectedBackground":  "DarkBlue",
+                    "selectedBackground":  "DarkYellow",
                     "selectedDelimiter":  "None"
                 },
     "git":  {
-                "autoLoadFavoritesStatus":  false
+                "autoLoadFavoritesStatus":  true
             },
     "general":  {
-                    "language":  "en"
+                    "language":  "es"
                 }
 }

@@ -22,13 +22,13 @@ class RepositoryManagementCommand : INavigationCommand {
         try {
             if ($key -eq [Constants]::KEY_C) {
                 # Clone repository - Pass required parameters
-                Invoke-RepositoryClone -RepoManager $context.RepoManager -BasePath $context.BasePath -Console $context.Console
+                Invoke-RepositoryClone -RepoManager $context.RepoManager -BasePath $context.BasePath -Console $context.Console -LocalizationService $context.LocalizationService
             }
             elseif ($key -eq [Constants]::KEY_DELETE) {
                 # Delete repository (CRITICAL: requires confirmation) - Pass required parameters
                 if ($repos.Count -gt 0) {
                     $currentRepo = $repos[$currentIndex]
-                    Invoke-RepositoryDelete -RepoManager $context.RepoManager -Repository $currentRepo -Console $context.Console
+                    Invoke-RepositoryDelete -RepoManager $context.RepoManager -Repository $currentRepo -Console $context.Console -LocalizationService $context.LocalizationService
                 }
             }
             

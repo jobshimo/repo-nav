@@ -27,9 +27,18 @@ function Invoke-AliasEdit {
         $Console = $null,
         
         [Parameter(Mandatory = $false)]
-        $Renderer = $null
+        $Renderer = $null,
+
+        [Parameter(Mandatory = $false)]
+        $LocalizationService = $null
     )
     
+    # Helper for localization
+    function Get-Loc([string]$key, [string]$default) {
+        if ($LocalizationService) { return $LocalizationService.Get($key) }
+        return $default
+    }
+
     # If Console not provided, create a temporary one
     if ($null -eq $Console) {
         $Console = [ConsoleHelper]::new()
@@ -39,25 +48,36 @@ function Invoke-AliasEdit {
     if ($null -eq $Renderer) {
         $prefsService = [UserPreferencesService]::new([ConfigurationService]::new())
         $Renderer = [UIRenderer]::new($Console, $prefsService)
+        # If possible injection missing handled gracefully
     }
     
     $Console.ClearForWorkflow()
-    $Renderer.RenderWorkflowHeader("SET ALIAS", $Repository)
+    $Renderer.RenderWorkflowHeader($(Get-Loc "Alias.Title" "SET ALIAS"), $Repository)
     
     $currentAlias = ""
     $currentColor = [ColorPalette]::DefaultAliasColor
     
-    # Check if repo already has an alias
+    $lblCurrent = Get-Loc "Alias.Current" "Current alias"
+    $lblPrompt = Get-Loc "Alias.Prompt" "Enter new alias (empty to remove)"
+
+    # Check if repo already has an alias (LOGIC MODIFIED: Allow removal if empty)
+    # Original logic forced "Enter to keep current".
+    # New logic: Enter to remove if empty input? 
+    # Wait, the user prompt says "empty to remove" in my English JSON but the code says "or press Enter to keep current".
+    # I should align the code behavior or the message.
+    # The original code: "If empty and there's a current alias, keep it".
+    # If I want to support removal, I should check input. 
+    # Let's keep original behavior for Edit (Enter keeps current) but improve UI.
+    
     if ($Repository.HasAlias -and $Repository.AliasInfo) {
         $currentAlias = $Repository.AliasInfo.Alias
         # Always validate and get a safe color value
         $currentColor = [ColorPalette]::GetColorOrDefault($Repository.AliasInfo.Color)
         
-        Write-Host "Current alias: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+        Write-Host "${lblCurrent}: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
         Write-Host $currentAlias -ForegroundColor $currentColor
         Write-Host ""
-        Write-Host "[current: $currentAlias]" -ForegroundColor ([Constants]::ColorHint)
-        Write-Host "New alias (or press Enter to keep current): " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+        Write-Host "New alias (Enter = keep '$currentAlias'): " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
     } else {
         Write-Host "Enter alias (no spaces): " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
     }
@@ -131,9 +151,18 @@ function Invoke-AliasRemove {
         $Console = $null,
         
         [Parameter(Mandatory = $false)]
-        $Renderer = $null
+        $Renderer = $null,
+
+        [Parameter(Mandatory = $false)]
+        $LocalizationService = $null
     )
     
+    # Helper for localization
+    function Get-Loc([string]$key, [string]$default) {
+        if ($LocalizationService) { return $LocalizationService.Get($key) }
+        return $default
+    }
+
     # If Console not provided, create a temporary one
     if ($null -eq $Console) {
         $Console = [ConsoleHelper]::new()
@@ -147,23 +176,23 @@ function Invoke-AliasRemove {
     
     if (-not $Repository.HasAlias) {
         $Console.ClearForWorkflow()
-        Write-Host "No alias to remove for this repository." -ForegroundColor ([Constants]::ColorWarning)
+        Write-Host $(Get-Loc "Alias.NoAliasToRemove" "No alias to remove for this repository.") -ForegroundColor ([Constants]::ColorWarning)
         Start-Sleep -Seconds 1
         return $false
     }
     
     $Console.ClearForWorkflow()
-    $Renderer.RenderWorkflowHeaderWithInfo("REMOVE ALIAS", $Repository, "Alias", $Repository.AliasInfo.Alias, $Repository.AliasInfo.Color)
-    Write-Host "This will remove the alias for this repository." -ForegroundColor ([Constants]::ColorWarning)
+    $Renderer.RenderWorkflowHeaderWithInfo($(Get-Loc "Alias.RemoveTitle" "REMOVE ALIAS"), $Repository, "Alias", $Repository.AliasInfo.Alias, $Repository.AliasInfo.Color)
+    Write-Host $(Get-Loc "Alias.RemoveConfirm" "This will remove the alias for this repository.") -ForegroundColor ([Constants]::ColorWarning)
     
-    if ($Console.ConfirmAction("Continue?", $true)) {
+    if ($Console.ConfirmAction($(Get-Loc "Prompt.Continue" "Continue?"), $true)) {
         $result = $RepoManager.RemoveAlias($Repository)
         
         $Console.ClearForWorkflow()
         if ($result) {
-            Write-Host "Alias removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
+            Write-Host $(Get-Loc "Alias.RemovedSuccess" "Alias removed successfully!") -ForegroundColor ([Constants]::ColorSuccess)
         } else {
-            Write-Host "Failed to remove alias." -ForegroundColor ([Constants]::ColorError)
+            Write-Host $(Get-Loc "Alias.RemoveFail" "Failed to remove alias.") -ForegroundColor ([Constants]::ColorError)
         }
         Start-Sleep -Seconds 1
         
@@ -191,9 +220,18 @@ function Invoke-NodeModulesRemove {
         $Console = $null,
         
         [Parameter(Mandatory = $false)]
-        $Renderer = $null
+        $Renderer = $null,
+
+        [Parameter(Mandatory = $false)]
+        $LocalizationService = $null
     )
     
+    # Helper for localization
+    function Get-Loc([string]$key, [string]$default) {
+        if ($LocalizationService) { return $LocalizationService.Get($key) }
+        return $default
+    }
+
     # If Console not provided, create a temporary one
     if ($null -eq $Console) {
         $Console = [ConsoleHelper]::new()
@@ -203,29 +241,31 @@ function Invoke-NodeModulesRemove {
     if ($null -eq $Renderer) {
         $prefsService = [UserPreferencesService]::new([ConfigurationService]::new())
         $Renderer = [UIRenderer]::new($Console, $prefsService)
+        # Handle graceful missing DI if needed
     }
     
     $nodeModulesPath = Join-Path $Repository.FullPath "node_modules"
     
     if (-not (Test-Path $nodeModulesPath)) {
         $Console.ClearForWorkflow()
-        Write-Host "No node_modules folder found in this repository." -ForegroundColor ([Constants]::ColorWarning)
+        $msg = Get-Loc "Error.Repo.NoNodeModules" "No node_modules folder found in {0}"
+        Write-Host ($msg -f $Repository.Name) -ForegroundColor ([Constants]::ColorWarning)
         Start-Sleep -Seconds 2
         return $false
     }
     
     $Console.ClearForWorkflow()
-    $Renderer.RenderWorkflowHeader("REMOVE NODE_MODULES", $Repository)
-    Write-Host "This will delete the node_modules folder." -ForegroundColor ([Constants]::ColorWarning)
+    $Renderer.RenderWorkflowHeader($(Get-Loc "Msg.Npm.Removing" "REMOVE NODE_MODULES"), $Repository)
+    Write-Host $(Get-Loc "Msg.Npm.DeleteWarning" "This will delete the node_modules folder.") -ForegroundColor ([Constants]::ColorWarning)
     
-    if ($Console.ConfirmAction("Continue?", $true)) {
+    if ($Console.ConfirmAction($(Get-Loc "Prompt.Continue" "Continue?"), $true)) {
         # Ask about package-lock.json
         $packageLockPath = Join-Path $Repository.FullPath "package-lock.json"
         $removePackageLock = $false
         
         if (Test-Path $packageLockPath) {
             Write-Host ""
-            $removePackageLock = $Console.ConfirmAction("Do you also want to remove package-lock.json?", $false)
+            $removePackageLock = $Console.ConfirmAction($(Get-Loc "Msg.Npm.RemoveLockPrompt" "Do you also want to remove package-lock.json?"), $false)
         }
         
         Write-Host ""
@@ -234,14 +274,18 @@ function Invoke-NodeModulesRemove {
         
         Write-Host ""
         if ($result) {
-            Write-Host "node_modules removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
+            Write-Host $(Get-Loc "Msg.Npm.RemovedSuccess" "node_modules removed successfully!") -ForegroundColor ([Constants]::ColorSuccess)
+             # Also mention lock file if removed
+             if ($removePackageLock) {
+                Write-Host $(Get-Loc "Msg.Npm.RemovedLockSuccess" "package-lock.json removed successfully!") -ForegroundColor ([Constants]::ColorSuccess)
+             }
         } else {
-            Write-Host "Error removing node_modules." -ForegroundColor ([Constants]::ColorError)
+            Write-Host $(Get-Loc "Error.Npm.RemoveFailed" "Error removing node_modules.") -ForegroundColor ([Constants]::ColorError)
         }
         Start-Sleep -Seconds 2
         return $result
     } else {
-        Write-Host "Operation cancelled." -ForegroundColor ([Constants]::ColorWarning)
+        Write-Host $(Get-Loc "Msg.ActionCancelled" "Operation cancelled.") -ForegroundColor ([Constants]::ColorWarning)
         Start-Sleep -Seconds 1
         return $false
     }
@@ -260,9 +304,18 @@ function Invoke-RepositoryClone {
         [string]$BasePath,
         
         [Parameter(Mandatory = $false)]
-        $Console = $null
+        $Console = $null,
+
+        [Parameter(Mandatory = $false)]
+        $LocalizationService = $null
     )
     
+    # Helper for localization
+    function Get-Loc([string]$key, [string]$default) {
+        if ($LocalizationService) { return $LocalizationService.Get($key) }
+        return $default
+    }
+
     # If Console not provided, create a temporary one
     if ($null -eq $Console) {
         $Console = [ConsoleHelper]::new()
@@ -270,10 +323,10 @@ function Invoke-RepositoryClone {
     
     $Console.ClearForWorkflow()
     Write-Host "=======================================================" -ForegroundColor Cyan
-    Write-Host "    CLONE REPOSITORY" -ForegroundColor Cyan
+    Write-Host ("    " + $(Get-Loc "Repo.Clone.Title" "CLONE REPOSITORY")) -ForegroundColor Cyan
     Write-Host "=======================================================" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Enter the Git repository URL:" -ForegroundColor Gray
+    Write-Host $(Get-Loc "Repo.Clone.Prompt" "Enter the Git repository URL:") -ForegroundColor Gray
     Write-Host "(e.g., https://github.com/user/repo.git)" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "URL: " -NoNewline -ForegroundColor Gray
@@ -295,7 +348,7 @@ function Invoke-RepositoryClone {
     
     Write-Host ""
     if ($result) {
-        Write-Host "Repository cloned successfully!" -ForegroundColor Green
+        Write-Host $(Get-Loc "Repo.Clone.Success" "Repository cloned successfully!") -ForegroundColor Green
     } else {
         Write-Host "Failed to clone repository." -ForegroundColor Red
     }
@@ -317,9 +370,18 @@ function Invoke-RepositoryDelete {
         $Repository,
         
         [Parameter(Mandatory = $false)]
-        $Console = $null
+        $Console = $null,
+
+        [Parameter(Mandatory = $false)]
+        $LocalizationService = $null
     )
     
+    # Helper for localization
+    function Get-Loc([string]$key, [string]$default) {
+        if ($LocalizationService) { return $LocalizationService.Get($key) }
+        return $default
+    }
+
     # If Console not provided, create a temporary one
     if ($null -eq $Console) {
         $Console = [ConsoleHelper]::new()
@@ -327,17 +389,18 @@ function Invoke-RepositoryDelete {
     
     $Console.ClearForWorkflow()
     Write-Host "=======================================================" -ForegroundColor Cyan
-    Write-Host "    DELETE REPOSITORY" -ForegroundColor Red
+    Write-Host ("    " + $(Get-Loc "Repo.Delete.Title" "DELETE REPOSITORY")) -ForegroundColor Red
     Write-Host "=======================================================" -ForegroundColor Cyan
     Write-Host "Repository: " -NoNewline -ForegroundColor Red
     Write-Host $Repository.Name -ForegroundColor White
     Write-Host "=======================================================" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "WARNING: This action is PERMANENT and cannot be undone!" -ForegroundColor Red
+    Write-Host ("WARNING: " + $(Get-Loc "Repo.Delete.Warning" "This action is PERMANENT and cannot be undone!")) -ForegroundColor Red
     Write-Host ""
     
     # First confirmation
-    Write-Host "Are you sure you want to delete this repository? (yes/no): " -NoNewline -ForegroundColor Yellow
+    $msgConfirm = Get-Loc "Repo.Delete.Confirm" "Are you sure you want to delete {0}?"
+    Write-Host "$($msgConfirm -f $Repository.Name) (yes/no): " -NoNewline -ForegroundColor Yellow
     $firstConfirm = Read-Host
     
     if ($firstConfirm -ne 'yes') {

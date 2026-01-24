@@ -184,7 +184,12 @@ function Show-PreferencesMenu {
                         elseif ($selectedItem.Id -eq "selectedBackground") {
                             $bgOptions = @()
                             foreach ($bg in [Constants]::AvailableBackgroundColors) {
-                                $displayText = if ($bg -eq 'None') { 'No background' } else { $bg }
+                                # Translate 'None' or the color name
+                                if ($bg -eq 'None') {
+                                    $displayText = Get-Loc "Color.None" "No background"
+                                } else {
+                                    $displayText = Get-Loc "Color.$bg" $bg
+                                }
                                 $bgOptions += @{ DisplayText = $displayText; Value = $bg }
                             }
 

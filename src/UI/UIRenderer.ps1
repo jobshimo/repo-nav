@@ -18,11 +18,27 @@
 class UIRenderer {
     [ConsoleHelper] $Console
     [UserPreferencesService] $PreferencesService
+    [LocalizationService] $LocalizationService
     
     # Constructor with dependency injection
     UIRenderer([ConsoleHelper]$console, [UserPreferencesService]$preferencesService) {
         $this.Console = $console
         $this.PreferencesService = $preferencesService
+    }
+    
+    # Constructor with LocalizationService (overload/new signature)
+    UIRenderer([ConsoleHelper]$console, [UserPreferencesService]$preferencesService, [LocalizationService]$localizationService) {
+        $this.Console = $console
+        $this.PreferencesService = $preferencesService
+        $this.LocalizationService = $localizationService
+    }
+
+    # Helper for localization
+    [string] GetLoc([string]$key, [string]$default) {
+        if ($null -ne $this.LocalizationService) {
+            return $this.LocalizationService.Get($key)
+        }
+        return $default
     }
     
     # Render header
@@ -39,7 +55,7 @@ class UIRenderer {
         Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
         Write-Host "    $title" -ForegroundColor ([Constants]::ColorHeader)
         Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        Write-Host ("{0}: " -f $this.GetLoc("UI.Group.Repo", "Repository")) -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
         Write-Host $repository.Name -ForegroundColor ([Constants]::ColorValue)
         Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
         Write-Host ""
@@ -62,11 +78,27 @@ class UIRenderer {
     # Render menu/instructions
     [void] RenderMenu() {
         Write-Host ""
-        Write-Host "  Navigation: Arrows | Enter=open | Q=quit | U=preferences" -ForegroundColor ([Constants]::ColorMenuText)
-        Write-Host "  Aliases:    E=set | R=remove" -ForegroundColor ([Constants]::ColorMenuText)
-        Write-Host "  Modules:    I=install | X=remove" -ForegroundColor ([Constants]::ColorMenuText)
-        Write-Host "  Repository: C=clone | Del=delete | F=favorite" -ForegroundColor ([Constants]::ColorMenuText)
-        Write-Host "  Git Status: L=load current | G=load all missing" -ForegroundColor ([Constants]::ColorMenuText)
+        
+        $grpNav = $this.GetLoc("UI.Group.Nav", "Navigation")
+        $cmdNav = $this.GetLoc("Cmd.Desc.Nav", "Arrows | Enter=open")
+        $cmdExit = $this.GetLoc("Cmd.Desc.Exit", "Q=quit")
+        $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
+        Write-Host "  ${grpNav}: $cmdNav | $cmdExit | $cmdPref" -ForegroundColor ([Constants]::ColorMenuText)
+
+        $cmdAlias = $this.GetLoc("Cmd.Desc.Alias", "E=set | R=remove")
+        Write-Host "  Alias:      $cmdAlias" -ForegroundColor ([Constants]::ColorMenuText)
+
+        $grpMod = $this.GetLoc("UI.Group.Modules", "Modules")
+        $cmdNpm = $this.GetLoc("Cmd.Desc.Npm", "I=install | X=remove")
+        Write-Host "  ${grpMod}:    $cmdNpm" -ForegroundColor ([Constants]::ColorMenuText)
+
+        $grpRepo = $this.GetLoc("UI.Group.Repo", "Repository")
+        $cmdClone = $this.GetLoc("Cmd.Desc.RepoMgmt", "C=clone | Del=delete")
+        $cmdFav = $this.GetLoc("Cmd.Desc.Favorite", "Space=favorite")
+        Write-Host "  ${grpRepo}: $cmdClone | $cmdFav" -ForegroundColor ([Constants]::ColorMenuText)
+
+        $cmdGit = $this.GetLoc("Cmd.Desc.Git", "L=load current | G=load all")
+        Write-Host "  Git Status: $cmdGit" -ForegroundColor ([Constants]::ColorMenuText)
         Write-Host ""
     }
     
@@ -211,16 +243,18 @@ class UIRenderer {
             }
         }
         
+        $displayColor = $this.GetLoc("Color.$color", $color)
+
         if ($isSelected) {
             Write-Host "  > " -NoNewline -ForegroundColor ([Constants]::ColorSelected)
             if ($backgroundColor) {
-                Write-Host $color -ForegroundColor $color -BackgroundColor $backgroundColor
+                Write-Host $displayColor -ForegroundColor $color -BackgroundColor $backgroundColor
             } else {
-                Write-Host $color -ForegroundColor $color
+                Write-Host $displayColor -ForegroundColor $color
             }
         } else {
             Write-Host "    " -NoNewline
-            Write-Host $color -ForegroundColor $color
+            Write-Host $displayColor -ForegroundColor $color
         }
     }
     
@@ -246,29 +280,34 @@ class UIRenderer {
         Write-Host ("=" * 55) -ForegroundColor ([Constants]::ColorSeparator)
         
         # Line 2: Counters
-        Write-Host "Repos: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+        Write-Host ("Repos: ") -NoNewline -ForegroundColor ([Constants]::ColorLabel)
         Write-Host "$totalRepos" -NoNewline -ForegroundColor ([Constants]::ColorValue)
-        Write-Host " | Git Info: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+        Write-Host (" | Git Info: ") -NoNewline -ForegroundColor ([Constants]::ColorLabel)
         
         $counterColor = if ($loadedRepos -eq $totalRepos) { [Constants]::ColorCounterComplete } 
                        elseif ($loadedRepos -eq 0) { [Constants]::ColorCounterEmpty } 
                        else { [Constants]::ColorCounterPartial }
         Write-Host "$loadedRepos" -ForegroundColor $counterColor
         
+        $lblStatus = $this.GetLoc("UI.Status", "Status")
+        $lblBranch = $this.GetLoc("UI.Branch", "Branch")
+        $lblNoGit = $this.GetLoc("UI.NoGit", "Not a git repository")
+        $lblNotLoaded = $this.GetLoc("UI.NotLoaded", "Not loaded")
+
         # Line 3: Git status details
         if (-not $repo.HasGitStatusLoaded()) {
-            Write-Host "Git Status: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
-            Write-Host "Not loaded " -NoNewline -ForegroundColor ([Constants]::ColorHint)
-            Write-Host "(press L to load current or G for all)" -ForegroundColor ([Constants]::ColorWarning)
+            Write-Host "${lblStatus}: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+            Write-Host "${lblNotLoaded} " -NoNewline -ForegroundColor ([Constants]::ColorHint)
+            Write-Host "(" + $this.GetLoc("Cmd.Desc.Git", "press L to load current or G for all") + ")" -ForegroundColor ([Constants]::ColorWarning)
         } else {
             $gitStatus = $repo.GitStatus
             
             if (-not $gitStatus.IsGitRepo) {
-                Write-Host "Git Status: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
-                Write-Host "Not a git repository" -ForegroundColor ([Constants]::ColorHint)
+                Write-Host "${lblStatus}: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+                Write-Host $lblNoGit -ForegroundColor ([Constants]::ColorHint)
             } else {
-                Write-Host "Git Status: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
-                Write-Host "Branch: " -NoNewline -ForegroundColor ([Constants]::ColorHighlight)
+                Write-Host "${lblStatus}: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+                Write-Host "${lblBranch}: " -NoNewline -ForegroundColor ([Constants]::ColorHighlight)
                 Write-Host $gitStatus.CurrentBranch -NoNewline -ForegroundColor ([Constants]::ColorValue)
                 Write-Host " | " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
                 
@@ -283,6 +322,10 @@ class UIRenderer {
     
     # Render error message
     [void] RenderError([string]$message) {
+        $msg = $this.GetLoc("Error.Generic", "Error: {0}")
+        # Simplistic format since we can't easily pass args to PS format for partial string
+        # If message is already localized/dynamic, we just prepend Error if needed.
+        # But here we just print as is usually.
         Write-Host "Error: $message" -ForegroundColor ([Constants]::ColorError)
     }
     

@@ -136,7 +136,7 @@ function Start-RepositoryNavigator {
         
         # Create UI layer
         $consoleHelper = [ConsoleHelper]::new()
-        $renderer = [UIRenderer]::new($consoleHelper, $preferencesService)
+        $renderer = [UIRenderer]::new($consoleHelper, $preferencesService, $localizationService)
         $colorSelector = [ColorSelector]::new($renderer, $consoleHelper)
         $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
         

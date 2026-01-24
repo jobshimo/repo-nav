@@ -16,7 +16,8 @@ class ColorSelector {
     [ConsoleHelper] $Console
     
     # Constructor with dependency injection
-    ColorSelector([UIRenderer]$renderer, [ConsoleHelper]$console) {
+    # Breaking cyclical dependency typing in constructor by using [object]
+    ColorSelector([object]$renderer, [ConsoleHelper]$console) {
         $this.Renderer = $renderer
         $this.Console = $console
     }
@@ -42,9 +43,13 @@ class ColorSelector {
             
             # Initial render
             $this.Console.ClearScreen()
-            $this.Renderer.RenderHeader("SELECT ALIAS COLOR")
+            
+            $title = $this.Renderer.GetLoc("Selector.Title.Color", "SELECT ALIAS COLOR")
+            $hint = $this.Renderer.GetLoc("Selector.Hint.Arrows", "Use arrows to navigate | Enter to select")
+
+            $this.Renderer.RenderHeader($title)
             Write-Host ""
-            Write-Host "  Use arrows to navigate | Enter to select" -ForegroundColor ([Constants]::ColorMenuText)
+            Write-Host "  $hint" -ForegroundColor ([Constants]::ColorMenuText)
             Write-Host ""
             
             for ($i = 0; $i -lt $colors.Count; $i++) {

@@ -21,7 +21,8 @@ class OptionSelector {
     [UIRenderer] $Renderer
     
     # Constructor with dependency injection
-    OptionSelector([ConsoleHelper]$console, [UIRenderer]$renderer) {
+    # Breaking cyclical dependency typing in constructor by using [object]
+    OptionSelector([ConsoleHelper]$console, [object]$renderer) {
         $this.Console = $console
         $this.Renderer = $renderer
     }
@@ -84,7 +85,21 @@ class OptionSelector {
                     # Add indicator if this is the current value
                     $currentMarker = if ($option.Value -eq $currentValue) { " (current)" } else { "" }
                     
-                    Write-Host "  $prefix $($option.DisplayText)$currentMarker" -ForegroundColor $color
+                    $displayLine = "  $prefix $($option.DisplayText)$currentMarker"
+                    
+                    # Attempt to render background color preview if the option value is a valid console color
+                    # But not if it's 'None'
+                    $isColorPreview = $false
+                    if ($option.Value -ne 'None' -and ($option.Value -as [System.ConsoleColor])) {
+                        $isColorPreview = $true
+                    }
+
+                    if ($isColorPreview) {
+                        # Show color preview
+                        Write-Host $displayLine -ForegroundColor $option.Value
+                    } else {
+                        Write-Host $displayLine -ForegroundColor $color
+                    }
                 }
                 
                 Write-Host ""
