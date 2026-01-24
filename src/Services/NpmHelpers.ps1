@@ -78,22 +78,23 @@ function Invoke-NpmRemoveNodeModules {
         } -ArgumentList $NodeModulesPath
         
         # Show animated progress while job runs
-        $dots = ""
+        $dotCount = 0
         $maxDots = 3
         while ($job.State -eq 'Running') {
             # Restore cursor position
             $host.UI.RawUI.CursorPosition = $cursorPos
             
-            # Update dots animation
-            $dots += "."
-            if ($dots.Length -gt $maxDots) {
-                $dots = "."
-            }
+            # Create the dots string (0 to 3 dots)
+            $dots = "." * $dotCount
             
-            # Display progress indicator
-            Write-Host ("Removing node_modules" + $dots.PadRight($maxDots + 1)) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
+            # Display progress indicator with padding to clear previous text
+            $message = "Removing node_modules" + $dots
+            Write-Host $message.PadRight(50) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
             
-            Start-Sleep -Milliseconds 300
+            # Increment dot count and cycle back to 0 after maxDots
+            $dotCount = ($dotCount + 1) % ($maxDots + 1)
+            
+            Start-Sleep -Milliseconds 400
         }
         
         # Wait for job to complete and get result
