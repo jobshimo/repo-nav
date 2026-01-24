@@ -54,14 +54,24 @@ class NavigationState {
         # Header (~10) + Footer (4) = 14 reserved lines
         try {
             $windowHeight = $global:Host.UI.RawUI.WindowSize.Height
-            $reservedLines = 17 # Increased buffer to prevent footer scrolling issues
-            $safePageSize = $windowHeight - $reservedLines
+            # Fix: ReservedLines needs to include Header (10) + Footer (4) + Gap (1) + Safety Buffer (2)
+            # Total 17 lines reserved to strictly avoid hitting the bottom line which triggers scroll
+            $reservedLines = 17 
+            $availableLines = $windowHeight - $reservedLines
             
-            # Clamp between 5 and 25
-            if ($safePageSize -lt 5) { $safePageSize = 5 }
-            if ($safePageSize -gt 25) { $safePageSize = 25 }
+            # If available space is tiny (e.g. 1 or 2 lines), use it.
+            # Do NOT clamp to 5 if it doesn't fit. 
+            # Minimum 1 to function.
+            if ($availableLines -lt 1) { 
+                $availableLines = 1 
+            }
             
-            $this.PageSize = $safePageSize
+            # Only clamp MAX size to prevent overwhelming long lists
+            if ($availableLines -gt 25) { 
+                $availableLines = 25 
+            }
+            
+            $this.PageSize = $availableLines
         }
         catch {
              $this.PageSize = 15 # Fallback if host doesn't support WindowSize
@@ -374,6 +384,53 @@ class NavigationState {
         return $this.PreviousIndex
     }
     
+    <#
+    .SYNOPSIS
+        Check and update window size dynamically
+    #>
+    [void] UpdateWindowSize() {
+        try {
+            $height = $global:Host.UI.RawUI.WindowSize.Height
+            # Calculation:
+            # Header starts at 0, ends at 9 (10 lines)
+            # List starts at 10.
+            # Gap line: 1 line
+            # Footer: 4 lines
+            # Safety margin: 1 line
+            # Last written line index = 10 + PageSize + 1 + 3 (footer height-1) = 14 + PageSize.
+            # We need LastIndex < Height - 1 (to leave one empty line at bottom)
+            # 14 + PageSize < Height - 1
+            # PageSize < Height - 15
+            
+            # Conservative calculation: Height - 16
+            $newPageSize = $height - 16
+            
+            # Minimum functional size
+            if ($newPageSize -lt 1) { $newPageSize = 1 }
+            
+            # Maximum size
+            if ($newPageSize -gt 25) { $newPageSize = 25 }
+            
+            if ($this.PageSize -ne $newPageSize) {
+                # Ensure we don't spam redraws for tiny fluctuations if size is essentially same logic
+                $this.PageSize = $newPageSize
+                $this.RequiresFullRedraw = $true
+                
+                # Check if selected index is still in viewport, if not, adjust viewport
+                # Case: Viewport was [0-10], Index 5. PageSize becomes 2. Viewport [0-2]. Index 5 hidden.
+                # Correction: Move Viewport to contain Index.
+                if ($this.SelectedIndex -lt $this.ViewportStart) {
+                     $this.ViewportStart = $this.SelectedIndex
+                } 
+                elseif ($this.SelectedIndex -ge ($this.ViewportStart + $this.PageSize)) {
+                     $this.ViewportStart = [Math]::Max(0, $this.SelectedIndex - $this.PageSize + 1)
+                }
+            }
+        } catch { 
+            # Ignore errors getting window size
+        }
+    }
+
     #endregion
     
     #region Statistics

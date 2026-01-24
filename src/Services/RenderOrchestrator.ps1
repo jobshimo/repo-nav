@@ -37,6 +37,9 @@ class RenderOrchestrator {
         Renders based on state flags (main entry point)
     #>
     [void] RenderIfNeeded([object]$state) {
+        # Check if window resized
+        $state.UpdateWindowSize()
+
         if ($state.RequiresFullRedraw) {
             $this.RenderFull($state)
             # Clearing flags logic might need to be specific if methods exist, 
@@ -132,6 +135,10 @@ class RenderOrchestrator {
         
         # Update footer - Fixed position based on PageSize
         $footerLine = $startLine + $pageSize + 1       
+        
+        # Clear the gap line just in case (to prevent artifacts)
+        $this.Console.SetCursorPosition(0, $footerLine - 1)
+        $this.Console.ClearCurrentLine()
         
         # Clear line 2 (counters) and line 3 (git status) to avoid residuals
         $this.Console.SetCursorPosition(0, $footerLine + 1)
