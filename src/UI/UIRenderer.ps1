@@ -245,7 +245,7 @@ class UIRenderer {
         # Line 1: Separator
         Write-Host ("=" * 55) -ForegroundColor ([Constants]::ColorSeparator)
         
-        # Line 2: Counters (single line, pad to clear residuals)
+        # Line 2: Counters
         Write-Host "Repos: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
         Write-Host "$totalRepos" -NoNewline -ForegroundColor ([Constants]::ColorValue)
         Write-Host " | Git Info: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
@@ -253,19 +253,19 @@ class UIRenderer {
         $counterColor = if ($loadedRepos -eq $totalRepos) { [Constants]::ColorCounterComplete } 
                        elseif ($loadedRepos -eq 0) { [Constants]::ColorCounterEmpty } 
                        else { [Constants]::ColorCounterPartial }
-        Write-Host "$loadedRepos" -ForegroundColor $counterColor  # This adds newline
+        Write-Host "$loadedRepos" -ForegroundColor $counterColor
         
-        # Line 3: Git status details (single line, pad to clear residuals)
+        # Line 3: Git status details
         if (-not $repo.HasGitStatusLoaded()) {
             Write-Host "Git Status: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
             Write-Host "Not loaded " -NoNewline -ForegroundColor ([Constants]::ColorHint)
-            Write-Host "(press L to load current or G for all)" -ForegroundColor ([Constants]::ColorWarning)  # Adds newline
+            Write-Host "(press L to load current or G for all)" -ForegroundColor ([Constants]::ColorWarning)
         } else {
             $gitStatus = $repo.GitStatus
             
             if (-not $gitStatus.IsGitRepo) {
                 Write-Host "Git Status: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
-                Write-Host "Not a git repository" -ForegroundColor ([Constants]::ColorHint)  # Adds newline
+                Write-Host "Not a git repository" -ForegroundColor ([Constants]::ColorHint)
             } else {
                 Write-Host "Git Status: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
                 Write-Host "Branch: " -NoNewline -ForegroundColor ([Constants]::ColorHighlight)
@@ -273,7 +273,7 @@ class UIRenderer {
                 Write-Host " | " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
                 
                 $gitDisplay = $this.GetGitStatusDisplay($gitStatus)
-                Write-Host "$($gitDisplay.Symbol) $($gitDisplay.Description)" -ForegroundColor $gitDisplay.Color  # Adds newline
+                Write-Host "$($gitDisplay.Symbol) $($gitDisplay.Description)" -ForegroundColor $gitDisplay.Color
             }
         }
         
