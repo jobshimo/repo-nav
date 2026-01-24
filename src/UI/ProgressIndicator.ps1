@@ -23,10 +23,8 @@ class ProgressIndicator {
     [object] $Console      # ConsoleHelper
     
     # State
-    [string] $Message
     [int] $StartLine
     [int] $StartColumn
-    [object] $AnimationJob
     [bool] $IsRunning
     
     # Constructor
@@ -39,46 +37,30 @@ class ProgressIndicator {
     
     <#
     .SYNOPSIS
-        Starts an animated dots indicator (e.g., "Loading... .", "Loading... ..", "Loading... ...")
+        Shows animated dots for a short operation (synchronous display)
     #>
-    [void] StartAnimatedDots([string]$message) {
-        $this.StopIfRunning()
-        
-        $this.Message = $message
-        $this.IsRunning = $true
-        
+    [void] ShowLoadingDots([string]$message, [scriptblock]$action) {
         # Save cursor position
         $this.StartLine = [Console]::CursorTop
         $this.StartColumn = [Console]::CursorLeft
         
-        # Start background animation
-        $this.AnimationJob = Start-Job -ScriptBlock {
-            param($message, $line, $col)
+        # Show message with animation (5 iterations, each 300ms)
+        for ($i = 0; $i -lt 5; $i++) {
+            $dots = "." * ($i % 4)
+            $padding = " " * (3 - ($i % 4))
             
-            $dotCount = 0
-            while ($true) {
-                $dots = "." * $dotCount
-                $padding = " " * (3 - $dotCount)  # Pad to avoid leftover characters
-                
-                [Console]::SetCursorPosition($col, $line)
-                Write-Host "$message $dots$padding" -NoNewline -ForegroundColor Cyan
-                
-                $dotCount = ($dotCount + 1) % 4
-                Start-Sleep -Milliseconds 400
-            }
-        } -ArgumentList $this.Message, $this.StartLine, $this.StartColumn
-    }
-    
-    <#
-    .SYNOPSIS
-        Stops the animated dots indicator
-    #>
-    [void] StopAnimatedDots() {
-        $this.StopIfRunning()
+            [Console]::SetCursorPosition($this.StartColumn, $this.StartLine)
+            Write-Host "$message$dots$padding" -NoNewline -ForegroundColor Cyan
+            
+            Start-Sleep -Milliseconds 300
+        }
         
-        # Clear the line
+        # Execute the actual action
+        & $action
+        
+        # Clear the loading message
         [Console]::SetCursorPosition($this.StartColumn, $this.StartLine)
-        $clearText = " " * ($this.Message.Length + 10)
+        $clearText = " " * ($message.Length + 10)
         Write-Host $clearText -NoNewline
         [Console]::SetCursorPosition($this.StartColumn, $this.StartLine)
     }
@@ -137,23 +119,6 @@ class ProgressIndicator {
         $clearText = " " * 80
         Write-Host $clearText -NoNewline
         [Console]::SetCursorPosition($this.StartColumn, $this.StartLine)
-    }
-    
-    #endregion
-    
-    #region Helper Methods
-    
-    <#
-    .SYNOPSIS
-        Stops any running animation/progress
-    #>
-    [void] StopIfRunning() {
-        if ($this.IsRunning -and $null -ne $this.AnimationJob) {
-            Stop-Job -Job $this.AnimationJob -ErrorAction SilentlyContinue
-            Remove-Job -Job $this.AnimationJob -Force -ErrorAction SilentlyContinue
-            $this.AnimationJob = $null
-        }
-        $this.IsRunning = $false
     }
     
     #endregion

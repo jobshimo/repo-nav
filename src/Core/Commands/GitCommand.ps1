@@ -35,15 +35,10 @@ class GitCommand : INavigationCommand {
             if ($repos.Count -gt 0) {
                 $currentRepo = $repos[$currentIndex]
                 
-                # Show animated dots during git fetch
-                $progressIndicator.StartAnimatedDots("Loading git status")
-                
-                try {
+                # Show animated dots during git fetch (synchronous animation + action)
+                $progressIndicator.ShowLoadingDots("Loading git status", {
                     $repoManager.LoadGitStatus($currentRepo)
-                }
-                finally {
-                    $progressIndicator.StopAnimatedDots()
-                }
+                })
                 
                 # Mark for full redraw to update footer
                 $state.MarkForFullRedraw()
