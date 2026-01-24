@@ -138,18 +138,137 @@ class RepositoryManager {
             & $progressCallback 0 $total
         }
         
-        # SEQUENTIAL execution for debugging - if this works, we'll parallelize properly
-        $current = 0
-        foreach ($repo in $missingRepos) {
-            # Load git status synchronously using the GitService
-            $this.LoadGitStatus($repo)
-            $current++
+        # Parallel execution using Runspaces (more reliable than Start-Job)
+        $runspacePool = [runspacefactory]::CreateRunspacePool(1, [Environment]::ProcessorCount)
+        $runspacePool.Open()
+        
+        $runspaces = [System.Collections.Generic.List[hashtable]]::new()
+        
+        # Script to execute in each runspace
+        $scriptBlock = {
+            param([string]$repoPath)
             
-            # Invoke progress callback
-            if ($null -ne $progressCallback) {
-                & $progressCallback $current $total
+            # Use Set-StrictMode to catch variable issues
+            Set-StrictMode -Version Latest
+            
+            # Declare all variables locally with explicit scope
+            $local:isGitRepo = $false
+            $local:branchResult = ""
+            $local:hasChangesResult = $false
+            $local:hasUnpushedResult = $false
+            
+            Push-Location $repoPath
+            try {
+                $local:isGitRepo = Test-Path ".git"
+                if (-not $local:isGitRepo) {
+                    # Not a git repo - return minimal info
+                    return [PSCustomObject]@{
+                        IsGitRepo = $false
+                        CurrentBranch = ""
+                        HasUncommittedChanges = $false
+                        HasUnpushedCommits = $false
+                    }
+                }
+                
+                # Get branch (don't rely on $LASTEXITCODE in runspaces)
+                $local:branchOutput = git rev-parse --abbrev-ref HEAD 2>$null
+                $local:branchResult = ($local:branchOutput | Out-String).Trim()
+                
+                # Check uncommitted changes
+                $local:statusOutput = git status --porcelain 2>$null
+                $local:statusStr = ($local:statusOutput | Out-String).Trim()
+                $local:hasChangesResult = ($local:statusStr.Length -gt 0)
+                
+                # Check unpushed commits
+                $local:upstream = git rev-parse --abbrev-ref "@{u}" 2>$null
+                $local:unpushedCount = git rev-list --count "@{u}..HEAD" 2>$null
+                $local:countStr = ($local:unpushedCount | Out-String).Trim()
+                $local:hasUnpushedResult = $false
+                if ($local:countStr -match '^\d+$') {
+                    $local:hasUnpushedResult = ([int]$local:countStr -gt 0)
+                }
+                
+                # Return as PSCustomObject with explicit local variables
+                return [PSCustomObject]@{
+                    IsGitRepo = $local:isGitRepo
+                    CurrentBranch = $local:branchResult
+                    HasUncommittedChanges = $local:hasChangesResult
+                    HasUnpushedCommits = $local:hasUnpushedResult
+                }
+            }
+            finally {
+                Pop-Location
             }
         }
+        
+        # Start all runspaces
+        foreach ($repo in $missingRepos) {
+            $powershell = [powershell]::Create().AddScript($scriptBlock).AddArgument($repo.FullPath)
+            $powershell.RunspacePool = $runspacePool
+            
+            $runspaces.Add(@{
+                PowerShell = $powershell
+                Handle = $powershell.BeginInvoke()
+                Repository = $repo
+            })
+        }
+        
+        # Wait for completion and update progress
+        $completed = 0
+        $maxWaitSeconds = 30
+        $startTime = Get-Date
+        
+        while ($completed -lt $total) {
+            # Check timeout
+            if (((Get-Date) - $startTime).TotalSeconds -gt $maxWaitSeconds) {
+                break
+            }
+            
+            foreach ($runspaceInfo in $runspaces) {
+                if ($null -ne $runspaceInfo.Handle -and $runspaceInfo.Handle.IsCompleted) {
+                    try {
+                        # Get result and update repository
+                        $resultArray = $runspaceInfo.PowerShell.EndInvoke($runspaceInfo.Handle)
+                        
+                        if ($resultArray.Count -gt 0) {
+                            $result = $resultArray[0]
+                            
+                            # Access properties directly (PSCustomObject)
+                            # Constructor order: (isGitRepo, hasUncommittedChanges, hasUnpushedCommits, currentBranch)
+                            $gitStatus = [GitStatusModel]::new(
+                                $result.IsGitRepo,
+                                $result.HasUncommittedChanges,
+                                $result.HasUnpushedCommits,
+                                $result.CurrentBranch
+                            )
+                            $runspaceInfo.Repository.SetGitStatus($gitStatus)
+                        }
+                    }
+                    catch {
+                        # Silently ignore parallel execution errors
+                    }
+                    finally {
+                        $runspaceInfo.PowerShell.Dispose()
+                        $runspaceInfo.Handle = $null
+                    }
+                    
+                    $completed++
+                    
+                    # Invoke progress callback
+                    if ($null -ne $progressCallback) {
+                        & $progressCallback $completed $total
+                    }
+                }
+            }
+            
+            if ($completed -lt $total) {
+                Start-Sleep -Milliseconds 10
+            }
+        }
+        
+        # Cleanup
+        $runspacePool.Close()
+        $runspacePool.Dispose()
     }
     
     # Count how many repos have git status loaded
