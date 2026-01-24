@@ -37,29 +37,37 @@ function Start-NavigationLoop {
         return
     }
     
-    $preferencesService = [UserPreferencesService]::new()
-    $autoLoadFavorites = $preferencesService.GetPreference("git", "autoLoadFavoritesStatus")
-    
-    if ($autoLoadFavorites) {
-        $favorites = $repos | Where-Object { $_.IsFavorite }
-        if ($favorites.Count -gt 0) {
-            foreach ($fav in $favorites) {
-                $RepoManager.LoadGitStatus($fav)
-            }
-        }
-    }
-    
     try {
         $Console.HideCursor()
         
-        # Initialize NavigationState
         $state = [NavigationState]::new($repos)
         
-        # Initialize RenderOrchestrator with cursor start line
         $cursorStartLine = [Constants]::CursorStartLine
         $renderOrchestrator = [RenderOrchestrator]::new($Renderer, $Console, $cursorStartLine)
         
-        # Load command infrastructure
+        $progressIndicatorPath = Join-Path $PSScriptRoot "..\UI\ProgressIndicator.ps1"
+        . $progressIndicatorPath
+        $progressIndicator = [ProgressIndicator]::new($Console)
+        
+        $preferencesService = [UserPreferencesService]::new()
+        $autoLoadFavorites = $preferencesService.GetPreference("git", "autoLoadFavoritesStatus")
+        
+        if ($autoLoadFavorites) {
+            $favorites = $repos | Where-Object { $_.IsFavorite }
+            if ($favorites.Count -gt 0) {
+                $total = $favorites.Count
+                $current = 0
+                
+                foreach ($fav in $favorites) {
+                    $current++
+                    $progressIndicator.RenderProgressBar("Loading git status (favorites)", $current, $total)
+                    $RepoManager.LoadGitStatus($fav)
+                }
+                
+                $progressIndicator.CompleteProgressBar()
+            }
+        }
+        
         . "$PSScriptRoot\Commands\INavigationCommand.ps1"
         . "$PSScriptRoot\Commands\ExitCommand.ps1"
         . "$PSScriptRoot\Commands\NavigationCommand.ps1"
