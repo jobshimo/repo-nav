@@ -126,10 +126,19 @@ class RepositoryManager {
     }
     
     # Load git status only for repositories that don't have it
-    [void] LoadMissingGitStatus() {
-        foreach ($repo in $this.Repositories) {
-            if (-not $repo.HasGitStatusLoaded()) {
-                $this.LoadGitStatus($repo)
+    # Accepts optional progress callback: { param($current, $total) }
+    [void] LoadMissingGitStatus([scriptblock]$progressCallback = $null) {
+        $missingRepos = $this.Repositories | Where-Object { -not $_.HasGitStatusLoaded() }
+        $total = $missingRepos.Count
+        $current = 0
+        
+        foreach ($repo in $missingRepos) {
+            $this.LoadGitStatus($repo)
+            $current++
+            
+            # Invoke progress callback if provided (Dependency Inversion Principle)
+            if ($null -ne $progressCallback) {
+                & $progressCallback $current $total
             }
         }
     }

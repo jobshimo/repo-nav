@@ -21,19 +21,49 @@ class GitCommand : INavigationCommand {
             throw "RepoManager not found in context"
         }
         
+        # Get dependencies from context
+        $console = $context.Console
+        if ($null -eq $console) {
+            $console = [ConsoleHelper]::new()
+        }
+        
+        # Create progress indicator
+        $progressIndicator = [ProgressIndicator]::new($console)
+        
         if ($key -eq [Constants]::KEY_L) {
-            # Load git status for current repository
+            # Load git status for current repository (single operation - animated dots)
             if ($repos.Count -gt 0) {
                 $currentRepo = $repos[$currentIndex]
-                $repoManager.LoadGitStatus($currentRepo)
+                
+                # Show animated dots during git fetch
+                $progressIndicator.StartAnimatedDots("Loading git status")
+                
+                try {
+                    $repoManager.LoadGitStatus($currentRepo)
+                }
+                finally {
+                    $progressIndicator.StopAnimatedDots()
+                }
                 
                 # Mark for full redraw to update footer
                 $state.MarkForFullRedraw()
             }
         }
         elseif ($key -eq [Constants]::KEY_G) {
-            # Load git status for all repositories
-            $repoManager.LoadMissingGitStatus()
+            # Load git status for all repositories (progress bar)
+            
+            # Define progress callback (DIP - GitCommand doesn't know about ProgressIndicator internals)
+            $progressCallback = {
+                param([int]$current, [int]$total)
+                $progressIndicator.RenderProgressBar("Loading git status", $current, $total)
+            }
+            
+            try {
+                $repoManager.LoadMissingGitStatus($progressCallback)
+            }
+            finally {
+                $progressIndicator.CompleteProgressBar()
+            }
             
             # Mark for full redraw
             $state.MarkForFullRedraw()

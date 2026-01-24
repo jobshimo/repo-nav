@@ -80,6 +80,7 @@ $srcPath = Join-Path $scriptRoot "src"
 
 # UI (depend on models and config)
 . "$srcPath\UI\ConsoleHelper.ps1"
+. "$srcPath\UI\ProgressIndicator.ps1"
 . "$srcPath\UI\UIRenderer.ps1"
 . "$srcPath\UI\ColorSelector.ps1"
 . "$srcPath\UI\OptionSelector.ps1"
