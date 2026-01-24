@@ -28,7 +28,7 @@ class RepositoryManagementCommand : INavigationCommand {
                 # Delete repository (CRITICAL: requires confirmation) - Pass required parameters
                 if ($repos.Count -gt 0) {
                     $currentRepo = $repos[$currentIndex]
-                    Invoke-RepositoryDelete -RepoManager $context.RepoManager -Repository $currentRepo -Console $context.Console -LocalizationService $context.LocalizationService
+                    Invoke-RepositoryDelete -RepoManager $context.RepoManager -Repository $currentRepo -Console $context.Console -LocalizationService $context.LocalizationService -OptionSelector $context.OptionSelector
                 }
             }
             

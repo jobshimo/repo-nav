@@ -105,5 +105,10 @@
     "Color.None": "Sin fondo",
 
     "Selector.Title.Color": "SELECCIONAR COLOR",
-    "Selector.Hint.Arrows": "Usa flechas para navegar | Enter para seleccionar"
+    "Selector.Hint.Arrows": "Usa flechas para navegar | Enter para seleccionar",
+    
+    "Prompt.ConfirmTitle": "CONFIRMACIÓN",
+    "Prompt.Yes": "SÍ",
+    "Prompt.No": "NO",
+    "Prompt.DeleteConfirmInput": "ELIMINAR"
 }

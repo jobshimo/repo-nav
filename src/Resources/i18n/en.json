@@ -105,5 +105,10 @@
     "Color.None": "No background",
 
     "Selector.Title.Color": "SELECT ALIAS COLOR",
-    "Selector.Hint.Arrows": "Use arrows to navigate | Enter to select"
+    "Selector.Hint.Arrows": "Use arrows to navigate | Enter to select",
+
+    "Prompt.ConfirmTitle": "CONFIRMATION",
+    "Prompt.Yes": "YES",
+    "Prompt.No": "NO",
+    "Prompt.DeleteConfirmInput": "DELETE"
 }
