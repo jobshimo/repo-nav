@@ -138,116 +138,16 @@ class RepositoryManager {
             & $progressCallback 0 $total
         }
         
-        # Parallel execution using background jobs for better performance
-        $jobs = [System.Collections.Generic.List[hashtable]]::new()
-        
-        # Start all git status jobs in parallel
+        # SEQUENTIAL execution for debugging - if this works, we'll parallelize properly
+        $current = 0
         foreach ($repo in $missingRepos) {
-            $job = Start-Job -ScriptBlock {
-                param($repoPath)
-                
-                # Execute git commands
-                Push-Location $repoPath
-                try {
-                    $isGitRepo = Test-Path ".git"
-                    if (-not $isGitRepo) {
-                        return @{
-                            RepoPath = $repoPath
-                            IsGitRepo = $false
-                            CurrentBranch = ""
-                            HasUncommittedChanges = $false
-                            HasUnpushedCommits = $false
-                        }
-                    }
-                    
-                    $branch = git rev-parse --abbrev-ref HEAD 2>$null
-                    $hasChanges = (git status --porcelain 2>$null).Length -gt 0
-                    
-                    # Check unpushed commits
-                    $hasUnpushed = $false
-                    $upstream = git rev-parse --abbrev-ref "@{u}" 2>$null
-                    if ($LASTEXITCODE -eq 0 -and $upstream) {
-                        $unpushedCount = git rev-list --count "@{u}..HEAD" 2>$null
-                        $hasUnpushed = ($LASTEXITCODE -eq 0 -and [int]$unpushedCount -gt 0)
-                    }
-                    
-                    return @{
-                        RepoPath = $repoPath
-                        IsGitRepo = $true
-                        CurrentBranch = $branch
-                        HasUncommittedChanges = $hasChanges
-                        HasUnpushedCommits = $hasUnpushed
-                    }
-                }
-                finally {
-                    Pop-Location
-                }
-            } -ArgumentList $repo.FullPath
+            # Load git status synchronously using the GitService
+            $this.LoadGitStatus($repo)
+            $current++
             
-            $jobs.Add(@{
-                Job = $job
-                Repository = $repo
-                Processed = $false
-            })
-        }
-        
-        # Wait for jobs to complete and update progress
-        $completed = 0
-        $maxWaitSeconds = 30
-        $startTime = Get-Date
-        
-        while ($completed -lt $total) {
-            # Check timeout
-            if (((Get-Date) - $startTime).TotalSeconds -gt $maxWaitSeconds) {
-                # Timeout - stop remaining jobs
-                foreach ($jobInfo in $jobs) {
-                    if (-not $jobInfo.Processed) {
-                        Stop-Job -Job $jobInfo.Job -ErrorAction SilentlyContinue
-                        Remove-Job -Job $jobInfo.Job -Force -ErrorAction SilentlyContinue
-                    }
-                }
-                break
-            }
-            
-            # Process completed jobs
-            foreach ($jobInfo in $jobs) {
-                if (-not $jobInfo.Processed -and $jobInfo.Job.State -eq 'Completed') {
-                    $result = Receive-Job -Job $jobInfo.Job
-                    Remove-Job -Job $jobInfo.Job -Force
-                    
-                    # Verify we got the correct repo by matching path
-                    if ($result.RepoPath -eq $jobInfo.Repository.FullPath) {
-                        # Create GitStatusModel and update the SPECIFIC repository
-                        $gitStatus = [GitStatusModel]::new(
-                            $result.IsGitRepo,
-                            $result.CurrentBranch,
-                            $result.HasUncommittedChanges,
-                            $result.HasUnpushedCommits
-                        )
-                        $jobInfo.Repository.SetGitStatus($gitStatus)
-                    }
-                    
-                    $jobInfo.Processed = $true
-                    $completed++
-                    
-                    # Invoke progress callback
-                    if ($null -ne $progressCallback) {
-                        & $progressCallback $completed $total
-                    }
-                }
-            }
-            
-            # Small delay to avoid CPU spinning (reduced to 10ms for faster updates)
-            if ($completed -lt $total) {
-                Start-Sleep -Milliseconds 10
-            }
-        }
-        
-        # Clean up any remaining jobs
-        foreach ($jobInfo in $jobs) {
-            if (-not $jobInfo.Processed) {
-                Stop-Job -Job $jobInfo.Job -ErrorAction SilentlyContinue
-                Remove-Job -Job $jobInfo.Job -Force -ErrorAction SilentlyContinue
+            # Invoke progress callback
+            if ($null -ne $progressCallback) {
+                & $progressCallback $current $total
             }
         }
     }
