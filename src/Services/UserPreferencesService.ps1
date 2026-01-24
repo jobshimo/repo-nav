@@ -69,9 +69,11 @@ class UserPreferencesService {
                 selectedBackground = "DarkGray"
                 selectedDelimiter = "None"
             }
+            git = [PSCustomObject]@{
+                autoLoadFavoritesStatus = $false
+            }
         }
         
-        # Save defaults to file
         $this.SavePreferences($defaults)
         
         return $defaults
@@ -79,29 +81,36 @@ class UserPreferencesService {
     
     # Normalize preferences to ensure all required fields exist
     [PSCustomObject] NormalizePreferences([PSCustomObject]$preferences) {
-        # Ensure display section exists
         if (-not ($preferences.PSObject.Properties.Name -contains 'display')) {
             $preferences | Add-Member -NotePropertyName 'display' -NotePropertyValue ([PSCustomObject]@{}) -Force
         }
         
-        # Ensure favoritesOnTop exists with default value
         if (-not ($preferences.display.PSObject.Properties.Name -contains 'favoritesOnTop')) {
             $preferences.display | Add-Member -NotePropertyName 'favoritesOnTop' -NotePropertyValue $true -Force
         }
         
-        # Ensure it's a boolean
         if ($preferences.display.favoritesOnTop -isnot [bool]) {
             $preferences.display.favoritesOnTop = [bool]$preferences.display.favoritesOnTop
         }
         
-        # Ensure selectedBackground exists with default value
         if (-not ($preferences.display.PSObject.Properties.Name -contains 'selectedBackground')) {
             $preferences.display | Add-Member -NotePropertyName 'selectedBackground' -NotePropertyValue "DarkGray" -Force
         }
         
-        # Ensure selectedDelimiter exists with default value
         if (-not ($preferences.display.PSObject.Properties.Name -contains 'selectedDelimiter')) {
             $preferences.display | Add-Member -NotePropertyName 'selectedDelimiter' -NotePropertyValue "None" -Force
+        }
+        
+        if (-not ($preferences.PSObject.Properties.Name -contains 'git')) {
+            $preferences | Add-Member -NotePropertyName 'git' -NotePropertyValue ([PSCustomObject]@{}) -Force
+        }
+        
+        if (-not ($preferences.git.PSObject.Properties.Name -contains 'autoLoadFavoritesStatus')) {
+            $preferences.git | Add-Member -NotePropertyName 'autoLoadFavoritesStatus' -NotePropertyValue $false -Force
+        }
+        
+        if ($preferences.git.autoLoadFavoritesStatus -isnot [bool]) {
+            $preferences.git.autoLoadFavoritesStatus = [bool]$preferences.git.autoLoadFavoritesStatus
         }
         
         return $preferences

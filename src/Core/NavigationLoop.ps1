@@ -37,6 +37,18 @@ function Start-NavigationLoop {
         return
     }
     
+    $preferencesService = [UserPreferencesService]::new()
+    $autoLoadFavorites = $preferencesService.GetPreference("git", "autoLoadFavoritesStatus")
+    
+    if ($autoLoadFavorites) {
+        $favorites = $repos | Where-Object { $_.IsFavorite }
+        if ($favorites.Count -gt 0) {
+            foreach ($fav in $favorites) {
+                $RepoManager.LoadGitStatus($fav)
+            }
+        }
+    }
+    
     try {
         $Console.HideCursor()
         

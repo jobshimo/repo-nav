@@ -3,5 +3,8 @@
                     "favoritesOnTop":  false,
                     "selectedBackground":  "DarkBlue",
                     "selectedDelimiter":  "None"
-                }
+                },
+    "git":  {
+                "autoLoadFavoritesStatus":  false
+            }
 }

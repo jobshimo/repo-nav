@@ -46,6 +46,10 @@ function Show-PreferencesMenu {
                 @{
                     Name = "Selected Item Delimiter"
                     CurrentValue = $preferences.display.selectedDelimiter
+                },
+                @{
+                    Name = "Auto-load Git Status (Favorites)"
+                    CurrentValue = if ($preferences.git.autoLoadFavoritesStatus) { "Enabled" } else { "Disabled" }
                 }
             )
             
@@ -176,6 +180,29 @@ function Show-PreferencesMenu {
                             
                             # Set confirmation message
                             $confirmationMessage = "Delimiter changed to: $newValue"
+                            $confirmationTimeout = 2
+                        }
+                    }
+                    elseif ($selectedOption -eq 3) {
+                        $autoLoadOptions = @(
+                            @{ DisplayText = "Enabled"; Value = $true },
+                            @{ DisplayText = "Disabled"; Value = $false }
+                        )
+                        
+                        $currentValue = $preferences.git.autoLoadFavoritesStatus
+                        $newValue = $OptionSelector.ShowSelection(
+                            "AUTO-LOAD GIT STATUS (FAVORITES ONLY)",
+                            $autoLoadOptions,
+                            $currentValue,
+                            "Back to preferences"
+                        )
+                        
+                        if ($null -ne $newValue -and $newValue -ne $currentValue) {
+                            $PreferencesService.SetPreference("git", "autoLoadFavoritesStatus", $newValue)
+                            $preferences = $PreferencesService.LoadPreferences()
+                            
+                            $statusText = if ($newValue) { "Enabled" } else { "Disabled" }
+                            $confirmationMessage = "Auto-load git status: $statusText"
                             $confirmationTimeout = 2
                         }
                     }
