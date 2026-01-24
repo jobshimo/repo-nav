@@ -98,21 +98,7 @@ function Start-NavigationLoop {
         }
         
         # Initial full render
-        $Console.ClearScreen()
-        $Renderer.RenderHeader($LocalizationService.Get("App.Title"))
-        $Renderer.RenderMenu()
-        
-        $repos = $state.GetRepositories()
-        $currentIndex = $state.GetCurrentIndex()
-        
-        for ($i = 0; $i -lt $repos.Count; $i++) {
-            $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $currentIndex))
-        }
-        
-        Write-Host ""
-        $totalRepos = $repos.Count
-        $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-        $Renderer.RenderGitStatusFooter($repos[$currentIndex], $totalRepos, $loadedRepos)
+        $renderOrchestrator.RenderFull($state)
         
         # Main input loop - Simplified using Command Pattern
         while (-not $state.ShouldExit()) {
@@ -127,33 +113,7 @@ function Start-NavigationLoop {
             }
             
             # Handle rendering based on state flags
-            if ($state.NeedsFullRedraw()) {
-                # Full redraw requested
-                $repos = $state.GetRepositories()
-                $currentIndex = $state.GetCurrentIndex()
-                
-                $Console.ClearScreen()
-                $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
-                $Renderer.RenderMenu()
-                
-                for ($i = 0; $i -lt $repos.Count; $i++) {
-                    $Renderer.RenderRepositoryItem($repos[$i], ($i -eq $currentIndex))
-                }
-                
-                Write-Host ""
-                $totalRepos = $repos.Count
-                $loadedRepos = $repos | Where-Object { $_.HasGitStatusLoaded() } | Measure-Object | Select-Object -ExpandProperty Count
-                $Renderer.RenderGitStatusFooter($repos[$currentIndex], $totalRepos, $loadedRepos)
-                $Console.HideCursor()
-                
-                $state.ClearFullRedrawFlag()
-            }
-            elseif ($state.HasSelectionChanged()) {
-                # Partial redraw - only update changed items
-                $renderOrchestrator.RenderPartial($state)
-                
-                $state.ClearSelectionChangedFlag()
-            }
+            $renderOrchestrator.RenderIfNeeded($state)
         }
         
         # Handle exit state

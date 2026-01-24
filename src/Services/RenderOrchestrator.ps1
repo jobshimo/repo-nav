@@ -39,11 +39,15 @@ class RenderOrchestrator {
     [void] RenderIfNeeded([object]$state) {
         if ($state.RequiresFullRedraw) {
             $this.RenderFull($state)
-            $state.ClearRedrawFlags()
+            # Clearing flags logic might need to be specific if methods exist, 
+            # but usually bool properties can be set to false directly if accessible
+            $state.RequiresFullRedraw = $false
         }
-        elseif ($state.RequiresPartialRedraw) {
+        elseif ($state.SelectionChanged -or $state.ViewportChanged) {
             $this.RenderPartial($state)
-            $state.ClearRedrawFlags()
+            $state.SelectionChanged = $false
+            # ViewportChanged is cleared inside RenderPartial, but to be safe:
+            $state.ViewportChanged = $false
         }
     }
     
@@ -60,15 +64,17 @@ class RenderOrchestrator {
         # Menu
         $this.Renderer.RenderMenu()
         
-        # All repository items
-        $repos = $state.Repositories
-        for ($i = 0; $i -lt $repos.Count; $i++) {
-            $isSelected = ($i -eq $state.SelectedIndex)
-            $this.Renderer.RenderRepositoryItem($repos[$i], $isSelected)
-        }
+        # Explicitly enforce start position to match partial updates
+        $this.Console.SetCursorPosition(0, $this.CursorStartLine)
+        
+        # Render visibly repository list (viewport aware)
+        $this.Renderer.RenderRepositoryList($state)
         
         # Footer with statistics
-        Write-Host ""
+        # Calculate footer line to ensure consistency with RenderPartial
+        $footerLine = $this.CursorStartLine + $state.PageSize + 1
+        $this.Console.SetCursorPosition(0, $footerLine)
+        
         $selectedRepo = $state.GetSelectedRepository()
         $totalRepos = $state.GetTotalCount()
         $loadedRepos = $state.GetLoadedCount()
@@ -77,32 +83,55 @@ class RenderOrchestrator {
     
     <#
     .SYNOPSIS
-        Partial redraw: only affected items
+        Partial redraw: only affected items or viewport scroll
     #>
     [void] RenderPartial([object]$state) {
         $startLine = $this.CursorStartLine
-        $repos = $state.Repositories
+        $pageSize = $state.PageSize
         
-        # Update previous item (deselect)
-        if ($state.PreviousIndex -ne $state.SelectedIndex) {
-            $previousRepo = $repos[$state.PreviousIndex]
-            $this.Renderer.UpdateRepositoryItemAt(
-                ($startLine + $state.PreviousIndex),
-                $previousRepo,
-                $false
-            )
+        # Handle Viewport Scroll (redraw full list area)
+        if ($state.ViewportChanged) {
+            $this.Console.SetCursorPosition(0, $startLine)
+            $this.Renderer.RenderRepositoryList($state)
+            $state.ViewportChanged = $false 
+        } 
+        else {
+            # Handle localized selection change
+            $repos = $state.Repositories
+            $viewportStart = $state.ViewportStart
+             
+            # Update previous item (deselect) - only if in specific viewport logic
+            # Since selection must move from one to another, usually both are in viewport or viewport changes.
+            # But let's be safe.
+            
+            if ($state.PreviousIndex -ge $viewportStart -and $state.PreviousIndex -lt ($viewportStart + $pageSize)) {
+                 $prevRelIndex = $state.PreviousIndex - $viewportStart
+                 if ($prevRelIndex -ge 0) {
+                    $previousRepo = $repos[$state.PreviousIndex]
+                    $this.Renderer.UpdateRepositoryItemAt(
+                        ($startLine + $prevRelIndex),
+                        $previousRepo,
+                        $false
+                    )
+                 }
+            }
+            
+            # Update current item (select)
+            if ($state.SelectedIndex -ge $viewportStart -and $state.SelectedIndex -lt ($viewportStart + $pageSize)) {
+                $currRelIndex = $state.SelectedIndex - $viewportStart
+                if ($currRelIndex -ge 0) {
+                    $currentRepo = $repos[$state.SelectedIndex]
+                    $this.Renderer.UpdateRepositoryItemAt(
+                        ($startLine + $currRelIndex),
+                        $currentRepo,
+                        $true
+                    )
+                }
+            }
         }
         
-        # Update current item (select)
-        $currentRepo = $repos[$state.SelectedIndex]
-        $this.Renderer.UpdateRepositoryItemAt(
-            ($startLine + $state.SelectedIndex),
-            $currentRepo,
-            $true
-        )
-        
-        # Update footer - clear lines 2 and 3 to avoid text residuals, then render
-        $footerLine = $startLine + $repos.Count + 1
+        # Update footer - Fixed position based on PageSize
+        $footerLine = $startLine + $pageSize + 1       
         
         # Clear line 2 (counters) and line 3 (git status) to avoid residuals
         $this.Console.SetCursorPosition(0, $footerLine + 1)
@@ -114,7 +143,7 @@ class RenderOrchestrator {
         $this.Console.SetCursorPosition(0, $footerLine)
         $totalRepos = $state.GetTotalCount()
         $loadedRepos = $state.GetLoadedCount()
-        $this.Renderer.RenderGitStatusFooter($currentRepo, $totalRepos, $loadedRepos)
+        $this.Renderer.RenderGitStatusFooter($state.GetSelectedRepository(), $totalRepos, $loadedRepos)
     }
     
     #endregion

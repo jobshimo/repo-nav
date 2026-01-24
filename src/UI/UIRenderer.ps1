@@ -100,6 +100,8 @@ class UIRenderer {
         $cmdGit = $this.GetLoc("Cmd.Desc.Git", "L=load current | G=load all")
         Write-Host "  Git Status: $cmdGit" -ForegroundColor ([Constants]::ColorMenuText)
         Write-Host ""
+        # The CursorStartLine in constants is 12 (approx). 
+        # Header (3) + Blank (1) + Menu (5) + Blank (1) = 10 lines used before repo list
     }
     
     # Get git status display info
@@ -222,6 +224,27 @@ class UIRenderer {
             Write-Host $aliasText -ForegroundColor $repo.AliasInfo.Color
         } else {
             Write-Host ""
+        }
+    }
+
+    # Render visible repository list based on Viewport
+    [void] RenderRepositoryList([NavigationState]$state) {
+        $repos = $state.Repositories
+        $start = $state.ViewportStart
+        $limit = $state.PageSize
+        $total = $repos.Count
+        
+        for ($i = 0; $i -lt $limit; $i++) {
+             $repoIndex = $start + $i
+             if ($repoIndex -lt $total) {
+                 # Ensure line is clean before rendering (important for scrolling/overlap)
+                 $this.Console.ClearCurrentLine()
+                 $this.RenderRepositoryItem($repos[$repoIndex], ($repoIndex -eq $state.SelectedIndex))
+             } else {
+                 # Clear/Empty line for empty slots in page
+                 $this.Console.ClearCurrentLine()
+                 Write-Host ""
+             }
         }
     }
     

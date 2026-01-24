@@ -67,6 +67,9 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Models\AliasInfo.ps1"
 . "$srcPath\Models\RepositoryModel.ps1"
 
+# Core - Navigation State (Accessed by UI and Services)
+. "$srcPath\Core\NavigationState.ps1"
+
 # Services (depend on models)
 . "$srcPath\Services\ConfigurationService.ps1"
 . "$srcPath\Services\UserPreferencesService.ps1"
@@ -85,9 +88,6 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\UIRenderer.ps1"
 . "$srcPath\UI\ColorSelector.ps1"
 . "$srcPath\UI\OptionSelector.ps1"
-
-# Core - Navigation State
-. "$srcPath\Core\NavigationState.ps1"
 
 # Core (depend on everything)
 . "$srcPath\Core\RepositoryManager.ps1"

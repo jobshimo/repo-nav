@@ -26,9 +26,14 @@ class NavigationState {
     [bool] $IsRunning
     [string] $ExitState  # Can be: "None", "Cancelled", "OpenRepository"
     
+    # Viewport state for pagination
+    [int] $ViewportStart
+    [int] $PageSize
+    
     # Rendering optimization flags
     [bool] $RequiresFullRedraw
     [bool] $SelectionChanged
+    [bool] $ViewportChanged  # New flag for scroll detection
     [int] $PreviousIndex
     
     # Constructor
@@ -40,36 +45,86 @@ class NavigationState {
         $this.ExitState = "None"
         $this.RequiresFullRedraw = $false
         $this.SelectionChanged = $false
+        
+        # Initialize paging defaults
+        $this.ViewportStart = 0
+        $this.ViewportChanged = $false
+        
+        # Calculate dynamic page size safe for window height
+        # Header (~10) + Footer (4) = 14 reserved lines
+        try {
+            $windowHeight = $global:Host.UI.RawUI.WindowSize.Height
+            $reservedLines = 17 # Increased buffer to prevent footer scrolling issues
+            $safePageSize = $windowHeight - $reservedLines
+            
+            # Clamp between 5 and 25
+            if ($safePageSize -lt 5) { $safePageSize = 5 }
+            if ($safePageSize -gt 25) { $safePageSize = 25 }
+            
+            $this.PageSize = $safePageSize
+        }
+        catch {
+             $this.PageSize = 15 # Fallback if host doesn't support WindowSize
+        }
     }
     
     #region Navigation Methods
     
     <#
     .SYNOPSIS
-        Moves selection to the next repository (with wraparound)
+        Moves selection to the next repository (with wraparound and scrolling)
     #>
     [void] SelectNext() {
         $this.PreviousIndex = $this.SelectedIndex
+        $total = $this.Repositories.Count
         
-        if ($this.SelectedIndex -lt ($this.Repositories.Count - 1)) {
+        if ($this.SelectedIndex -lt ($total - 1)) {
             $this.SelectedIndex++
+            
+            # Scroll down check
+            if ($this.SelectedIndex -ge ($this.ViewportStart + $this.PageSize)) {
+                $this.ViewportStart++
+                $this.ViewportChanged = $true
+            }
         } else {
+            # Wraparound to top
             $this.SelectedIndex = 0
+            if ($this.ViewportStart -ne 0) {
+                $this.ViewportStart = 0
+                $this.ViewportChanged = $true
+            }
         }
+        $this.SelectionChanged = $true
     }
     
     <#
     .SYNOPSIS
-        Moves selection to the previous repository (with wraparound)
+        Moves selection to the previous repository (with wraparound and scrolling)
     #>
     [void] SelectPrevious() {
         $this.PreviousIndex = $this.SelectedIndex
+        $total = $this.Repositories.Count
         
         if ($this.SelectedIndex -gt 0) {
             $this.SelectedIndex--
+            
+            # Scroll up check
+            if ($this.SelectedIndex -lt $this.ViewportStart) {
+                $this.ViewportStart--
+                $this.ViewportChanged = $true
+            }
         } else {
-            $this.SelectedIndex = $this.Repositories.Count - 1
+            # Wraparound to bottom
+            $this.SelectedIndex = $total - 1
+            
+            # Adjust viewport to show last item
+            $newViewport = [Math]::Max(0, $total - $this.PageSize)
+            if ($this.ViewportStart -ne $newViewport) {
+                $this.ViewportStart = $newViewport
+                $this.ViewportChanged = $true
+            }
         }
+        $this.SelectionChanged = $true
     }
     
     <#
@@ -78,8 +133,20 @@ class NavigationState {
     #>
     [void] SelectIndex([int]$index) {
         if ($index -ge 0 -and $index -lt $this.Repositories.Count) {
-            $this.PreviousIndex = $this.SelectedIndex
-            $this.SelectedIndex = $index
+             $this.PreviousIndex = $this.SelectedIndex
+             $this.SelectedIndex = $index
+             
+             # Adjust viewport to ensure index is visible
+             if ($index -lt $this.ViewportStart) {
+                 $this.ViewportStart = $index
+                 $this.ViewportChanged = $true
+             }
+             elseif ($index -ge ($this.ViewportStart + $this.PageSize)) {
+                 $this.ViewportStart = [Math]::Max(0, $index - $this.PageSize + 1)
+                 $this.ViewportChanged = $true
+             }
+             
+             $this.SelectionChanged = $true
         }
     }
     
