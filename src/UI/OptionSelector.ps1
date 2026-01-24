@@ -46,11 +46,14 @@ class OptionSelector {
     
     .PARAMETER CancelText
         Text to show for the cancel option (default: "Cancel")
+
+    .PARAMETER ShowCurrentMarker
+        Whether to append "(current)" text to the currently selected item (default: $true)
     
     .RETURNS
         Selected option value, or $null if cancelled
     #>
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText = "Cancel") {
+    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText = "Cancel", [bool]$showCurrentMarker = $true) {
         if ($options.Count -eq 0) {
             return $null
         }
@@ -83,7 +86,7 @@ class OptionSelector {
                     $color = if ($i -eq $selectedIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
                     
                     # Add indicator if this is the current value
-                    $currentMarker = if ($option.Value -eq $currentValue) { " (current)" } else { "" }
+                    $currentMarker = if ($showCurrentMarker -and $option.Value -eq $currentValue) { " (current)" } else { "" }
                     
                     $displayLine = "  $prefix $($option.DisplayText)$currentMarker"
                     

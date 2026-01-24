@@ -358,7 +358,7 @@ function Confirm-Selection {
     # Pre-select based on default
     $currentValue = $DefaultYes
 
-    return $OptionSelector.ShowSelection($Title, $options, $currentValue, $noText)
+    return $OptionSelector.ShowSelection($Title, $options, $currentValue, $noText, $false)
 }
 
 function Invoke-RepositoryClone {
