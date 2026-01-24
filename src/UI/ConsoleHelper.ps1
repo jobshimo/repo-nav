@@ -51,6 +51,26 @@ class ConsoleHelper {
         Clear-Host
     }
     
+    # Clear screen and prepare for interactive workflow
+    [void] ClearForWorkflow() {
+        Clear-Host
+    }
+    
+    # Prompt user for confirmation with configurable default
+    [bool] ConfirmAction([string]$prompt, [bool]$defaultYes = $true) {
+        $suffix = if ($defaultYes) { "(Y/n)" } else { "(y/N)" }
+        Write-Host "$prompt $suffix : " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+        $response = Read-Host
+        
+        # Empty response uses the default
+        if ([string]::IsNullOrWhiteSpace($response)) {
+            return $defaultYes
+        }
+        
+        # Explicit yes
+        return ($response -eq 'y' -or $response -eq 'Y')
+    }
+    
     # Clear current line
     [void] ClearCurrentLine() {
         $rawUI = $global:Host.UI.RawUI

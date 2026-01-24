@@ -30,7 +30,7 @@ class NpmCommand : INavigationCommand {
             }
             elseif ($key -eq [Constants]::KEY_X) {
                 # Remove node_modules - Pass required parameters
-                Invoke-NodeModulesRemove -RepoManager $context.RepoManager -Repository $currentRepo
+                Invoke-NodeModulesRemove -RepoManager $context.RepoManager -Repository $currentRepo -Console $context.Console
             }
             
             # Reload repositories to reflect changes (e.g., node_modules presence)

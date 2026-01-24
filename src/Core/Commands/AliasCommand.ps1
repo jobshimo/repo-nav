@@ -26,11 +26,11 @@ class AliasCommand : INavigationCommand {
         try {
             if ($key -eq [Constants]::KEY_E) {
                 # Edit alias - Pass required parameters
-                Invoke-AliasEdit -RepoManager $context.RepoManager -Repository $currentRepo -ColorSelector $context.ColorSelector
+                Invoke-AliasEdit -RepoManager $context.RepoManager -Repository $currentRepo -ColorSelector $context.ColorSelector -Console $context.Console
             }
             elseif ($key -eq [Constants]::KEY_R) {
                 # Remove alias - Pass required parameters
-                Invoke-AliasRemove -RepoManager $context.RepoManager -Repository $currentRepo
+                Invoke-AliasRemove -RepoManager $context.RepoManager -Repository $currentRepo -Console $context.Console
             }
             
             # Reload repositories to reflect alias changes

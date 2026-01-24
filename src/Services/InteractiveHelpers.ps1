@@ -21,10 +21,18 @@ function Invoke-AliasEdit {
         $Repository,
         
         [Parameter(Mandatory = $true)]
-        $ColorSelector
+        $ColorSelector,
+        
+        [Parameter(Mandatory = $false)]
+        $Console = $null
     )
     
-    Clear-Host
+    # If Console not provided, create a temporary one
+    if ($null -eq $Console) {
+        $Console = [ConsoleHelper]::new()
+    }
+    
+    $Console.ClearForWorkflow()
     Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
     Write-Host "    SET ALIAS" -ForegroundColor ([Constants]::ColorHeader)
     Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
@@ -75,13 +83,13 @@ function Invoke-AliasEdit {
     
     if ($currentAlias -and $alias -eq $currentAlias) {
         # Ask if want to change color
-        Clear-Host
+        $Console.ClearForWorkflow()
         Write-Host "Keep current color " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
         Write-Host $currentColor -NoNewline -ForegroundColor $currentColor
-        Write-Host "? (Y/n): " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
-        $keepColor = Read-Host
+        Write-Host "?" -ForegroundColor ([Constants]::ColorLabel)
+        $keepColor = $Console.ConfirmAction("", $true)
         
-        if ($keepColor -ne '' -and $keepColor -ne 'Y' -and $keepColor -ne 'y') {
+        if (-not $keepColor) {
             $selectedColor = $ColorSelector.SelectColor($currentColor)
         }
     } else {
@@ -92,7 +100,7 @@ function Invoke-AliasEdit {
     $aliasInfo = [AliasInfo]::new($alias, $selectedColor)
     $result = $RepoManager.SetAlias($Repository, $aliasInfo)
     
-    Clear-Host
+    $Console.ClearForWorkflow()
     if ($result) {
         Write-Host "Alias saved successfully with color " -NoNewline -ForegroundColor ([Constants]::ColorSuccess)
         Write-Host $selectedColor -ForegroundColor $selectedColor
@@ -114,17 +122,25 @@ function Invoke-AliasRemove {
         $RepoManager,
         
         [Parameter(Mandatory = $true)]
-        $Repository
+        $Repository,
+        
+        [Parameter(Mandatory = $false)]
+        $Console = $null
     )
     
+    # If Console not provided, create a temporary one
+    if ($null -eq $Console) {
+        $Console = [ConsoleHelper]::new()
+    }
+    
     if (-not $Repository.HasAlias) {
-        Clear-Host
+        $Console.ClearForWorkflow()
         Write-Host "No alias to remove for this repository." -ForegroundColor ([Constants]::ColorWarning)
         Start-Sleep -Seconds 1
         return $false
     }
     
-    Clear-Host
+    $Console.ClearForWorkflow()
     Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
     Write-Host "    REMOVE ALIAS" -ForegroundColor ([Constants]::ColorHeader)
     Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
@@ -135,14 +151,11 @@ function Invoke-AliasRemove {
     Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
     Write-Host ""
     Write-Host "This will remove the alias for this repository." -ForegroundColor ([Constants]::ColorWarning)
-    Write-Host "Continue? (Y/n): " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
     
-    $confirm = Read-Host
-    
-    if ($confirm -eq '' -or $confirm -eq 'Y' -or $confirm -eq 'y') {
+    if ($Console.ConfirmAction("Continue?", $true)) {
         $result = $RepoManager.RemoveAlias($Repository)
         
-        Clear-Host
+        $Console.ClearForWorkflow()
         if ($result) {
             Write-Host "Alias removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
         } else {
@@ -168,19 +181,27 @@ function Invoke-NodeModulesRemove {
         $RepoManager,
         
         [Parameter(Mandatory = $true)]
-        $Repository
+        $Repository,
+        
+        [Parameter(Mandatory = $false)]
+        $Console = $null
     )
+    
+    # If Console not provided, create a temporary one
+    if ($null -eq $Console) {
+        $Console = [ConsoleHelper]::new()
+    }
     
     $nodeModulesPath = Join-Path $Repository.FullPath "node_modules"
     
     if (-not (Test-Path $nodeModulesPath)) {
-        Clear-Host
+        $Console.ClearForWorkflow()
         Write-Host "No node_modules folder found in this repository." -ForegroundColor ([Constants]::ColorWarning)
         Start-Sleep -Seconds 2
         return $false
     }
     
-    Clear-Host
+    $Console.ClearForWorkflow()
     Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
     Write-Host "    REMOVE NODE_MODULES" -ForegroundColor ([Constants]::ColorHeader)
     Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
@@ -189,20 +210,15 @@ function Invoke-NodeModulesRemove {
     Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
     Write-Host ""
     Write-Host "This will delete the node_modules folder." -ForegroundColor ([Constants]::ColorWarning)
-    Write-Host "Continue? (Y/n): " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
     
-    $confirm = Read-Host
-    
-    if ($confirm -eq '' -or $confirm -eq 'Y' -or $confirm -eq 'y') {
+    if ($Console.ConfirmAction("Continue?", $true)) {
         # Ask about package-lock.json
         $packageLockPath = Join-Path $Repository.FullPath "package-lock.json"
         $removePackageLock = $false
         
         if (Test-Path $packageLockPath) {
             Write-Host ""
-            Write-Host "Do you also want to remove package-lock.json? (y/N): " -NoNewline -ForegroundColor ([Constants]::ColorHighlight)
-            $packageLockConfirm = Read-Host
-            $removePackageLock = ($packageLockConfirm -eq 'y' -or $packageLockConfirm -eq 'Y')
+            $removePackageLock = $Console.ConfirmAction("Do you also want to remove package-lock.json?", $false)
         }
         
         Write-Host ""
@@ -234,10 +250,18 @@ function Invoke-RepositoryClone {
         $RepoManager,
         
         [Parameter(Mandatory = $true)]
-        [string]$BasePath
+        [string]$BasePath,
+        
+        [Parameter(Mandatory = $false)]
+        $Console = $null
     )
     
-    Clear-Host
+    # If Console not provided, create a temporary one
+    if ($null -eq $Console) {
+        $Console = [ConsoleHelper]::new()
+    }
+    
+    $Console.ClearForWorkflow()
     Write-Host "=======================================================" -ForegroundColor Cyan
     Write-Host "    CLONE REPOSITORY" -ForegroundColor Cyan
     Write-Host "=======================================================" -ForegroundColor Cyan
@@ -283,10 +307,18 @@ function Invoke-RepositoryDelete {
         $RepoManager,
         
         [Parameter(Mandatory = $true)]
-        $Repository
+        $Repository,
+        
+        [Parameter(Mandatory = $false)]
+        $Console = $null
     )
     
-    Clear-Host
+    # If Console not provided, create a temporary one
+    if ($null -eq $Console) {
+        $Console = [ConsoleHelper]::new()
+    }
+    
+    $Console.ClearForWorkflow()
     Write-Host "=======================================================" -ForegroundColor Cyan
     Write-Host "    DELETE REPOSITORY" -ForegroundColor Red
     Write-Host "=======================================================" -ForegroundColor Cyan
