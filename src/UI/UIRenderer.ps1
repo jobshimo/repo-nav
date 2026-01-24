@@ -300,13 +300,16 @@ class UIRenderer {
     }
     
     # Render git status footer
-    [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalRepos, [int]$loadedRepos) {
+    [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalRepos, [int]$loadedRepos, [int]$currentIndex) {
         # Line 1: Separator
         Write-Host ("=" * 55) -ForegroundColor ([Constants]::ColorSeparator)
         
         # Line 2: Counters
         Write-Host ("Repos: ") -NoNewline -ForegroundColor ([Constants]::ColorLabel)
-        Write-Host "$totalRepos" -NoNewline -ForegroundColor ([Constants]::ColorValue)
+        
+        $currentPos = $currentIndex + 1
+        Write-Host "$currentPos/$totalRepos" -NoNewline -ForegroundColor ([Constants]::ColorValue)
+        
         Write-Host (" | Git Info: ") -NoNewline -ForegroundColor ([Constants]::ColorLabel)
         
         $counterColor = if ($loadedRepos -eq $totalRepos) { [Constants]::ColorCounterComplete } 

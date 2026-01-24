@@ -81,7 +81,8 @@ class RenderOrchestrator {
         $selectedRepo = $state.GetSelectedRepository()
         $totalRepos = $state.GetTotalCount()
         $loadedRepos = $state.GetLoadedCount()
-        $this.Renderer.RenderGitStatusFooter($selectedRepo, $totalRepos, $loadedRepos)
+        $currentIndex = $state.GetCurrentIndex()
+        $this.Renderer.RenderGitStatusFooter($selectedRepo, $totalRepos, $loadedRepos, $currentIndex)
     }
     
     <#
@@ -164,7 +165,7 @@ class RenderOrchestrator {
         $this.Console.SetCursorPosition(0, $footerLine)
         $totalRepos = $state.GetTotalCount()
         $loadedRepos = $state.GetLoadedCount()
-        $this.Renderer.RenderGitStatusFooter($state.GetSelectedRepository(), $totalRepos, $loadedRepos)
+        $this.Renderer.RenderGitStatusFooter($state.GetSelectedRepository(), $totalRepos, $loadedRepos, $state.SelectedIndex)
     }
     
     #endregion
