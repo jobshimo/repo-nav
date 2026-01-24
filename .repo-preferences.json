@@ -1,7 +1,7 @@
 ﻿{
     "display":  {
-                    "favoritesOnTop":  true,
-                    "selectedBackground":  "DarkYellow",
+                    "favoritesOnTop":  false,
+                    "selectedBackground":  "DarkBlue",
                     "selectedDelimiter":  "None"
                 },
     "git":  {

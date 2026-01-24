@@ -85,7 +85,21 @@ function Show-PreferencesMenu {
                 $prefix = if ($i -eq $selectedOption) { ">" } else { " " }
                 $color = if ($i -eq $selectedOption) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
                 
-                Write-Host "  $prefix $($item.Name): $($item.CurrentValue)" -ForegroundColor $color
+                Write-Host "  $prefix $($item.Name): " -NoNewline -ForegroundColor $color
+                
+                if ($item.Id -eq "selectedBackground") {
+                    # Special handling for background color: translate and preview
+                    $bgVal = $item.CurrentValue
+                    $bgDisplay = if ($bgVal -eq 'None') { Get-Loc "Color.None" "No background" } else { Get-Loc "Color.$bgVal" $bgVal }
+                    
+                    if ($bgVal -ne 'None' -and ($bgVal -as [System.ConsoleColor])) {
+                        Write-Host $bgDisplay -ForegroundColor $bgVal
+                    } else {
+                        Write-Host $bgDisplay -ForegroundColor $color
+                    }
+                } else {
+                    Write-Host $item.CurrentValue -ForegroundColor $color
+                }
             }
             
             Write-Host ""
