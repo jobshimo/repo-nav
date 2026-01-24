@@ -168,21 +168,6 @@ class RepositoryManager {
         $result = $this.AliasManager.ToggleFavorite($repository.Name)
         if ($result) {
             $repository.MarkAsFavorite(-not $repository.IsFavorite)
-            
-            # Get user preference for favorites position
-            [bool]$favoritesOnTop = $this.PreferencesService.GetPreference("display", "favoritesOnTop")
-            
-            # Sort based on user preference
-            if ($favoritesOnTop) {
-                # Favorites first, then alphabetically
-                $sorted = $this.Repositories | Sort-Object @{Expression = {-$_.IsFavorite}}, Name
-            } else {
-                # Just alphabetically (favorites stay in their position)
-                $sorted = $this.Repositories | Sort-Object Name
-            }
-            
-            $this.Repositories.Clear()
-            $this.Repositories.AddRange($sorted)
         }
         return $result
     }

@@ -20,22 +20,18 @@ class FavoriteCommand : INavigationCommand {
         $currentRepo = $repos[$currentIndex]
         $repoName = $currentRepo.Name
         
-        # Toggle favorite status
-        $repos[$currentIndex].IsFavorite = -not $repos[$currentIndex].IsFavorite
+        # Toggle favorite status via RepositoryManager (updates persistence)
+        $repoManager = $context.RepoManager
+        $repoManager.ToggleFavorite($currentRepo)
         
-        # Re-sort the list (favorites first)
-        $sortedRepos = $repos | Sort-Object -Property @(
-            @{Expression = {-not $_.IsFavorite}; Ascending = $true}
-            @{Expression = {$_.Name}; Ascending = $true}
-        )
+        # Get updated repositories (already sorted according to user preferences)
+        $updatedRepos = $repoManager.GetRepositories()
+        $state.SetRepositories($updatedRepos)
         
-        # Update state with sorted repositories
-        $state.SetRepositories($sortedRepos)
-        
-        # Find the new index of the current repository after sorting
+        # Find the new index of the current repository after potential re-sorting
         $newIndex = 0
-        for ($i = 0; $i -lt $sortedRepos.Count; $i++) {
-            if ($sortedRepos[$i].Name -eq $repoName) {
+        for ($i = 0; $i -lt $updatedRepos.Count; $i++) {
+            if ($updatedRepos[$i].Name -eq $repoName) {
                 $newIndex = $i
                 break
             }
