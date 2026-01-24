@@ -47,9 +47,13 @@ class RepositoryManager {
     
     # Load all repositories from base path
     [void] LoadRepositories([string]$basePath) {
+        $oldRepos = @{}
+        foreach ($repo in $this.Repositories) {
+            $oldRepos[$repo.Name] = $repo
+        }
+        
         $this.Repositories.Clear()
         
-        # Get all directories except 'envs', 'classes', and 'repo-nav'
         $directories = Get-ChildItem -Directory -Path $basePath | 
                        Where-Object { $_.Name -notin @('envs', 'classes', 'repo-nav') }
         
@@ -57,26 +61,25 @@ class RepositoryManager {
             return
         }
         
-        # Get aliases and favorites
         $aliases = $this.AliasManager.GetAllAliases()
         $favorites = $this.AliasManager.GetFavorites()
         
-        # Create repository models
         foreach ($dir in $directories) {
             $repo = [RepositoryModel]::new($dir)
             
-            # Set alias if exists
             if ($aliases.ContainsKey($repo.Name)) {
                 $repo.SetAlias($aliases[$repo.Name])
             }
             
-            # Set favorite status
             if ($favorites -contains $repo.Name) {
                 $repo.MarkAsFavorite($true)
             }
             
-            # Check node_modules
             $this.NpmService.UpdateRepositoryModel($repo)
+            
+            if ($oldRepos.ContainsKey($repo.Name) -and $oldRepos[$repo.Name].HasGitStatusLoaded()) {
+                $repo.SetGitStatus($oldRepos[$repo.Name].GitStatus)
+            }
             
             $this.Repositories.Add($repo) | Out-Null
         }
@@ -144,14 +147,11 @@ class RepositoryManager {
         
         $runspaces = [System.Collections.Generic.List[hashtable]]::new()
         
-        # Script to execute in each runspace
         $scriptBlock = {
             param([string]$repoPath)
             
-            # Use Set-StrictMode to catch variable issues
             Set-StrictMode -Version Latest
             
-            # Declare all variables locally with explicit scope
             $local:isGitRepo = $false
             $local:branchResult = ""
             $local:hasChangesResult = $false
@@ -161,7 +161,6 @@ class RepositoryManager {
             try {
                 $local:isGitRepo = Test-Path ".git"
                 if (-not $local:isGitRepo) {
-                    # Not a git repo - return minimal info
                     return [PSCustomObject]@{
                         IsGitRepo = $false
                         CurrentBranch = ""
@@ -170,16 +169,13 @@ class RepositoryManager {
                     }
                 }
                 
-                # Get branch (don't rely on $LASTEXITCODE in runspaces)
                 $local:branchOutput = git rev-parse --abbrev-ref HEAD 2>$null
                 $local:branchResult = ($local:branchOutput | Out-String).Trim()
                 
-                # Check uncommitted changes
                 $local:statusOutput = git status --porcelain 2>$null
                 $local:statusStr = ($local:statusOutput | Out-String).Trim()
                 $local:hasChangesResult = ($local:statusStr.Length -gt 0)
                 
-                # Check unpushed commits
                 $local:upstream = git rev-parse --abbrev-ref "@{u}" 2>$null
                 $local:unpushedCount = git rev-list --count "@{u}..HEAD" 2>$null
                 $local:countStr = ($local:unpushedCount | Out-String).Trim()
@@ -188,7 +184,6 @@ class RepositoryManager {
                     $local:hasUnpushedResult = ([int]$local:countStr -gt 0)
                 }
                 
-                # Return as PSCustomObject with explicit local variables
                 return [PSCustomObject]@{
                     IsGitRepo = $local:isGitRepo
                     CurrentBranch = $local:branchResult
@@ -227,14 +222,11 @@ class RepositoryManager {
             foreach ($runspaceInfo in $runspaces) {
                 if ($null -ne $runspaceInfo.Handle -and $runspaceInfo.Handle.IsCompleted) {
                     try {
-                        # Get result and update repository
                         $resultArray = $runspaceInfo.PowerShell.EndInvoke($runspaceInfo.Handle)
                         
                         if ($resultArray.Count -gt 0) {
                             $result = $resultArray[0]
                             
-                            # Access properties directly (PSCustomObject)
-                            # Constructor order: (isGitRepo, hasUncommittedChanges, hasUnpushedCommits, currentBranch)
                             $gitStatus = [GitStatusModel]::new(
                                 $result.IsGitRepo,
                                 $result.HasUncommittedChanges,
@@ -245,7 +237,6 @@ class RepositoryManager {
                         }
                     }
                     catch {
-                        # Silently ignore parallel execution errors
                     }
                     finally {
                         $runspaceInfo.PowerShell.Dispose()
@@ -254,7 +245,6 @@ class RepositoryManager {
                     
                     $completed++
                     
-                    # Invoke progress callback
                     if ($null -ne $progressCallback) {
                         & $progressCallback $completed $total
                     }
@@ -266,12 +256,10 @@ class RepositoryManager {
             }
         }
         
-        # Cleanup
         $runspacePool.Close()
         $runspacePool.Dispose()
     }
     
-    # Count how many repos have git status loaded
     [int] GetLoadedGitStatusCount() {
         $count = 0
         foreach ($repo in $this.Repositories) {
