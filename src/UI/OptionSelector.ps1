@@ -49,11 +49,14 @@ class OptionSelector {
 
     .PARAMETER ShowCurrentMarker
         Whether to append "(current)" text to the currently selected item (default: $true)
+
+    .PARAMETER Description
+        Optional text to display below the header (default: empty)
     
     .RETURNS
         Selected option value, or $null if cancelled
     #>
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText = "Cancel", [bool]$showCurrentMarker = $true) {
+    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText = "Cancel", [bool]$showCurrentMarker = $true, [string]$description = "") {
         if ($options.Count -eq 0) {
             return $null
         }
@@ -79,6 +82,11 @@ class OptionSelector {
                 $this.Renderer.RenderHeader($title)
                 Write-Host ""
                 
+                if (-not [string]::IsNullOrWhiteSpace($description)) {
+                    Write-Host "  $description" -ForegroundColor ([Constants]::ColorWarning)
+                    Write-Host ""
+                }
+
                 # Display options
                 for ($i = 0; $i -lt $options.Count; $i++) {
                     $option = $options[$i]

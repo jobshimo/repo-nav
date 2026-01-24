@@ -108,23 +108,21 @@ function Invoke-AliasEdit {
     $selectedColor = $currentColor
     
     if ($currentAlias -and $alias -eq $currentAlias) {
-        # Ask if want to change color
-        $Console.ClearForWorkflow()
+        # Ask if want to change color (logic inverted: ask if keep)
         
-        # Use simple confirmation here as keeping color flows better inline
-        # But for standardization, let's use the new selector if available
         $keepColor = $true
         
         if ($OptionSelector) {
-            Write-Host "Keep current color " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
-            Write-Host $currentColor -NoNewline -ForegroundColor $currentColor
-            Write-Host "?" -ForegroundColor ([Constants]::ColorLabel)
-            Start-Sleep -Seconds 1
+             # Build description
+             $colorName = Get-Loc "Color.$currentColor" $currentColor
+             $lblCurrentColor = Get-Loc "Alias.CurrentColor" "Current color"
+             $desc = "$lblCurrentColor : $colorName"
              
-            $title = Get-Loc "Alias.KeepColorTitle" "Keep current color?"
-            $keepColor = Confirm-Selection $title $OptionSelector $LocalizationService $true
+             $title = Get-Loc "Alias.KeepColorTitle" "Keep current color?"
+             $keepColor = Confirm-Selection $title $OptionSelector $LocalizationService $true $desc
         } else {
             # Fallback
+            $Console.ClearForWorkflow()
             Write-Host "Keep current color " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
             Write-Host $currentColor -NoNewline -ForegroundColor $currentColor
             Write-Host "?" -ForegroundColor ([Constants]::ColorLabel)
@@ -205,12 +203,14 @@ function Invoke-AliasRemove {
     
     $Console.ClearForWorkflow()
     $Renderer.RenderWorkflowHeaderWithInfo($(Get-Loc "Alias.RemoveTitle" "REMOVE ALIAS"), $Repository, "Alias", $Repository.AliasInfo.Alias, $Repository.AliasInfo.Color)
-    Write-Host $(Get-Loc "Alias.RemoveConfirm" "This will remove the alias for this repository.") -ForegroundColor ([Constants]::ColorWarning)
+    # Write-Host $(Get-Loc "Alias.RemoveConfirm" "This will remove the alias for this repository.") -ForegroundColor ([Constants]::ColorWarning)
 
     $continue = if ($OptionSelector) {
         $title = Get-Loc "Prompt.Continue" "Continue?"
-        Confirm-Selection $title $OptionSelector $LocalizationService $true
+        $desc = Get-Loc "Alias.RemoveConfirm" "This will remove the alias for this repository."
+        Confirm-Selection $title $OptionSelector $LocalizationService $true $desc
     } else {
+        Write-Host $(Get-Loc "Alias.RemoveConfirm" "This will remove the alias for this repository.") -ForegroundColor ([Constants]::ColorWarning)
         $Console.ConfirmAction($(Get-Loc "Prompt.Continue" "Continue?"), $true)
     }
     
@@ -288,12 +288,14 @@ function Invoke-NodeModulesRemove {
     
     $Console.ClearForWorkflow()
     $Renderer.RenderWorkflowHeader($(Get-Loc "Msg.Npm.Removing" "REMOVE NODE_MODULES"), $Repository)
-    Write-Host $(Get-Loc "Msg.Npm.DeleteWarning" "This will delete the node_modules folder.") -ForegroundColor ([Constants]::ColorWarning)
+    # Write-Host $(Get-Loc "Msg.Npm.DeleteWarning" "This will delete the node_modules folder.") -ForegroundColor ([Constants]::ColorWarning)
 
     $continue = if ($OptionSelector) {
         $title = Get-Loc "Prompt.Continue" "Continue?"
-        Confirm-Selection $title $OptionSelector $LocalizationService $true
+        $desc = Get-Loc "Msg.Npm.DeleteWarning" "This will delete the node_modules folder."
+        Confirm-Selection $title $OptionSelector $LocalizationService $true $desc
     } else {
+        Write-Host $(Get-Loc "Msg.Npm.DeleteWarning" "This will delete the node_modules folder.") -ForegroundColor ([Constants]::ColorWarning)
         $Console.ConfirmAction($(Get-Loc "Prompt.Continue" "Continue?"), $true)
     }
 
@@ -344,7 +346,8 @@ function Confirm-Selection {
         [string]$Title,
         [object]$OptionSelector,
         [LocalizationService]$LocalizationService,
-        [bool]$DefaultYes = $true
+        [bool]$DefaultYes = $true,
+        [string]$Description = ""
     )
 
     $yesText = if ($LocalizationService) { $LocalizationService.Get("Prompt.Yes") } else { "YES" }
@@ -358,7 +361,7 @@ function Confirm-Selection {
     # Pre-select based on default
     $currentValue = $DefaultYes
 
-    return $OptionSelector.ShowSelection($Title, $options, $currentValue, $noText, $false)
+    return $OptionSelector.ShowSelection($Title, $options, $currentValue, $noText, $false, $Description)
 }
 
 function Invoke-RepositoryClone {
@@ -460,28 +463,31 @@ function Invoke-RepositoryDelete {
         $Console = [ConsoleHelper]::new()
     }
     
-    $Console.ClearForWorkflow()
-    Write-Host "=======================================================" -ForegroundColor Cyan
-    Write-Host ("    " + $(Get-Loc "Repo.Delete.Title" "DELETE REPOSITORY")) -ForegroundColor Red
-    Write-Host "=======================================================" -ForegroundColor Cyan
-    Write-Host "Repository: " -NoNewline -ForegroundColor Red
-    Write-Host $Repository.Name -ForegroundColor White
-    Write-Host "=======================================================" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host ("WARNING: " + $(Get-Loc "Repo.Delete.Warning" "This action is PERMANENT and cannot be undone!")) -ForegroundColor Red
-    Write-Host ""
-    
     # First confirmation
     $msgConfirm = Get-Loc "Repo.Delete.Confirm" "Are you sure you want to delete {0}?"
-    $confirmTitle = $msgConfirm -f $Repository.Name
+    $confirmQuestion = $msgConfirm -f $Repository.Name
+    $deleteTitle = Get-Loc "Repo.Delete.Title" "DELETE REPOSITORY"
+    $warningMsg = "WARNING: " + $(Get-Loc "Repo.Delete.Warning" "This action is PERMANENT and cannot be undone!")
     
     $firstConfirm = $false
     
     if ($OptionSelector) {
-        $firstConfirm = Confirm-Selection $confirmTitle $OptionSelector $LocalizationService $false
+        $desc = "$confirmQuestion`n`n$warningMsg"
+        $firstConfirm = Confirm-Selection $deleteTitle $OptionSelector $LocalizationService $false $desc
     } else {
         # Fallback to old behavior
-        Write-Host "$confirmTitle (yes/no): " -NoNewline -ForegroundColor Yellow
+        $Console.ClearForWorkflow()
+        Write-Host "=======================================================" -ForegroundColor Cyan
+        Write-Host ("    " + $deleteTitle) -ForegroundColor Red
+        Write-Host "=======================================================" -ForegroundColor Cyan
+        Write-Host "Repository: " -NoNewline -ForegroundColor Red
+        Write-Host $Repository.Name -ForegroundColor White
+        Write-Host "=======================================================" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host $warningMsg -ForegroundColor Red
+        Write-Host ""
+        
+        Write-Host "$confirmQuestion (yes/no): " -NoNewline -ForegroundColor Yellow
         $resp = Read-Host
         $firstConfirm = ($resp -eq 'yes')
     }

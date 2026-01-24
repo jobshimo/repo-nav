@@ -78,6 +78,8 @@
     "Alias.RemoveConfirm": "This will remove the alias for this repository.",
     "Alias.RemovedSuccess": "Alias removed successfully!",
     "Alias.RemoveFail": "Failed to remove alias.",
+    "Alias.KeepColorTitle": "Keep current color?",
+    "Alias.CurrentColor": "Current color",
 
     "Prompt.Continue": "Continue?",
     "Msg.ActionCancelled": "Operation cancelled.",
