@@ -3,6 +3,57 @@
 # These are outside classes because PowerShell classes have issues with external command output
 #
 
+function Get-NpmExecutablePath {
+    <#
+    .SYNOPSIS
+        Smart detection of npm executable, handling NVM and missing PATH entries
+    #>
+    
+    # 1. Try standard discovery via PATH
+    if (Get-Command "npm" -ErrorAction SilentlyContinue) {
+        return "npm"
+    }
+
+    # 2. Check NVM Symlink environment variable
+    if ($env:NVM_SYMLINK -and (Test-Path "$env:NVM_SYMLINK\npm.cmd")) {
+        return "$env:NVM_SYMLINK\npm.cmd"
+    }
+
+    # 3. Check standard NodeJS installation path (common for NVM symlink too)
+    $programsPath = [Environment]::GetFolderPath("ProgramFiles")
+    $standardNode = Join-Path $programsPath "nodejs\npm.cmd"
+    if (Test-Path $standardNode) {
+        return $standardNode
+    }
+
+    # 4. Smart NVM Fallback: Look for installed versions in NVM_HOME
+    # This handles cases where NVM is installed but 'nvm use' hasn't been run or symlink is broken
+    if ($env:NVM_HOME -and (Test-Path $env:NVM_HOME)) {
+        try {
+            # Find directories starting with 'v' (e.g., v14.17.0, v16.0.0)
+            # Sort by Name descending to try get the latest version roughly
+            # (String sort isn't perfect for semver but good enough as fallback)
+            $latestVersion = Get-ChildItem -Path $env:NVM_HOME -Directory -Filter "v*" | 
+                             Sort-Object Name -Descending | 
+                             Select-Object -First 1
+                             
+            if ($latestVersion) {
+                $nvmNpmPath = Join-Path $latestVersion.FullName "npm.cmd"
+                # Some NVM versions put npm inside node_modules/npm/bin (rarer on Windows but possible)
+                
+                if (Test-Path $nvmNpmPath) {
+                    return $nvmNpmPath
+                }
+            }
+        }
+        catch {
+            # Ignore errors during fallback search
+        }
+    }
+
+    return $null
+}
+
 function Invoke-NpmInstall {
     <#
     .SYNOPSIS
@@ -23,6 +74,25 @@ function Invoke-NpmInstall {
         Clear-Host
         Write-Host "No package.json found in this repository." -ForegroundColor ([Constants]::ColorError)
         Start-Sleep -Seconds 2
+        return $false
+    }
+
+    # Check if npm is available using smart detection
+    $npmPath = Get-NpmExecutablePath
+    
+    if (-not $npmPath) {
+        Clear-Host
+        Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+        Write-Host "    MISSING DEPENDENCY" -ForegroundColor ([Constants]::ColorHeader)
+        Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+        Write-Host ""
+        Write-Host "Error: 'npm' command was not found in your PATH or standard locations." -ForegroundColor ([Constants]::ColorError)
+        Write-Host ""
+        Write-Host "To use this feature, you need to install Node.js." -ForegroundColor ([Constants]::ColorWarning)
+        Write-Host "Please download and install it from: https://nodejs.org/" -ForegroundColor ([Constants]::ColorValue)
+        Write-Host "If you use NVM, ensure a version is currently selected ('nvm use ...')." -ForegroundColor ([Constants]::ColorGray)
+        Write-Host ""
+        Start-Sleep -Seconds 5
         return $false
     }
     
@@ -67,7 +137,8 @@ function Invoke-NpmInstall {
     Push-Location $Repository.FullPath
     try {
         # Force npm output to be visible by calling it with explicit output redirection
-        & npm install *>&1 | Write-Host
+        # Use invocation operator & with the resolved path
+        & $npmPath install *>&1 | Write-Host
         Write-Host ""
         Write-Host "Dependencies installed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
         Start-Sleep -Seconds 2

@@ -90,10 +90,10 @@ class RepositoryManager {
         # Sort based on user preference
         if ($favoritesOnTop) {
             # Favorites first, then alphabetically
-            $sorted = $this.Repositories | Sort-Object @{Expression = {-$_.IsFavorite}}, Name
+            $sorted = @($this.Repositories | Sort-Object @{Expression = {-$_.IsFavorite}}, Name)
         } else {
             # Just alphabetically (favorites stay in their position)
-            $sorted = $this.Repositories | Sort-Object Name
+            $sorted = @($this.Repositories | Sort-Object Name)
         }
         
         $this.Repositories.Clear()
