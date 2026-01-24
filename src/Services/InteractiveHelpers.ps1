@@ -24,7 +24,10 @@ function Invoke-AliasEdit {
         $ColorSelector,
         
         [Parameter(Mandatory = $false)]
-        $Console = $null
+        $Console = $null,
+        
+        [Parameter(Mandatory = $false)]
+        $Renderer = $null
     )
     
     # If Console not provided, create a temporary one
@@ -32,14 +35,14 @@ function Invoke-AliasEdit {
         $Console = [ConsoleHelper]::new()
     }
     
+    # If Renderer not provided, create a temporary one
+    if ($null -eq $Renderer) {
+        $prefsService = [UserPreferencesService]::new([ConfigurationService]::new())
+        $Renderer = [UIRenderer]::new($Console, $prefsService)
+    }
+    
     $Console.ClearForWorkflow()
-    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-    Write-Host "    SET ALIAS" -ForegroundColor ([Constants]::ColorHeader)
-    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-    Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
-    Write-Host $Repository.Name -ForegroundColor ([Constants]::ColorValue)
-    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-    Write-Host ""
+    $Renderer.RenderWorkflowHeader("SET ALIAS", $Repository)
     
     $currentAlias = ""
     $currentColor = [ColorPalette]::DefaultAliasColor
@@ -125,12 +128,21 @@ function Invoke-AliasRemove {
         $Repository,
         
         [Parameter(Mandatory = $false)]
-        $Console = $null
+        $Console = $null,
+        
+        [Parameter(Mandatory = $false)]
+        $Renderer = $null
     )
     
     # If Console not provided, create a temporary one
     if ($null -eq $Console) {
         $Console = [ConsoleHelper]::new()
+    }
+    
+    # If Renderer not provided, create a temporary one
+    if ($null -eq $Renderer) {
+        $prefsService = [UserPreferencesService]::new([ConfigurationService]::new())
+        $Renderer = [UIRenderer]::new($Console, $prefsService)
     }
     
     if (-not $Repository.HasAlias) {
@@ -141,15 +153,7 @@ function Invoke-AliasRemove {
     }
     
     $Console.ClearForWorkflow()
-    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-    Write-Host "    REMOVE ALIAS" -ForegroundColor ([Constants]::ColorHeader)
-    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-    Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
-    Write-Host $Repository.Name -ForegroundColor ([Constants]::ColorValue)
-    Write-Host "Alias: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
-    Write-Host "$($Repository.AliasInfo.Alias)" -ForegroundColor $Repository.AliasInfo.Color
-    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-    Write-Host ""
+    $Renderer.RenderWorkflowHeaderWithInfo("REMOVE ALIAS", $Repository, "Alias", $Repository.AliasInfo.Alias, $Repository.AliasInfo.Color)
     Write-Host "This will remove the alias for this repository." -ForegroundColor ([Constants]::ColorWarning)
     
     if ($Console.ConfirmAction("Continue?", $true)) {
@@ -184,12 +188,21 @@ function Invoke-NodeModulesRemove {
         $Repository,
         
         [Parameter(Mandatory = $false)]
-        $Console = $null
+        $Console = $null,
+        
+        [Parameter(Mandatory = $false)]
+        $Renderer = $null
     )
     
     # If Console not provided, create a temporary one
     if ($null -eq $Console) {
         $Console = [ConsoleHelper]::new()
+    }
+    
+    # If Renderer not provided, create a temporary one
+    if ($null -eq $Renderer) {
+        $prefsService = [UserPreferencesService]::new([ConfigurationService]::new())
+        $Renderer = [UIRenderer]::new($Console, $prefsService)
     }
     
     $nodeModulesPath = Join-Path $Repository.FullPath "node_modules"
@@ -202,13 +215,7 @@ function Invoke-NodeModulesRemove {
     }
     
     $Console.ClearForWorkflow()
-    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-    Write-Host "    REMOVE NODE_MODULES" -ForegroundColor ([Constants]::ColorHeader)
-    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-    Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
-    Write-Host $Repository.Name -ForegroundColor ([Constants]::ColorValue)
-    Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-    Write-Host ""
+    $Renderer.RenderWorkflowHeader("REMOVE NODE_MODULES", $Repository)
     Write-Host "This will delete the node_modules folder." -ForegroundColor ([Constants]::ColorWarning)
     
     if ($Console.ConfirmAction("Continue?", $true)) {

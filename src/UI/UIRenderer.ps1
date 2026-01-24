@@ -33,6 +33,32 @@ class UIRenderer {
         Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
     }
     
+    # Render interactive workflow header with repository info
+    [void] RenderWorkflowHeader([string]$title, [RepositoryModel]$repository) {
+        $separator = "=" * 55
+        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
+        Write-Host "    $title" -ForegroundColor ([Constants]::ColorHeader)
+        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
+        Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        Write-Host $repository.Name -ForegroundColor ([Constants]::ColorValue)
+        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
+        Write-Host ""
+    }
+    
+    # Render interactive workflow header with additional info line
+    [void] RenderWorkflowHeaderWithInfo([string]$title, [RepositoryModel]$repository, [string]$infoLabel, [string]$infoValue, [ConsoleColor]$infoColor) {
+        $separator = "=" * 55
+        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
+        Write-Host "    $title" -ForegroundColor ([Constants]::ColorHeader)
+        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
+        Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        Write-Host $repository.Name -ForegroundColor ([Constants]::ColorValue)
+        Write-Host "$infoLabel : " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        Write-Host $infoValue -ForegroundColor $infoColor
+        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
+        Write-Host ""
+    }
+    
     # Render menu/instructions
     [void] RenderMenu() {
         Write-Host ""
