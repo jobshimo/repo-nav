@@ -40,8 +40,9 @@ class GitCommand : INavigationCommand {
                     $repoManager.LoadGitStatus($currentRepo)
                 })
                 
-                # Mark for full redraw to update footer
-                $state.MarkForFullRedraw()
+                # Only trigger selection change (partial redraw - just current item + footer)
+                # This avoids full screen redraw and eliminates flicker
+                $state.SetCurrentIndex($currentIndex)
             }
         }
         elseif ($key -eq [Constants]::KEY_G) {
