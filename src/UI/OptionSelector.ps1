@@ -56,7 +56,13 @@ class OptionSelector {
     .RETURNS
         Selected option value, or $null if cancelled
     #>
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText = "Cancel", [bool]$showCurrentMarker = $true, [string]$description = "") {
+    # Overload for backward compatibility (4 arguments)
+    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText) {
+        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "")
+    }
+
+    # Main method with all options
+    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description) {
         if ($options.Count -eq 0) {
             return $null
         }
