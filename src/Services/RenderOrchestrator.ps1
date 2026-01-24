@@ -92,6 +92,21 @@ class RenderOrchestrator {
         $startLine = $this.CursorStartLine
         $pageSize = $state.PageSize
         
+        # Determine if we need to scroll.
+        # Even if ViewportChanged is FALSE in state (logic bug elsewhere?).
+        # Double check if current index is visible.
+        if ($state.SelectedIndex -lt $state.ViewportStart -or 
+            $state.SelectedIndex -ge ($state.ViewportStart + $pageSize)) {
+            
+            # Auto-correct viewport if out of sync
+            if ($state.SelectedIndex -lt $state.ViewportStart) {
+                $state.ViewportStart = $state.SelectedIndex
+            } else {
+                 $state.ViewportStart = [Math]::Max(0, $state.SelectedIndex - $pageSize + 1)
+            }
+            $state.ViewportChanged = $true
+        }
+
         # Handle Viewport Scroll (redraw full list area)
         if ($state.ViewportChanged) {
             $this.Renderer.RenderRepositoryList($state, $startLine)

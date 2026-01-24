@@ -54,9 +54,9 @@ class NavigationState {
         # Header (~10) + Footer (4) = 14 reserved lines
         try {
             $windowHeight = $global:Host.UI.RawUI.WindowSize.Height
-            # Fix: ReservedLines needs to include Header (10) + Footer (4) + Gap (1) + Safety Buffer (2)
-            # Total 17 lines reserved to strictly avoid hitting the bottom line which triggers scroll
-            $reservedLines = 17 
+            # Fix: Increase ReservedLines to 20 to force scrolling mode earlier.
+            # This ensures that we don't try to display 2 items when there is visually only space for 1.
+            $reservedLines = 20
             $availableLines = $windowHeight - $reservedLines
             
             # If available space is tiny (e.g. 1 or 2 lines), use it.
@@ -92,8 +92,10 @@ class NavigationState {
             $this.SelectedIndex++
             
             # Scroll down check
+            # If SelectedIndex is outside visible range [Start, Start+PageSize-1]
             if ($this.SelectedIndex -ge ($this.ViewportStart + $this.PageSize)) {
-                $this.ViewportStart++
+                # Move viewport so SelectedIndex is the LAST item
+                $this.ViewportStart = $this.SelectedIndex - $this.PageSize + 1
                 $this.ViewportChanged = $true
             }
         } else {
@@ -119,8 +121,9 @@ class NavigationState {
             $this.SelectedIndex--
             
             # Scroll up check
+            # If SelectedIndex is before Start
             if ($this.SelectedIndex -lt $this.ViewportStart) {
-                $this.ViewportStart--
+                $this.ViewportStart = $this.SelectedIndex
                 $this.ViewportChanged = $true
             }
         } else {
@@ -128,6 +131,8 @@ class NavigationState {
             $this.SelectedIndex = $total - 1
             
             # Adjust viewport to show last item
+            # We want SelectedIndex to be visible. 
+            # Ideally at the bottom of the page if possible.
             $newViewport = [Math]::Max(0, $total - $this.PageSize)
             if ($this.ViewportStart -ne $newViewport) {
                 $this.ViewportStart = $newViewport
@@ -391,19 +396,8 @@ class NavigationState {
     [void] UpdateWindowSize() {
         try {
             $height = $global:Host.UI.RawUI.WindowSize.Height
-            # Calculation:
-            # Header starts at 0, ends at 9 (10 lines)
-            # List starts at 10.
-            # Gap line: 1 line
-            # Footer: 4 lines
-            # Safety margin: 1 line
-            # Last written line index = 10 + PageSize + 1 + 3 (footer height-1) = 14 + PageSize.
-            # We need LastIndex < Height - 1 (to leave one empty line at bottom)
-            # 14 + PageSize < Height - 1
-            # PageSize < Height - 15
-            
-            # Conservative calculation: Height - 16
-            $newPageSize = $height - 16
+            # Conservative calculation: Height - 20 (Same as constructor)
+            $newPageSize = $height - 20
             
             # Minimum functional size
             if ($newPageSize -lt 1) { $newPageSize = 1 }
@@ -416,14 +410,14 @@ class NavigationState {
                 $this.PageSize = $newPageSize
                 $this.RequiresFullRedraw = $true
                 
-                # Check if selected index is still in viewport, if not, adjust viewport
-                # Case: Viewport was [0-10], Index 5. PageSize becomes 2. Viewport [0-2]. Index 5 hidden.
-                # Correction: Move Viewport to contain Index.
+                # Update Viewport to keep selected item visible with new PageSize
                 if ($this.SelectedIndex -lt $this.ViewportStart) {
                      $this.ViewportStart = $this.SelectedIndex
                 } 
                 elseif ($this.SelectedIndex -ge ($this.ViewportStart + $this.PageSize)) {
-                     $this.ViewportStart = [Math]::Max(0, $this.SelectedIndex - $this.PageSize + 1)
+                     # Logic fix: Ensure we don't set negative start
+                     $newStart = $this.SelectedIndex - $this.PageSize + 1
+                     $this.ViewportStart = [Math]::Max(0, $newStart)
                 }
             }
         } catch { 
