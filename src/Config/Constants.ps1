@@ -36,6 +36,7 @@ class Constants {
     
     # UI Constants
     static [int] $CursorStartLine = 10
+    static [int] $UIWidth = 90  # New standardized width for separators
     
     # Git Status Symbols
     static [string] $GitSymbolClean = [char]0x2713      # ✓

@@ -393,11 +393,13 @@ class NavigationState {
     .SYNOPSIS
         Check and update window size dynamically
     #>
-    [void] UpdateWindowSize() {
+    [void] UpdateWindowSize([int]$headerHeight) {
         try {
             $height = $global:Host.UI.RawUI.WindowSize.Height
-            # Conservative calculation: Height - 20 (Same as constructor)
-            $newPageSize = $height - 20
+            # Conservative calculation: Height - (Header + Footer + Gap + Safety)
+            # Footer(4) + Gap(1) + Safety(2) = 7
+            $reservedLines = $headerHeight + 7
+            $newPageSize = $height - $reservedLines
             
             # Minimum functional size
             if ($newPageSize -lt 1) { $newPageSize = 1 }

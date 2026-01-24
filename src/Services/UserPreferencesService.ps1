@@ -71,6 +71,7 @@ class UserPreferencesService {
                 favoritesOnTop = $true
                 selectedBackground = "DarkGray"
                 selectedDelimiter = "None"
+                menuMode = "Full" # Full | Minimal | Hidden
             }
             git = [PSCustomObject]@{
                 autoLoadFavoritesStatus = $false
@@ -112,6 +113,10 @@ class UserPreferencesService {
         
         if (-not ($preferences.display.PSObject.Properties.Name -contains 'selectedDelimiter')) {
             $preferences.display | Add-Member -NotePropertyName 'selectedDelimiter' -NotePropertyValue "None" -Force
+        }
+        
+        if (-not ($preferences.display.PSObject.Properties.Name -contains 'menuMode')) {
+            $preferences.display | Add-Member -NotePropertyName 'menuMode' -NotePropertyValue "Full" -Force
         }
         
         if (-not ($preferences.PSObject.Properties.Name -contains 'git')) {

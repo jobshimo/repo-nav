@@ -28,6 +28,7 @@
     "Pref.SelectedBg": "Fondo del Elemento Seleccionado",
     "Pref.SelectedDelim": "Delimitador de Selección",
     "Pref.AutoLoadGit": "Carga Auto. Git Status (Favoritos)",
+    "Pref.MenuMode": "Visualización del Menú",
     "Pref.Back": "Volver al menú principal",
     "Pref.Value.Top": "Inicio de la lista",
     "Pref.Value.Original": "Posición original",

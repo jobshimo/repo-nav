@@ -2,7 +2,8 @@
     "display":  {
                     "favoritesOnTop":  false,
                     "selectedBackground":  "DarkBlue",
-                    "selectedDelimiter":  "None"
+                    "selectedDelimiter":  "None",
+                    "menuMode":  "Hidden"
                 },
     "git":  {
                 "autoLoadFavoritesStatus":  true

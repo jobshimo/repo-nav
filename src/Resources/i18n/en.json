@@ -28,6 +28,7 @@
     "Pref.SelectedBg": "Selected Item Background",
     "Pref.SelectedDelim": "Selected Item Delimiter",
     "Pref.AutoLoadGit": "Auto-load Git Status (Favorites)",
+    "Pref.MenuMode": "Menu Display",
     "Pref.Back": "Back to main menu",
     "Pref.Value.Top": "Top of list",
     "Pref.Value.Original": "Original position",

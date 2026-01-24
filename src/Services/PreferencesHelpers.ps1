@@ -79,6 +79,13 @@ function Show-PreferencesMenu {
                 CurrentValue = if ($preferences.git.autoLoadFavoritesStatus) { $(Get-Loc "Pref.Value.Enabled" "Enabled") } else { $(Get-Loc "Pref.Value.Disabled" "Disabled") }
             }
             
+            # 5: Menu Mode
+            $preferenceItems += @{
+                Id = "menuMode"
+                Name = $(Get-Loc "Pref.MenuMode" "Menu Display")
+                CurrentValue = if ($preferences.display.menuMode) { $preferences.display.menuMode } else { "Full" }
+            }
+            
             # Display preference items
             for ($i = 0; $i -lt $preferenceItems.Count; $i++) {
                 $item = $preferenceItems[$i]
@@ -257,6 +264,27 @@ function Show-PreferencesMenu {
                             if ($null -ne $newValue) {
                                 $PreferencesService.SetPreference("git", "autoLoadFavoritesStatus", $newValue)
                                 $confirmationMessage = "Updated auto-load settings"
+                                $confirmationTimeout = 2
+                                $preferences = $PreferencesService.LoadPreferences()
+                            }
+                        }
+                        elseif ($selectedItem.Id -eq "menuMode") {
+                            $menuOptions = @(
+                                @{ DisplayText = "Full (All commands)"; Value = "Full" },
+                                @{ DisplayText = "Minimal (Navigation only)"; Value = "Minimal" },
+                                @{ DisplayText = "Hidden (Hide menu)"; Value = "Hidden" }
+                            )
+                            
+                            $newValue = $OptionSelector.ShowSelection(
+                                $(Get-Loc "Pref.MenuMode" "Menu Display"),
+                                $menuOptions,
+                                $preferences.display.menuMode,
+                                "Cancel"
+                            )
+                            
+                            if ($null -ne $newValue) {
+                                $PreferencesService.SetPreference("display", "menuMode", $newValue)
+                                $confirmationMessage = "Updated menu mode"
                                 $confirmationTimeout = 2
                                 $preferences = $PreferencesService.LoadPreferences()
                             }

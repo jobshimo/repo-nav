@@ -21,13 +21,15 @@ class RenderOrchestrator {
     # Dependencies (injected)
     [object] $Renderer     # UIRenderer
     [object] $Console      # ConsoleHelper
-    [int] $CursorStartLine # Line where repository list starts
+    [int] $CursorStartLine # Calculated line where repository list starts
+    [UserPreferencesService] $PreferencesService # For Menu Mode
     
     # Constructor with Dependency Injection
-    RenderOrchestrator([object]$renderer, [object]$console, [int]$cursorStartLine) {
+    RenderOrchestrator([object]$renderer, [object]$console, [int]$initialCursorStartLine) {
         $this.Renderer = $renderer
         $this.Console = $console
-        $this.CursorStartLine = $cursorStartLine
+        $this.CursorStartLine = $initialCursorStartLine
+        $this.PreferencesService = [UserPreferencesService]::new()
     }
     
     #region Public Rendering Methods
@@ -37,8 +39,9 @@ class RenderOrchestrator {
         Renders based on state flags (main entry point)
     #>
     [void] RenderIfNeeded([object]$state) {
-        # Check if window resized
-        $state.UpdateWindowSize()
+        # Check if window resized - Pass current CursorStartLine as header height approximation
+        # (It will be corrected on next full redraw)
+        $state.UpdateWindowSize($this.CursorStartLine)
 
         if ($state.RequiresFullRedraw) {
             $this.RenderFull($state)
@@ -61,11 +64,20 @@ class RenderOrchestrator {
     [void] RenderFull([object]$state) {
         $this.Console.ClearScreen()
         
-        # Header
+        # Load preferences to check MenuMode
+        $prefs = $this.PreferencesService.LoadPreferences()
+        $menuMode = $prefs.display.menuMode
+        
+        # Header (Takes 3 lines)
         $this.Renderer.RenderHeader("REPOSITORY NAVIGATOR")
         
-        # Menu
-        $this.Renderer.RenderMenu()
+        # Menu (dynamic height)
+        # Returns number of lines used
+        $menuLines = $this.Renderer.RenderMenu($menuMode)
+        
+        # Calculate cursor start line dynamically
+        # Header (3) + Menu (menuLines)
+        $this.CursorStartLine = 3 + $menuLines
         
         # Explicitly enforce start position to match partial updates
         $this.Console.SetCursorPosition(0, $this.CursorStartLine)

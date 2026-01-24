@@ -43,7 +43,7 @@ class UIRenderer {
     
     # Render header
     [void] RenderHeader([string]$title) {
-        $separator = "=" * 55
+        $separator = "=" * [Constants]::UIWidth
         Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
         Write-Host "    $title" -ForegroundColor ([Constants]::ColorHeader)
         Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
@@ -51,7 +51,7 @@ class UIRenderer {
     
     # Render interactive workflow header with repository info
     [void] RenderWorkflowHeader([string]$title, [RepositoryModel]$repository) {
-        $separator = "=" * 55
+        $separator = "=" * [Constants]::UIWidth
         Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
         Write-Host "    $title" -ForegroundColor ([Constants]::ColorHeader)
         Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
@@ -63,7 +63,7 @@ class UIRenderer {
     
     # Render interactive workflow header with additional info line
     [void] RenderWorkflowHeaderWithInfo([string]$title, [RepositoryModel]$repository, [string]$infoLabel, [string]$infoValue, [ConsoleColor]$infoColor) {
-        $separator = "=" * 55
+        $separator = "=" * [Constants]::UIWidth
         Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
         Write-Host "    $title" -ForegroundColor ([Constants]::ColorHeader)
         Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
@@ -76,32 +76,56 @@ class UIRenderer {
     }
     
     # Render menu/instructions
-    [void] RenderMenu() {
+    [int] RenderMenu([string]$mode) {
         Write-Host ""
+        $linesRendered = 1 # Initial empty line
         
+        if ($mode -eq 'Hidden') {
+             # Render nothing (just the empty line above)
+             return $linesRendered
+        }
+        
+        # Minimal Mode: Only Nav and Exit
         $grpNav = $this.GetLoc("UI.Group.Nav", "Navigation")
         $cmdNav = $this.GetLoc("Cmd.Desc.Nav", "Arrows | Enter=open")
         $cmdExit = $this.GetLoc("Cmd.Desc.Exit", "Q=quit")
         $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
+        
+        if ($mode -eq 'Minimal') {
+             Write-Host "  $cmdNav | $cmdExit | $cmdPref" -ForegroundColor ([Constants]::ColorMenuText)
+             $linesRendered++
+             Write-Host ""
+             $linesRendered++
+             return $linesRendered
+        }
+        
+        # Full Mode (Default)
         Write-Host "  ${grpNav}: $cmdNav | $cmdExit | $cmdPref" -ForegroundColor ([Constants]::ColorMenuText)
+        $linesRendered++
 
         $cmdAlias = $this.GetLoc("Cmd.Desc.Alias", "E=set | R=remove")
         Write-Host "  Alias:      $cmdAlias" -ForegroundColor ([Constants]::ColorMenuText)
+        $linesRendered++
 
         $grpMod = $this.GetLoc("UI.Group.Modules", "Modules")
         $cmdNpm = $this.GetLoc("Cmd.Desc.Npm", "I=install | X=remove")
         Write-Host "  ${grpMod}:    $cmdNpm" -ForegroundColor ([Constants]::ColorMenuText)
+        $linesRendered++
 
         $grpRepo = $this.GetLoc("UI.Group.Repo", "Repository")
         $cmdClone = $this.GetLoc("Cmd.Desc.RepoMgmt", "C=clone | Del=delete")
         $cmdFav = $this.GetLoc("Cmd.Desc.Favorite", "Space=favorite")
         Write-Host "  ${grpRepo}: $cmdClone | $cmdFav" -ForegroundColor ([Constants]::ColorMenuText)
+        $linesRendered++
 
         $cmdGit = $this.GetLoc("Cmd.Desc.Git", "L=load current | G=load all")
         Write-Host "  Git Status: $cmdGit" -ForegroundColor ([Constants]::ColorMenuText)
+        $linesRendered++
+        
         Write-Host ""
-        # The CursorStartLine in constants is 12 (approx). 
-        # Header (3) + Blank (1) + Menu (5) + Blank (1) = 10 lines used before repo list
+        $linesRendered++
+        
+        return $linesRendered
     }
     
     # Get git status display info
@@ -302,7 +326,7 @@ class UIRenderer {
     # Render git status footer
     [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalRepos, [int]$loadedRepos, [int]$currentIndex) {
         # Line 1: Separator
-        Write-Host ("=" * 55) -ForegroundColor ([Constants]::ColorSeparator)
+        Write-Host ("=" * [Constants]::UIWidth) -ForegroundColor ([Constants]::ColorSeparator)
         
         # Line 2: Counters
         Write-Host ("Repos: ") -NoNewline -ForegroundColor ([Constants]::ColorLabel)
@@ -345,7 +369,7 @@ class UIRenderer {
         }
         
         # Line 4: Separator
-        Write-Host ("=" * 55) -ForegroundColor ([Constants]::ColorSeparator) -NoNewline
+        Write-Host ("=" * [Constants]::UIWidth) -ForegroundColor ([Constants]::ColorSeparator) -NoNewline
     }
     
     # Render error message
