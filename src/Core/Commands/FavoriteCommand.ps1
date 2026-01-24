@@ -24,24 +24,9 @@ class FavoriteCommand : INavigationCommand {
         $repoManager = $context.RepoManager
         $repoManager.ToggleFavorite($currentRepo)
         
-        # Get updated repositories (already sorted according to user preferences)
-        $updatedRepos = $repoManager.GetRepositories()
-        $state.SetRepositories($updatedRepos)
-        
-        # Find the new index of the current repository after potential re-sorting
-        $newIndex = 0
-        for ($i = 0; $i -lt $updatedRepos.Count; $i++) {
-            if ($updatedRepos[$i].Name -eq $repoName) {
-                $newIndex = $i
-                break
-            }
-        }
-        
-        # Update selection to the same repository
-        $state.SetCurrentIndex($newIndex)
-        
-        # Mark for full redraw because list order changed
-        $state.MarkForFullRedraw()
+        # Since ToggleFavorite no longer re-sorts, the repository stays in the same position
+        # We only need to trigger a selection change redraw (just the current line)
+        $state.SetCurrentIndex($currentIndex)
     }
 }
 
