@@ -71,7 +71,7 @@ class RenderOrchestrator {
         $this.Console.SetCursorPosition(0, $this.CursorStartLine)
         
         # Render visibly repository list (viewport aware)
-        $this.Renderer.RenderRepositoryList($state)
+        $this.Renderer.RenderRepositoryList($state, $this.CursorStartLine)
         
         # Footer with statistics
         # Calculate footer line to ensure consistency with RenderPartial
@@ -94,8 +94,7 @@ class RenderOrchestrator {
         
         # Handle Viewport Scroll (redraw full list area)
         if ($state.ViewportChanged) {
-            $this.Console.SetCursorPosition(0, $startLine)
-            $this.Renderer.RenderRepositoryList($state)
+            $this.Renderer.RenderRepositoryList($state, $startLine)
             $state.ViewportChanged = $false 
         } 
         else {

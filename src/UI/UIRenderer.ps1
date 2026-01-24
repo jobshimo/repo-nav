@@ -221,29 +221,31 @@ class UIRenderer {
         # Render alias if exists (always without background)
         if ($repo.HasAlias -and $repo.AliasInfo) {
             $aliasText = " - $($repo.AliasInfo.Alias)"
-            Write-Host $aliasText -ForegroundColor $repo.AliasInfo.Color
+            Write-Host $aliasText -ForegroundColor $repo.AliasInfo.Color -NoNewline
         } else {
-            Write-Host ""
+             # Do nothing or just ensure no residual text (handled by ClearCurrentLine)
+             # Write-Host "" -NoNewline 
         }
+        # Explicitly NO newline at the end. Caller handles positioning.
     }
 
     # Render visible repository list based on Viewport
-    [void] RenderRepositoryList([NavigationState]$state) {
+    [void] RenderRepositoryList([NavigationState]$state, [int]$startLine) {
         $repos = $state.Repositories
         $start = $state.ViewportStart
         $limit = $state.PageSize
         $total = $repos.Count
         
         for ($i = 0; $i -lt $limit; $i++) {
+             $currentLine = $startLine + $i
+             $this.Console.SetCursorPosition(0, $currentLine)
+             $this.Console.ClearCurrentLine()
+             
              $repoIndex = $start + $i
              if ($repoIndex -lt $total) {
-                 # Ensure line is clean before rendering (important for scrolling/overlap)
-                 $this.Console.ClearCurrentLine()
                  $this.RenderRepositoryItem($repos[$repoIndex], ($repoIndex -eq $state.SelectedIndex))
              } else {
-                 # Clear/Empty line for empty slots in page
-                 $this.Console.ClearCurrentLine()
-                 Write-Host ""
+                 # Just ensure the line is empty (handled by ClearCurrentLine above)
              }
         }
     }
@@ -340,7 +342,7 @@ class UIRenderer {
         }
         
         # Line 4: Separator
-        Write-Host ("=" * 55) -ForegroundColor ([Constants]::ColorSeparator)
+        Write-Host ("=" * 55) -ForegroundColor ([Constants]::ColorSeparator) -NoNewline
     }
     
     # Render error message

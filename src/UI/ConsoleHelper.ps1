@@ -74,8 +74,12 @@ class ConsoleHelper {
     # Clear current line
     [void] ClearCurrentLine() {
         $rawUI = $global:Host.UI.RawUI
+        $currentLength = $rawUI.WindowSize.Width
+        # Safety: Writing to the last column can cause wrap. Reduce by 1.
+        if ($currentLength -gt 1) { $currentLength = $currentLength - 1 }
+        
         $this.SetCursorPosition(0, $rawUI.CursorPosition.Y)
-        Write-Host (" " * $rawUI.WindowSize.Width) -NoNewline
+        Write-Host (" " * $currentLength) -NoNewline
         $this.SetCursorPosition(0, $rawUI.CursorPosition.Y)
     }
     
