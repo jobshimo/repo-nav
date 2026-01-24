@@ -132,11 +132,14 @@ class RepositoryManager {
     # Accepts optional progress callback: { param($current, $total) }
     [void] LoadMissingGitStatus([scriptblock]$progressCallback = $null) {
         $missingRepos = $this.Repositories | Where-Object { -not $_.HasGitStatusLoaded() }
-        $total = $missingRepos.Count
+        $this.LoadGitStatusForRepos($missingRepos, $progressCallback)
+    }
+    
+    [void] LoadGitStatusForRepos([array]$repos, [scriptblock]$progressCallback = $null) {
+        $total = $repos.Count
         
         if ($total -eq 0) { return }
         
-        # Show progress immediately
         if ($null -ne $progressCallback) {
             & $progressCallback 0 $total
         }
@@ -196,8 +199,7 @@ class RepositoryManager {
             }
         }
         
-        # Start all runspaces
-        foreach ($repo in $missingRepos) {
+        foreach ($repo in $repos) {
             $powershell = [powershell]::Create().AddScript($scriptBlock).AddArgument($repo.FullPath)
             $powershell.RunspacePool = $runspacePool
             

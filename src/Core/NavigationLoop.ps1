@@ -55,15 +55,12 @@ function Start-NavigationLoop {
         if ($autoLoadFavorites) {
             $favorites = $repos | Where-Object { $_.IsFavorite }
             if ($favorites.Count -gt 0) {
-                $total = $favorites.Count
-                $current = 0
-                
-                foreach ($fav in $favorites) {
-                    $current++
+                $progressCallback = {
+                    param([int]$current, [int]$total)
                     $progressIndicator.RenderProgressBar("Loading git status (favorites)", $current, $total)
-                    $RepoManager.LoadGitStatus($fav)
                 }
                 
+                $RepoManager.LoadGitStatusForRepos($favorites, $progressCallback)
                 $progressIndicator.CompleteProgressBar()
             }
         }
