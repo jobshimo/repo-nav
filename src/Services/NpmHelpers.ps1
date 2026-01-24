@@ -34,7 +34,34 @@ function Invoke-NpmInstall {
     Write-Host $Repository.Name -ForegroundColor ([Constants]::ColorValue)
     Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
     Write-Host ""
-    Write-Host "Running npm install..." -ForegroundColor ([Constants]::ColorWarning)
+    
+    # Show brief animated "preparing" message
+    $cursorPos = $host.UI.RawUI.CursorPosition
+    $dotCount = 0
+    $iterations = 0
+    $maxIterations = 5  # Show animation for ~2 seconds
+    
+    while ($iterations -lt $maxIterations) {
+        # Restore cursor position
+        $host.UI.RawUI.CursorPosition = $cursorPos
+        
+        # Create the dots string (0 to 3 dots)
+        $dots = "." * $dotCount
+        
+        # Display progress indicator
+        $message = "Running npm install" + $dots
+        Write-Host $message.PadRight(50) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
+        
+        # Increment dot count and cycle back to 0 after 3 dots
+        $dotCount = ($dotCount + 1) % 4
+        $iterations++
+        
+        Start-Sleep -Milliseconds 400
+    }
+    
+    # Leave the final static message visible
+    $host.UI.RawUI.CursorPosition = $cursorPos
+    Write-Host "Running npm install...".PadRight(50) -ForegroundColor ([Constants]::ColorWarning)
     Write-Host ""
     
     Push-Location $Repository.FullPath
