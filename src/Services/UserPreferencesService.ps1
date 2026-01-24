@@ -64,6 +64,9 @@ class UserPreferencesService {
     # Create default preferences structure
     [PSCustomObject] CreateDefaultPreferences() {
         $defaults = [PSCustomObject]@{
+            general = [PSCustomObject]@{
+                language = "en"
+            }
             display = [PSCustomObject]@{
                 favoritesOnTop = $true
                 selectedBackground = "DarkGray"
@@ -81,6 +84,16 @@ class UserPreferencesService {
     
     # Normalize preferences to ensure all required fields exist
     [PSCustomObject] NormalizePreferences([PSCustomObject]$preferences) {
+        # General Section
+        if (-not ($preferences.PSObject.Properties.Name -contains 'general')) {
+            $preferences | Add-Member -NotePropertyName 'general' -NotePropertyValue ([PSCustomObject]@{}) -Force
+        }
+        
+        if (-not ($preferences.general.PSObject.Properties.Name -contains 'language')) {
+            $preferences.general | Add-Member -NotePropertyName 'language' -NotePropertyValue "en" -Force
+        }
+
+        # Display Section
         if (-not ($preferences.PSObject.Properties.Name -contains 'display')) {
             $preferences | Add-Member -NotePropertyName 'display' -NotePropertyValue ([PSCustomObject]@{}) -Force
         }

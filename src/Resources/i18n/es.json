@@ -1,0 +1,37 @@
+{
+    "App.Title": "Navegador de Repositorios",
+    "App.Loading": "Cargando repositorios...",
+    
+    "Menu.Favorites": "Favoritos",
+    "Menu.AllRepositories": "Todos los Repositorios",
+    "Menu.Filter": "Filtro: {0}",
+    "Menu.SearchPlaceholder": "Escribe para filtrar...",
+    
+    "Error.Generic": "Ocurrió un error: {0}",
+    "Error.Npm.NotFound": "Error: No se encontró el comando 'npm' en tu PATH ni en ubicaciones estándar.",
+    "Error.Npm.InstallNode": "Para usar esta función, necesitas instalar Node.js.",
+    "Error.Npm.InstallLink": "Por favor descárgalo e instálalo desde: https://nodejs.org/",
+    "Error.Npm.NvmHint": "Si usas NVM, asegúrate de tener una versión seleccionada ('nvm use ...').",
+    "Error.Repo.NoPackageJson": "No se encontró package.json en este repositorio.",
+    "Error.Repo.NoNodeModules": "No se encontró la carpeta node_modules en {0}",
+    
+    "Msg.Npm.Installing": "INSTALAR DEPENDENCIAS",
+    "Msg.Npm.RunningInstall": "Ejecutando npm install",
+    "Msg.Npm.Success": "¡Dependencias instaladas con éxito!",
+    "Msg.Npm.Removing": "Eliminando node_modules...",
+    "Msg.Npm.RemovedSuccess": "¡node_modules eliminado con éxito!",
+    "Msg.Npm.RemovedLockSuccess": "¡package-lock.json eliminado con éxito!",
+    
+    "Pref.Title": "PREFERENCIAS DE USUARIO",
+    "Pref.Language": "Idioma",
+    "Pref.FavoritesPos": "Posición de Favoritos",
+    "Pref.SelectedBg": "Fondo del Elemento Seleccionado",
+    "Pref.SelectedDelim": "Delimitador de Selección",
+    "Pref.AutoLoadGit": "Carga Auto. Git Status (Favoritos)",
+    "Pref.Back": "Volver al menú principal",
+    "Pref.Value.Top": "Inicio de la lista",
+    "Pref.Value.Original": "Posición original",
+    "Pref.Value.Enabled": "Habilitado",
+    "Pref.Value.Disabled": "Deshabilitado",
+    "Prompt.SelectLanguage": "Seleccionar Idioma"
+}

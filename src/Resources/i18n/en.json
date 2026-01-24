@@ -1,0 +1,37 @@
+{
+    "App.Title": "Repository Navigator",
+    "App.Loading": "Loading repositories...",
+    
+    "Menu.Favorites": "Favorites",
+    "Menu.AllRepositories": "All Repositories",
+    "Menu.Filter": "Filter: {0}",
+    "Menu.SearchPlaceholder": "Type to filter...",
+    
+    "Error.Generic": "An error occurred: {0}",
+    "Error.Npm.NotFound": "Error: 'npm' command was not found in your PATH or standard locations.",
+    "Error.Npm.InstallNode": "To use this feature, you need to install Node.js.",
+    "Error.Npm.InstallLink": "Please download and install it from: https://nodejs.org/",
+    "Error.Npm.NvmHint": "If you use NVM, ensure a version is currently selected ('nvm use ...').",
+    "Error.Repo.NoPackageJson": "No package.json found in this repository.",
+    "Error.Repo.NoNodeModules": "No node_modules folder found in {0}",
+    
+    "Msg.Npm.Installing": "INSTALL DEPENDENCIES",
+    "Msg.Npm.RunningInstall": "Running npm install",
+    "Msg.Npm.Success": "Dependencies installed successfully!",
+    "Msg.Npm.Removing": "Removing node_modules...",
+    "Msg.Npm.RemovedSuccess": "node_modules removed successfully!",
+    "Msg.Npm.RemovedLockSuccess": "package-lock.json removed successfully!",
+    
+    "Pref.Title": "USER PREFERENCES",
+    "Pref.Language": "Language",
+    "Pref.FavoritesPos": "Favorites Position",
+    "Pref.SelectedBg": "Selected Item Background",
+    "Pref.SelectedDelim": "Selected Item Delimiter",
+    "Pref.AutoLoadGit": "Auto-load Git Status (Favorites)",
+    "Pref.Back": "Back to main menu",
+    "Pref.Value.Top": "Top of list",
+    "Pref.Value.Original": "Original position",
+    "Pref.Value.Enabled": "Enabled",
+    "Pref.Value.Disabled": "Disabled",
+    "Prompt.SelectLanguage": "Select Language"
+}

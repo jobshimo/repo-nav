@@ -17,7 +17,11 @@ class PreferencesCommand : INavigationCommand {
         
         try {
             # Show preferences menu (may change sorting preferences) - Pass required parameters
-            Show-PreferencesMenu -PreferencesService $context.RepoManager.PreferencesService -Console $context.Console -Renderer $context.Renderer -OptionSelector $context.OptionSelector
+            Show-PreferencesMenu -PreferencesService $context.RepoManager.PreferencesService `
+                                 -Console $context.Console `
+                                 -Renderer $context.Renderer `
+                                 -OptionSelector $context.OptionSelector `
+                                 -LocalizationService $context.LocalizationService
             
             # Reload repositories after preferences change
             # (sorting order may have changed)

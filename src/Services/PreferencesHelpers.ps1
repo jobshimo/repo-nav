@@ -15,9 +15,17 @@ function Show-PreferencesMenu {
         $Renderer,
         
         [Parameter(Mandatory = $true)]
-        $OptionSelector
+        $OptionSelector,
+
+        [Parameter(Mandatory = $true)]
+        $LocalizationService
     )
     
+    # Helper for localization
+    function Get-Loc([string]$key, [string]$default) {
+        return $LocalizationService.Get($key)
+    }
+
     $preferences = $PreferencesService.LoadPreferences()
     $selectedOption = 0
     $running = $true
@@ -30,28 +38,46 @@ function Show-PreferencesMenu {
         while ($running) {
             # Clear and render preferences menu
             $Console.ClearScreen()
-            $Renderer.RenderHeader("USER PREFERENCES")
+            $Renderer.RenderHeader($(Get-Loc "Pref.Title" "USER PREFERENCES"))
             Write-Host ""
             
             # Define preference items
-            $preferenceItems = @(
-                @{
-                    Name = "Favorites Position"
-                    CurrentValue = if ($preferences.display.favoritesOnTop) { "Top of list" } else { "Original position" }
-                },
-                @{
-                    Name = "Selected Item Background"
-                    CurrentValue = $preferences.display.selectedBackground
-                },
-                @{
-                    Name = "Selected Item Delimiter"
-                    CurrentValue = $preferences.display.selectedDelimiter
-                },
-                @{
-                    Name = "Auto-load Git Status (Favorites)"
-                    CurrentValue = if ($preferences.git.autoLoadFavoritesStatus) { "Enabled" } else { "Disabled" }
-                }
-            )
+            $preferenceItems = @()
+
+            # 0: Language
+            $preferenceItems += @{
+                Id = "language"
+                Name = $(Get-Loc "Pref.Language" "Language")
+                CurrentValue = $LocalizationService.GetCurrentLanguage()
+            }
+
+            # 1: Favorites On Top
+            $preferenceItems += @{
+                Id = "favoritesOnTop"
+                Name = $(Get-Loc "Pref.FavoritesPos" "Favorites Position")
+                CurrentValue = if ($preferences.display.favoritesOnTop) { $(Get-Loc "Pref.Value.Top" "Top of list") } else { $(Get-Loc "Pref.Value.Original" "Original position") }
+            }
+
+            # 2: Background
+            $preferenceItems += @{
+                Id = "selectedBackground"
+                Name = $(Get-Loc "Pref.SelectedBg" "Selected Item Background")
+                CurrentValue = $preferences.display.selectedBackground
+            }
+
+            # 3: Delimiter
+            $preferenceItems += @{
+                Id = "selectedDelimiter"
+                Name = $(Get-Loc "Pref.SelectedDelim" "Selected Item Delimiter")
+                CurrentValue = $preferences.display.selectedDelimiter
+            }
+
+            # 4: Auto Git
+            $preferenceItems += @{
+                Id = "autoLoadGit"
+                Name = $(Get-Loc "Pref.AutoLoadGit" "Auto-load Git Status (Favorites)")
+                CurrentValue = if ($preferences.git.autoLoadFavoritesStatus) { $(Get-Loc "Pref.Value.Enabled" "Enabled") } else { $(Get-Loc "Pref.Value.Disabled" "Disabled") }
+            }
             
             # Display preference items
             for ($i = 0; $i -lt $preferenceItems.Count; $i++) {
@@ -68,7 +94,7 @@ function Show-PreferencesMenu {
             $backIndex = $preferenceItems.Count
             $prefix = if ($selectedOption -eq $backIndex) { ">" } else { " " }
             $color = if ($selectedOption -eq $backIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
-            Write-Host "  $prefix Back to main menu" -ForegroundColor $color
+            Write-Host "  $prefix $(Get-Loc "Pref.Back" "Back to main menu")" -ForegroundColor $color
             
             Write-Host ""
             
@@ -105,110 +131,117 @@ function Show-PreferencesMenu {
                 }
                 
                 ([Constants]::KEY_ENTER) {
-                    if ($selectedOption -eq 0) {
-                        # Edit Favorites Position using OptionSelector
-                        $favoritesOptions = @(
-                            @{ DisplayText = "Top of list"; Value = $true },
-                            @{ DisplayText = "Original position"; Value = $false }
-                        )
-                        
-                        $currentValue = $preferences.display.favoritesOnTop
-                        $newValue = $OptionSelector.ShowSelection(
-                            "FAVORITES POSITION",
-                            $favoritesOptions,
-                            $currentValue,
-                            "Back to preferences"
-                        )
-                        
-                        # If user selected something (not cancelled)
-                        if ($null -ne $newValue -and $newValue -ne $currentValue) {
-                            $PreferencesService.SetPreference("display", "favoritesOnTop", $newValue)
-                            $preferences = $PreferencesService.LoadPreferences()
-                            
-                            # Set confirmation message
-                            $statusText = if ($newValue) { "Top of list" } else { "Original position" }
-                            $confirmationMessage = "Favorites will be shown at: $statusText"
-                            $confirmationTimeout = 2
-                        }
-                    }
-                    elseif ($selectedOption -eq 1) {
-                        # Edit Selected Background using OptionSelector
-                        $backgroundOptions = @()
-                        foreach ($bg in [Constants]::AvailableBackgroundColors) {
-                            $displayText = if ($bg -eq 'None') { 'No background' } else { $bg }
-                            $backgroundOptions += @{ DisplayText = $displayText; Value = $bg }
-                        }
-                        
-                        $currentValue = $preferences.display.selectedBackground
-                        $newValue = $OptionSelector.ShowSelection(
-                            "SELECTED ITEM BACKGROUND",
-                            $backgroundOptions,
-                            $currentValue,
-                            "Back to preferences"
-                        )
-                        
-                        # If user selected something (not cancelled)
-                        if ($null -ne $newValue -and $newValue -ne $currentValue) {
-                            $PreferencesService.SetPreference("display", "selectedBackground", $newValue)
-                            $preferences = $PreferencesService.LoadPreferences()
-                            
-                            # Set confirmation message
-                            $statusText = if ($newValue -eq 'None') { "No background" } else { $newValue }
-                            $confirmationMessage = "Background color changed to: $statusText"
-                            $confirmationTimeout = 2
-                        }
-                    }
-                    elseif ($selectedOption -eq 2) {
-                        # Edit Selected Delimiter using OptionSelector
-                        $delimiterOptions = @()
-                        foreach ($delim in [Constants]::AvailableDelimiters) {
-                            $delimiterOptions += @{ DisplayText = $delim.Name; Value = $delim.Name }
-                        }
-                        
-                        $currentValue = $preferences.display.selectedDelimiter
-                        $newValue = $OptionSelector.ShowSelection(
-                            "SELECTED ITEM DELIMITER",
-                            $delimiterOptions,
-                            $currentValue,
-                            "Back to preferences"
-                        )
-                        
-                        # If user selected something (not cancelled)
-                        if ($null -ne $newValue -and $newValue -ne $currentValue) {
-                            $PreferencesService.SetPreference("display", "selectedDelimiter", $newValue)
-                            $preferences = $PreferencesService.LoadPreferences()
-                            
-                            # Set confirmation message
-                            $confirmationMessage = "Delimiter changed to: $newValue"
-                            $confirmationTimeout = 2
-                        }
-                    }
-                    elseif ($selectedOption -eq 3) {
-                        $autoLoadOptions = @(
-                            @{ DisplayText = "Enabled"; Value = $true },
-                            @{ DisplayText = "Disabled"; Value = $false }
-                        )
-                        
-                        $currentValue = $preferences.git.autoLoadFavoritesStatus
-                        $newValue = $OptionSelector.ShowSelection(
-                            "AUTO-LOAD GIT STATUS (FAVORITES ONLY)",
-                            $autoLoadOptions,
-                            $currentValue,
-                            "Back to preferences"
-                        )
-                        
-                        if ($null -ne $newValue -and $newValue -ne $currentValue) {
-                            $PreferencesService.SetPreference("git", "autoLoadFavoritesStatus", $newValue)
-                            $preferences = $PreferencesService.LoadPreferences()
-                            
-                            $statusText = if ($newValue) { "Enabled" } else { "Disabled" }
-                            $confirmationMessage = "Auto-load git status: $statusText"
-                            $confirmationTimeout = 2
-                        }
-                    }
-                    elseif ($selectedOption -eq $preferenceItems.Count) {
-                        # Back to main menu
+                    if ($selectedOption -eq $preferenceItems.Count) {
                         $running = $false
+                    } else {
+                        # Logic based on selected item ID
+                        $selectedItem = $preferenceItems[$selectedOption]
+                        
+                        if ($selectedItem.Id -eq "language") {
+                            $langs = $LocalizationService.GetAvailableLanguages()
+                            # Build menu options for OptionSelector
+                            $langOptions = @()
+                            foreach ($lang in $langs) {
+                                $langOptions += @{ DisplayText = $lang; Value = $lang }
+                            }
+                            
+                            $newValue = $OptionSelector.ShowSelection(
+                                $(Get-Loc "Prompt.SelectLanguage" "Select Language"),
+                                $langOptions,
+                                $LocalizationService.GetCurrentLanguage(),
+                                "Cancel"
+                            )
+                            
+                            if ($null -ne $newValue) {
+                                $LocalizationService.SetLanguage($newValue)
+                                $PreferencesService.SetPreference("general", "language", $newValue)
+                                $confirmationMessage = "Language changed to $newValue"
+                                $confirmationTimeout = 5
+                                # Reload preferences
+                                $preferences = $PreferencesService.LoadPreferences()
+                            }
+                        }
+                        elseif ($selectedItem.Id -eq "favoritesOnTop") {
+                            $favoritesOptions = @(
+                                @{ DisplayText = $(Get-Loc "Pref.Value.Top" "Top of list"); Value = $true },
+                                @{ DisplayText = $(Get-Loc "Pref.Value.Original" "Original position"); Value = $false }
+                            )
+                            
+                            $newValue = $OptionSelector.ShowSelection(
+                                $(Get-Loc "Pref.FavoritesPos" "Favorites Position"),
+                                $favoritesOptions,
+                                $preferences.display.favoritesOnTop,
+                                "Cancel"
+                            )
+                            
+                            if ($null -ne $newValue) {
+                                $PreferencesService.SetPreference("display", "favoritesOnTop", $newValue)
+                                $confirmationMessage = "Updated favorites position"
+                                $confirmationTimeout = 2
+                                $preferences = $PreferencesService.LoadPreferences()
+                            }
+                        }
+                        elseif ($selectedItem.Id -eq "selectedBackground") {
+                            $bgOptions = @()
+                            foreach ($bg in [Constants]::AvailableBackgroundColors) {
+                                $displayText = if ($bg -eq 'None') { 'No background' } else { $bg }
+                                $bgOptions += @{ DisplayText = $displayText; Value = $bg }
+                            }
+
+                            $newValue = $OptionSelector.ShowSelection(
+                                $(Get-Loc "Pref.SelectedBg" "Selected Item Background"),
+                                $bgOptions,
+                                $preferences.display.selectedBackground,
+                                "Cancel"
+                            )
+
+                            if ($null -ne $newValue) {
+                                $PreferencesService.SetPreference("display", "selectedBackground", $newValue)
+                                $confirmationMessage = "Updated background"
+                                $confirmationTimeout = 2
+                                $preferences = $PreferencesService.LoadPreferences()
+                            }
+                        }
+                        elseif ($selectedItem.Id -eq "selectedDelimiter") {
+                            $delimOptions = @()
+                            foreach ($delim in [Constants]::AvailableDelimiters) {
+                                $delimOptions += @{ DisplayText = $delim.Name; Value = $delim.Name }
+                            }
+
+                            $newValue = $OptionSelector.ShowSelection(
+                                $(Get-Loc "Pref.SelectedDelim" "Selected Item Delimiter"),
+                                $delimOptions,
+                                $preferences.display.selectedDelimiter,
+                                "Cancel"
+                            )
+
+                            if ($null -ne $newValue) {
+                                $PreferencesService.SetPreference("display", "selectedDelimiter", $newValue)
+                                $confirmationMessage = "Updated delimiter"
+                                $confirmationTimeout = 2
+                                $preferences = $PreferencesService.LoadPreferences()
+                            }
+                        }
+                        elseif ($selectedItem.Id -eq "autoLoadGit") {
+                             $autoLoadOptions = @(
+                                @{ DisplayText = $(Get-Loc "Pref.Value.Enabled" "Enabled"); Value = $true },
+                                @{ DisplayText = $(Get-Loc "Pref.Value.Disabled" "Disabled"); Value = $false }
+                            )
+                            
+                            $newValue = $OptionSelector.ShowSelection(
+                                $(Get-Loc "Pref.AutoLoadGit" "Auto-load Git Status"),
+                                $autoLoadOptions,
+                                $preferences.git.autoLoadFavoritesStatus,
+                                "Cancel"
+                            )
+                            
+                            if ($null -ne $newValue) {
+                                $PreferencesService.SetPreference("git", "autoLoadFavoritesStatus", $newValue)
+                                $confirmationMessage = "Updated auto-load settings"
+                                $confirmationTimeout = 2
+                                $preferences = $PreferencesService.LoadPreferences()
+                            }
+                        }
                     }
                 }
                 

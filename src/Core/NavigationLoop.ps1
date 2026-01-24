@@ -25,6 +25,9 @@ function Start-NavigationLoop {
         $OptionSelector,
         
         [Parameter(Mandatory = $true)]
+        $LocalizationService,
+
+        [Parameter(Mandatory = $true)]
         [string]$BasePath
     )
     
@@ -90,12 +93,13 @@ function Start-NavigationLoop {
             Console = $Console
             ColorSelector = $ColorSelector
             OptionSelector = $OptionSelector
+            LocalizationService = $LocalizationService
             BasePath = $BasePath
         }
         
         # Initial full render
         $Console.ClearScreen()
-        $Renderer.RenderHeader("REPOSITORY NAVIGATOR")
+        $Renderer.RenderHeader($LocalizationService.Get("App.Title"))
         $Renderer.RenderMenu()
         
         $repos = $state.GetRepositories()

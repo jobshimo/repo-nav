@@ -70,6 +70,7 @@ $srcPath = Join-Path $scriptRoot "src"
 # Services (depend on models)
 . "$srcPath\Services\ConfigurationService.ps1"
 . "$srcPath\Services\UserPreferencesService.ps1"
+. "$srcPath\Services\LocalizationService.ps1"
 . "$srcPath\Services\AliasManager.ps1"
 . "$srcPath\Services\GitService.ps1"
 . "$srcPath\Services\NpmHelpers.ps1"
@@ -116,6 +117,11 @@ function Start-RepositoryNavigator {
         $configService = [ConfigurationService]::new()
         $preferencesService = [UserPreferencesService]::new()
         
+        # Initialize Localization
+        $localizationService = [LocalizationService]::new()
+        $language = $preferencesService.GetPreference("general", "language")
+        $localizationService.SetLanguage($language)
+
         # Create managers (depend on services)
         $aliasManager = [AliasManager]::new($configService)
         
@@ -140,6 +146,7 @@ function Start-RepositoryNavigator {
                             -Console $consoleHelper `
                             -ColorSelector $colorSelector `
                             -OptionSelector $optionSelector `
+                            -LocalizationService $localizationService `
                             -BasePath $BasePath
     }
     catch {

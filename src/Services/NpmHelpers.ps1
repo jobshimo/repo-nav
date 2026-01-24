@@ -65,14 +65,23 @@ function Invoke-NpmInstall {
     #>
     param(
         [Parameter(Mandatory = $true)]
-        $Repository
+        $Repository,
+
+        [Parameter(Mandatory = $false)]
+        $LocalizationService
     )
     
+    # helper for localization
+    function Get-Loc([string]$key, [string]$default) {
+        if ($LocalizationService) { return $LocalizationService.Get($key) }
+        return $default
+    }
+
     # Check if package.json exists
     $packageJsonPath = Join-Path $Repository.FullPath "package.json"
     if (-not (Test-Path $packageJsonPath)) {
         Clear-Host
-        Write-Host "No package.json found in this repository." -ForegroundColor ([Constants]::ColorError)
+        Write-Host $(Get-Loc "Error.Repo.NoPackageJson" "No package.json found in this repository.") -ForegroundColor ([Constants]::ColorError)
         Start-Sleep -Seconds 2
         return $false
     }
@@ -86,11 +95,11 @@ function Invoke-NpmInstall {
         Write-Host "    MISSING DEPENDENCY" -ForegroundColor ([Constants]::ColorHeader)
         Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
         Write-Host ""
-        Write-Host "Error: 'npm' command was not found in your PATH or standard locations." -ForegroundColor ([Constants]::ColorError)
+        Write-Host $(Get-Loc "Error.Npm.NotFound" "Error: 'npm' command was not found in your PATH or standard locations.") -ForegroundColor ([Constants]::ColorError)
         Write-Host ""
-        Write-Host "To use this feature, you need to install Node.js." -ForegroundColor ([Constants]::ColorWarning)
-        Write-Host "Please download and install it from: https://nodejs.org/" -ForegroundColor ([Constants]::ColorValue)
-        Write-Host "If you use NVM, ensure a version is currently selected ('nvm use ...')." -ForegroundColor ([Constants]::ColorGray)
+        Write-Host $(Get-Loc "Error.Npm.InstallNode" "To use this feature, you need to install Node.js.") -ForegroundColor ([Constants]::ColorWarning)
+        Write-Host $(Get-Loc "Error.Npm.InstallLink" "Please download and install it from: https://nodejs.org/") -ForegroundColor ([Constants]::ColorValue)
+        Write-Host $(Get-Loc "Error.Npm.NvmHint" "If you use NVM, ensure a version is currently selected ('nvm use ...').") -ForegroundColor ([Constants]::ColorGray)
         Write-Host ""
         Start-Sleep -Seconds 5
         return $false
@@ -98,7 +107,7 @@ function Invoke-NpmInstall {
     
     Clear-Host
     Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-    Write-Host "    INSTALL DEPENDENCIES" -ForegroundColor ([Constants]::ColorHeader)
+    Write-Host ("    " + $(Get-Loc "Msg.Npm.Installing" "INSTALL DEPENDENCIES")) -ForegroundColor ([Constants]::ColorHeader)
     Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
     Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
     Write-Host $Repository.Name -ForegroundColor ([Constants]::ColorValue)
@@ -111,6 +120,8 @@ function Invoke-NpmInstall {
     $iterations = 0
     $maxIterations = 5  # Show animation for ~2 seconds
     
+    $locRunMsg = Get-Loc "Msg.Npm.RunningInstall" "Running npm install"
+
     while ($iterations -lt $maxIterations) {
         # Restore cursor position
         $host.UI.RawUI.CursorPosition = $cursorPos
@@ -119,7 +130,7 @@ function Invoke-NpmInstall {
         $dots = "." * $dotCount
         
         # Display progress indicator
-        $message = "Running npm install" + $dots
+        $message = $locRunMsg + $dots
         Write-Host $message.PadRight(50) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
         
         # Increment dot count and cycle back to 0 after 3 dots
@@ -131,7 +142,7 @@ function Invoke-NpmInstall {
     
     # Leave the final static message visible
     $host.UI.RawUI.CursorPosition = $cursorPos
-    Write-Host "Running npm install...".PadRight(50) -ForegroundColor ([Constants]::ColorWarning)
+    Write-Host ($locRunMsg + "...").PadRight(50) -ForegroundColor ([Constants]::ColorWarning)
     Write-Host ""
     
     Push-Location $Repository.FullPath
@@ -140,7 +151,7 @@ function Invoke-NpmInstall {
         # Use invocation operator & with the resolved path
         & $npmPath install *>&1 | Write-Host
         Write-Host ""
-        Write-Host "Dependencies installed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
+        Write-Host $(Get-Loc "Msg.Npm.Success" "Dependencies installed successfully!") -ForegroundColor ([Constants]::ColorSuccess)
         Start-Sleep -Seconds 2
         return $true
     }
