@@ -81,7 +81,7 @@ class UserPreferencesService {
                 }
             }
             git = [PSCustomObject]@{
-                autoLoadFavoritesStatus = $false
+                autoLoadGitStatusMode = "None" # None | Favorites | All
             }
         }
         
@@ -150,12 +150,17 @@ class UserPreferencesService {
             $preferences | Add-Member -NotePropertyName 'git' -NotePropertyValue ([PSCustomObject]@{}) -Force
         }
         
-        if (-not ($preferences.git.PSObject.Properties.Name -contains 'autoLoadFavoritesStatus')) {
-            $preferences.git | Add-Member -NotePropertyName 'autoLoadFavoritesStatus' -NotePropertyValue $false -Force
+        # Backward compatibility / Migration
+        if ($preferences.git.PSObject.Properties.Name -contains 'autoLoadFavoritesStatus' -and 
+            -not ($preferences.git.PSObject.Properties.Name -contains 'autoLoadGitStatusMode')) {
+            
+            $oldVal = [bool]$preferences.git.autoLoadFavoritesStatus
+            $mode = if ($oldVal) { "Favorites" } else { "None" }
+            $preferences.git | Add-Member -NotePropertyName 'autoLoadGitStatusMode' -NotePropertyValue $mode -Force
         }
         
-        if ($preferences.git.autoLoadFavoritesStatus -isnot [bool]) {
-            $preferences.git.autoLoadFavoritesStatus = [bool]$preferences.git.autoLoadFavoritesStatus
+        if (-not ($preferences.git.PSObject.Properties.Name -contains 'autoLoadGitStatusMode')) {
+            $preferences.git | Add-Member -NotePropertyName 'autoLoadGitStatusMode' -NotePropertyValue "None" -Force
         }
         
         return $preferences

@@ -43,19 +43,29 @@ function Start-NavigationLoop {
         
         $progressIndicator = [ProgressIndicator]::new($Console)
         
-        $autoLoadFavorites = $PreferencesService.GetPreference("git", "autoLoadFavoritesStatus")
+        $autoLoadMode = $PreferencesService.GetPreference("git", "autoLoadGitStatusMode")
+        if (-not $autoLoadMode) { $autoLoadMode = "None" }
         
-        if ($autoLoadFavorites) {
-            $favorites = $repos | Where-Object { $_.IsFavorite }
-            if ($favorites.Count -gt 0) {
-                $progressCallback = {
-                    param([int]$current, [int]$total)
-                    $progressIndicator.RenderProgressBar("Loading git status (favorites)", $current, $total)
-                }
-                
-                $RepoManager.LoadGitStatusForRepos($favorites, $progressCallback)
-                $progressIndicator.CompleteProgressBar()
+        $reposToLoad = @()
+        $loadingMsg = ""
+
+        if ($autoLoadMode -eq "Favorites") {
+            $reposToLoad = $repos | Where-Object { $_.IsFavorite }
+            $loadingMsg = "favorites"
+        }
+        elseif ($autoLoadMode -eq "All") {
+            $reposToLoad = $repos
+            $loadingMsg = "all"
+        }
+        
+        if ($reposToLoad.Count -gt 0) {
+            $progressCallback = {
+                param([int]$current, [int]$total)
+                $progressIndicator.RenderProgressBar("Loading git status ($loadingMsg)", $current, $total)
             }
+            
+            $RepoManager.LoadGitStatusForRepos($reposToLoad, $progressCallback)
+            $progressIndicator.CompleteProgressBar()
         }
         
         # Initialize CommandFactory and InputHandler

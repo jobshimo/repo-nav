@@ -149,8 +149,11 @@ class PreferencesCommand : INavigationCommand {
         $items += @{ Id = "selectedDelimiter"; Name = (& $GetLoc "Pref.SelectedDelim" "Selected Item Delimiter"); CurrentValue = $preferences.display.selectedDelimiter }
 
         # 4: Auto Git
-        $gitVal = if ($preferences.git.autoLoadFavoritesStatus) { (& $GetLoc "Pref.Value.Enabled" "Enabled") } else { (& $GetLoc "Pref.Value.Disabled" "Disabled") }
-        $items += @{ Id = "autoLoadGit"; Name = (& $GetLoc "Pref.AutoLoadGit" "Auto-load Git Status"); CurrentValue = $gitVal }
+        $mode = $preferences.git.autoLoadGitStatusMode
+        if (-not $mode) { $mode = "None" }
+        $displayKey = "Pref.AutoLoadGit.$mode"
+        $display = & $GetLoc $displayKey $mode
+        $items += @{ Id = "autoLoadGit"; Name = (& $GetLoc "Pref.AutoLoadGit" "Auto-load Git Status"); CurrentValue = $display }
         
         # 5: Menu Mode
         $menuModeDisplay = if ($preferences.display.menuMode) { $preferences.display.menuMode } else { "Full" }
@@ -285,10 +288,14 @@ class PreferencesCommand : INavigationCommand {
              }
         }
         elseif ($item.Id -eq "autoLoadGit") {
-             $opts = @( @{ DisplayText = (& $GetLoc "Pref.Value.Enabled"); Value = $true }, @{ DisplayText = (& $GetLoc "Pref.Value.Disabled"); Value = $false } )
-             $newVal = $OptionSelector.ShowSelection((& $GetLoc "Pref.AutoLoadGit"), $opts, $preferences.git.autoLoadFavoritesStatus, "Cancel")
+             $opts = @(
+                 @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.None" "None"); Value = "None" },
+                 @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.Favorites" "Favorites"); Value = "Favorites" },
+                 @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.All" "All Repositories"); Value = "All" }
+             )
+             $newVal = $OptionSelector.ShowSelection((& $GetLoc "Pref.AutoLoadGit"), $opts, $preferences.git.autoLoadGitStatusMode, "Cancel")
              if ($null -ne $newVal) {
-                 $PrefsService.SetPreference("git", "autoLoadFavoritesStatus", $newVal)
+                 $PrefsService.SetPreference("git", "autoLoadGitStatusMode", $newVal)
                  $msg = (& $GetLoc "Msg.AutoLoadUpdated")
                  $updated = $true
                  $timeout = 2
