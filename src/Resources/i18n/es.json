@@ -178,5 +178,10 @@
     "Repo.Deleting": "Eliminando...",
     "Repo.DeleteSuccess": "Repositorio eliminado correctamente.",
     "Repo.DeleteFail": "Error al eliminar repositorio: {0}",
-    "Repo.DeleteFailHint": "Comprueba si hay archivos abiertos en otro programa."
+    "Repo.DeleteFailHint": "Comprueba si hay archivos abiertos en otro programa.",
+    
+    "Folder.DeleteTitle": "ELIMINAR CARPETA",
+    "Folder.DeleteConfirm": "¿Eliminar carpeta vacía '{0}'?",
+    "Folder.DeleteSuccess": "Carpeta eliminada correctamente.",
+    "Folder.CannotDelete": "No se puede eliminar: La carpeta no está vacía"
 }

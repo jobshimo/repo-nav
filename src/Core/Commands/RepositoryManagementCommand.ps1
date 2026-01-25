@@ -137,12 +137,20 @@ class RepositoryManagementCommand : INavigationCommand {
         try {
             # Special handling for Folder Containers (non-git folders)
             if ($repository.IsContainer) {
+                $locService = $context.LocalizationService
+                
                 # First check if folder is empty
                 $isEmpty = $repoManager.IsFolderEmpty($repository.FullPath)
                 
                 if (-not $isEmpty) {
                     # Folder has content - show error message inline
                     $currentTop = [Console]::CursorTop
+                    
+                    # Get localized message
+                    $errorMsg = "Cannot delete: Folder is not empty"
+                    if ($null -ne $locService) {
+                        $errorMsg = $locService.Get("Folder.CannotDelete")
+                    }
                     
                     try {
                         # Hide cursor during this operation
@@ -155,7 +163,7 @@ class RepositoryManagementCommand : INavigationCommand {
                             [Console]::CursorLeft = 38
                             
                             Write-Host " <- " -NoNewline -ForegroundColor Red
-                            Write-Host "Cannot delete: Folder is not empty" -NoNewline -ForegroundColor Red
+                            Write-Host $errorMsg -NoNewline -ForegroundColor Red
                         }
                     }
                     catch {
@@ -167,7 +175,14 @@ class RepositoryManagementCommand : INavigationCommand {
                 
                 # Folder is empty - ask for confirmation using OptionSelector
                 $optionSelector = $context.OptionSelector
-                $confirmed = $optionSelector.SelectYesNo("Delete empty folder '$($repository.Name)'?")
+                
+                # Get localized question
+                $question = "Delete empty folder '$($repository.Name)'?"
+                if ($null -ne $locService) {
+                    $question = $locService.Get("Folder.DeleteConfirm") -f $repository.Name
+                }
+                
+                $confirmed = $optionSelector.SelectYesNo($question, $locService)
                 
                 if (-not $confirmed) {
                     # User cancelled

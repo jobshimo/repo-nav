@@ -177,5 +177,10 @@
     "Repo.Deleting": "Deleting...",
     "Repo.DeleteSuccess": "Repository deleted successfully.",
     "Repo.DeleteFail": "Error deleting repository: {0}",
-    "Repo.DeleteFailHint": "Check if files are open in another program."
+    "Repo.DeleteFailHint": "Check if files are open in another program.",
+    
+    "Folder.DeleteTitle": "DELETE FOLDER",
+    "Folder.DeleteConfirm": "Delete empty folder '{0}'?",
+    "Folder.DeleteSuccess": "Folder deleted successfully.",
+    "Folder.CannotDelete": "Cannot delete: Folder is not empty"
 }
