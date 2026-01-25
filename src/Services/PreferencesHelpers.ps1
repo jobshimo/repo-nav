@@ -35,19 +35,27 @@ function Show-PreferencesMenu {
     try {
         $Console.HideCursor()
         
-        # Initial Clear and Header (Static)
-        $Console.ClearScreen()
-        $Renderer.RenderHeader($(Get-Loc "Pref.Title" "USER PREFERENCES"))
-        Write-Host ""
+        # Initial draw state
+        $fullRedrawNeeded = $true
         
         # Save cursor position to avoid full screen clearing
-        $listStartTop = $Console.GetCursorTop()
+        $listStartTop = 0
         
         while ($running) {
+            if ($fullRedrawNeeded) {
+                # Force full clear and header render
+                $Console.ClearScreen()
+                $Renderer.RenderHeader($(Get-Loc "Pref.Title" "USER PREFERENCES"))
+                Write-Host ""
+                $listStartTop = $Console.GetCursorTop()
+                $fullRedrawNeeded = $false
+            }
+            
             # Reset cursor to start of list
             $Console.SetCursorPosition(0, $listStartTop)
 
             # Define preference items (re-evaluate each time as values change)
+            # ... rest of the code ...
             $preferenceItems = @()
 
             # 0: Language
@@ -190,6 +198,8 @@ function Show-PreferencesMenu {
                                 # Reload preferences
                                 $preferences = $PreferencesService.LoadPreferences()
                             }
+                            # Submenu was shown, we need full redraw to restore header
+                            $fullRedrawNeeded = $true
                         }
                         elseif ($selectedItem.Id -eq "favoritesOnTop") {
                             $favoritesOptions = @(
@@ -210,6 +220,8 @@ function Show-PreferencesMenu {
                                 $confirmationTimeout = 2
                                 $preferences = $PreferencesService.LoadPreferences()
                             }
+                            # Submenu was shown, we need full redraw to restore header
+                            $fullRedrawNeeded = $true
                         }
                         elseif ($selectedItem.Id -eq "selectedBackground") {
                             $bgOptions = @()
@@ -236,6 +248,8 @@ function Show-PreferencesMenu {
                                 $confirmationTimeout = 2
                                 $preferences = $PreferencesService.LoadPreferences()
                             }
+                            # Submenu was shown, we need full redraw to restore header
+                            $fullRedrawNeeded = $true
                         }
                         elseif ($selectedItem.Id -eq "selectedDelimiter") {
                             $delimOptions = @()
@@ -256,6 +270,8 @@ function Show-PreferencesMenu {
                                 $confirmationTimeout = 2
                                 $preferences = $PreferencesService.LoadPreferences()
                             }
+                            # Submenu was shown, we need full redraw to restore header
+                            $fullRedrawNeeded = $true
                         }
                         elseif ($selectedItem.Id -eq "autoLoadGit") {
                              $autoLoadOptions = @(
@@ -276,6 +292,8 @@ function Show-PreferencesMenu {
                                 $confirmationTimeout = 2
                                 $preferences = $PreferencesService.LoadPreferences()
                             }
+                            # Submenu was shown, we need full redraw to restore header
+                            $fullRedrawNeeded = $true
                         }
                         elseif ($selectedItem.Id -eq "menuMode") {
                             $menuOptions = @(
@@ -297,6 +315,8 @@ function Show-PreferencesMenu {
                                 $confirmationTimeout = 2
                                 $preferences = $PreferencesService.LoadPreferences()
                             }
+                            # Submenu was shown, we need full redraw to restore header
+                            $fullRedrawNeeded = $true
                         }
                     }
                 }
