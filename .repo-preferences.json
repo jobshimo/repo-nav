@@ -3,12 +3,12 @@
                     "favoritesOnTop":  false,
                     "selectedBackground":  "DarkBlue",
                     "selectedDelimiter":  "None",
-                    "menuMode":  "Hidden"
+                    "menuMode":  "Full"
                 },
     "git":  {
                 "autoLoadFavoritesStatus":  true
             },
     "general":  {
-                    "language":  "es"
+                    "language":  "en"
                 }
 }

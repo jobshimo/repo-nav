@@ -100,26 +100,38 @@ class UIRenderer {
         }
         
         # Full Mode (Default)
-        Write-Host "  ${grpNav}: $cmdNav | $cmdExit | $cmdPref" -ForegroundColor ([Constants]::ColorMenuText)
+        $labelWidth = 13 # Width for the label including colon to ensure alignment
+
+        # 1. Navigation
+        $lblNav = "${grpNav}:".PadRight($labelWidth)
+        Write-Host "  $lblNav $cmdNav | $cmdExit | $cmdPref" -ForegroundColor ([Constants]::ColorMenuText)
         $linesRendered++
 
+        # 2. Alias
         $cmdAlias = $this.GetLoc("Cmd.Desc.Alias", "E=set | R=remove")
-        Write-Host "  Alias:      $cmdAlias" -ForegroundColor ([Constants]::ColorMenuText)
+        $lblAlias = "Alias:".PadRight($labelWidth)
+        Write-Host "  $lblAlias $cmdAlias" -ForegroundColor ([Constants]::ColorMenuText)
         $linesRendered++
 
+        # 3. Modules
         $grpMod = $this.GetLoc("UI.Group.Modules", "Modules")
         $cmdNpm = $this.GetLoc("Cmd.Desc.Npm", "I=install | X=remove")
-        Write-Host "  ${grpMod}:    $cmdNpm" -ForegroundColor ([Constants]::ColorMenuText)
+        $lblMod = "${grpMod}:".PadRight($labelWidth)
+        Write-Host "  $lblMod $cmdNpm" -ForegroundColor ([Constants]::ColorMenuText)
         $linesRendered++
 
+        # 4. Repository
         $grpRepo = $this.GetLoc("UI.Group.Repo", "Repository")
         $cmdClone = $this.GetLoc("Cmd.Desc.RepoMgmt", "C=clone | Del=delete")
         $cmdFav = $this.GetLoc("Cmd.Desc.Favorite", "Space=favorite")
-        Write-Host "  ${grpRepo}: $cmdClone | $cmdFav" -ForegroundColor ([Constants]::ColorMenuText)
+        $lblRepo = "${grpRepo}:".PadRight($labelWidth)
+        Write-Host "  $lblRepo $cmdClone | $cmdFav" -ForegroundColor ([Constants]::ColorMenuText)
         $linesRendered++
 
+        # 5. Git Status
         $cmdGit = $this.GetLoc("Cmd.Desc.Git", "L=load current | G=load all")
-        Write-Host "  Git Status: $cmdGit" -ForegroundColor ([Constants]::ColorMenuText)
+        $lblGit = "Git Status:".PadRight($labelWidth)
+        Write-Host "  $lblGit $cmdGit" -ForegroundColor ([Constants]::ColorMenuText)
         $linesRendered++
         
         Write-Host ""
@@ -350,7 +362,7 @@ class UIRenderer {
         if (-not $repo.HasGitStatusLoaded()) {
             Write-Host "${lblStatus}: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
             Write-Host "${lblNotLoaded} " -NoNewline -ForegroundColor ([Constants]::ColorHint)
-            Write-Host "(" + $this.GetLoc("Cmd.Desc.Git", "press L to load current or G for all") + ")" -ForegroundColor ([Constants]::ColorWarning)
+            Write-Host ("(" + $this.GetLoc("Cmd.Desc.Git", "press L to load current or G for all") + ")") -ForegroundColor ([Constants]::ColorWarning)
         } else {
             $gitStatus = $repo.GitStatus
             
