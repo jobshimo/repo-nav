@@ -82,10 +82,13 @@ class PreferencesCommand : INavigationCommand {
                 $preferenceItems = @()
 
                 # 0: Language
+                $currentLang = $LocalizationService.GetCurrentLanguage()
+                $langName = & $GetLoc "Lang.$currentLang" $currentLang
+                
                 $preferenceItems += @{
                     Id           = "language"
                     Name         = (& $GetLoc "Pref.Language" "Language")
-                    CurrentValue = $LocalizationService.GetCurrentLanguage()
+                    CurrentValue = $langName
                 }
 
                 # 1: Favorites On Top
@@ -237,7 +240,8 @@ class PreferencesCommand : INavigationCommand {
                                 $langs = $LocalizationService.GetAvailableLanguages()
                                 $langOptions = @()
                                 foreach ($lang in $langs) {
-                                    $langOptions += @{ DisplayText = $lang; Value = $lang }
+                                    $desc = & $GetLoc "Lang.$lang" $lang
+                                    $langOptions += @{ DisplayText = "$desc ($lang)"; Value = $lang }
                                 }
                                 
                                 $newValue = $OptionSelector.ShowSelection(

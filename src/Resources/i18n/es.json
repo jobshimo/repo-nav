@@ -38,6 +38,9 @@
     "Pref.Value.Hide": "Ocultar",
     "Prompt.SelectLanguage": "Seleccionar Idioma",
     
+    "Lang.en": "Inglés",
+    "Lang.es": "Español",
+
     "UI.Status": "Estado",
     "UI.Branch": "Rama",
     "UI.Changes": "Cambios",
