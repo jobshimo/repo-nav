@@ -310,6 +310,7 @@ class UIRenderer {
             } else {
                 $this.Console.WriteColored($displayColor, $color)
             }
+            $this.Console.NewLine()
         } else {
             $this.Console.Write("    ")
             $this.Console.WriteLineColored($displayColor, $color)

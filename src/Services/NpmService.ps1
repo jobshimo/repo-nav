@@ -37,45 +37,35 @@ class NpmService {
     }
     
     # Install npm dependencies
-    # Delegates to helper function outside class to avoid PowerShell output issues
     [bool] InstallDependencies([string]$repoPath) {
-        # Note: This method is not used directly anymore
-        # NavigationLoop calls Invoke-NpmInstall from InteractiveHelpers.ps1 instead
         if (-not $this.HasPackageJson($repoPath)) {
             Write-Warning "No package.json found in $repoPath"
             return $false
         }
-        
         return $true
     }
     
-    # Remove node_modules folder
+    # Remove node_modules folder (Logic-only, no UI)
     [bool] RemoveNodeModules([string]$repoPath, [bool]$removePackageLock = $false) {
         $nodeModulesPath = Join-Path $repoPath "node_modules"
         
         if (-not (Test-Path $nodeModulesPath)) {
-            Write-Warning "No node_modules folder found in $repoPath"
-            return $false
+            # Not an error, just nothing to do
+            return $true
         }
         
         try {
-            # Use the helper function with animated progress
-            $result = Invoke-NpmRemoveNodeModules -NodeModulesPath $nodeModulesPath
+            Remove-Item -Path $nodeModulesPath -Recurse -Force -ErrorAction Stop
             
-            if ($result) {
-                Write-Host "node_modules removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
-                
-                # Remove package-lock.json if requested
-                if ($removePackageLock) {
-                    $packageLockPath = Join-Path $repoPath "package-lock.json"
-                    if (Test-Path $packageLockPath) {
-                        Remove-Item -Path $packageLockPath -Force -ErrorAction Stop
-                        Write-Host "package-lock.json removed successfully!" -ForegroundColor ([Constants]::ColorSuccess)
-                    }
+            # Remove package-lock.json if requested
+            if ($removePackageLock) {
+                $packageLockPath = Join-Path $repoPath "package-lock.json"
+                if (Test-Path $packageLockPath) {
+                    Remove-Item -Path $packageLockPath -Force -ErrorAction Stop
                 }
             }
             
-            return $result
+            return $true
         }
         catch {
             Write-Error "Error removing node_modules: $_"
@@ -135,5 +125,44 @@ class NpmService {
     # Update RepositoryModel with npm information
     [void] UpdateRepositoryModel([RepositoryModel]$repository) {
         $repository.CheckNodeModules()
+    }
+
+    # Smart detection of npm executable
+    [string] GetNpmExecutablePath() {
+        # 1. Try standard discovery via PATH
+        if (Get-Command "npm" -ErrorAction SilentlyContinue) {
+            return "npm"
+        }
+
+        # 2. Check NVM Symlink environment variable
+        if ($env:NVM_SYMLINK -and (Test-Path "$env:NVM_SYMLINK\npm.cmd")) {
+            return "$env:NVM_SYMLINK\npm.cmd"
+        }
+
+        # 3. Check standard NodeJS installation path
+        $programsPath = [Environment]::GetFolderPath("ProgramFiles")
+        $standardNode = Join-Path $programsPath "nodejs\npm.cmd"
+        if (Test-Path $standardNode) {
+            return $standardNode
+        }
+
+        # 4. Smart NVM Fallback
+        if ($env:NVM_HOME -and (Test-Path $env:NVM_HOME)) {
+            try {
+                $latestVersion = Get-ChildItem -Path $env:NVM_HOME -Directory -Filter "v*" | 
+                                 Sort-Object Name -Descending | 
+                                 Select-Object -First 1
+                                 
+                if ($latestVersion) {
+                    $nvmNpmPath = Join-Path $latestVersion.FullName "npm.cmd"
+                    if (Test-Path $nvmNpmPath) {
+                        return $nvmNpmPath
+                    }
+                }
+            }
+            catch {}
+        }
+
+        return [string]::Empty
     }
 }

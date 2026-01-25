@@ -76,10 +76,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Services\LocalizationService.ps1"
 . "$srcPath\Services\AliasManager.ps1"
 . "$srcPath\Services\GitService.ps1"
-. "$srcPath\Services\NpmHelpers.ps1"
 . "$srcPath\Services\NpmService.ps1"
-. "$srcPath\Services\InteractiveHelpers.ps1"
-. "$srcPath\Services\PreferencesHelpers.ps1"
 . "$srcPath\Services\RenderOrchestrator.ps1"
 
 # UI (depend on models and config)
