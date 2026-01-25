@@ -190,7 +190,9 @@ class GitService {
             return $false
         }
         
-        # Check if any subdirectory is a git repo
-        return ($this.CountContainedRepositories($path) -gt 0)
+        # Check if any subdirectory is a git repo OR if the directory is empty/has no git repos but is structured to be one
+        # Current logic: If it's not a git repo, treat as container so user can enter and create repos or folders there.
+        # This allows navigating empty folder structures.
+        return $true
     }
 }

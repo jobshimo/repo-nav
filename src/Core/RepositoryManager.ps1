@@ -126,6 +126,7 @@ class RepositoryManager {
             $repo = [RepositoryModel]::new($dir)
             
             # Check if this is a container (has repos inside but is not a repo itself)
+            # With new logic in GitService, any non-git-repo directory is a container
             if ($this.GitService.IsContainerDirectory($dir.FullName)) {
                 $repoCount = $this.GitService.CountContainedRepositories($dir.FullName)
                 $repo.MarkAsContainer($repoCount)

@@ -461,6 +461,13 @@ class UIRenderer {
         $lblNotLoaded = $this.GetLoc("UI.NotLoaded", "Not loaded")
         $lblContainer = $this.GetLoc("UI.Container", "Folder (contains repos)")
 
+        # Handle empty/null repo case (empty folder)
+        if ($null -eq $repo) {
+            $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
+            $this.Console.WriteLineColored("Folder is empty", [Constants]::ColorHint)
+            return
+        }
+
         # Line 3: Git status details
         # If it's a container, show that it's a folder, not a repo
         if ($repo.IsContainer) {
