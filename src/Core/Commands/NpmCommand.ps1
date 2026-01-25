@@ -1,6 +1,113 @@
 # IMPORTANT: INavigationCommand.ps1 must be loaded BEFORE this file
 
+#
+# View Layer: Handles UI interactions, messages, and localization for Npm operations
+#
+class NpmView {
+    [ConsoleHelper] $Console
+    [UIRenderer] $Renderer
+    [OptionSelector] $OptionSelector
+    [LocalizationService] $LocalizationService
+
+    NpmView([hashtable]$context) {
+        $this.Console = $context.Console
+        $this.Renderer = $context.Renderer
+        $this.OptionSelector = $context.OptionSelector
+        $this.LocalizationService = $context.LocalizationService
+    }
+
+    hidden [string] GetLoc([string]$key, [string]$default) {
+        if ($this.LocalizationService) { 
+            $val = $this.LocalizationService.Get($key)
+            # If the service returns the key wrapped in brackets (missing translation), use our default
+            if ($val -eq "[$key]") { return $default }
+            return $val
+        }
+        return $default
+    }
+
+    [void] ClearAndRenderHeader([string]$title, [Object]$repository) {
+        $this.Console.ClearForWorkflow()
+        $locTitle = $this.GetLoc("Msg.Npm.$title", $title.ToUpper())
+        $this.Renderer.RenderWorkflowHeader($locTitle, $repository)
+    }
+
+    [void] ShowError([string]$messageKey, [string]$defaultMessage, [string]$detail) {
+        $msg = $this.GetLoc($messageKey, $defaultMessage)
+        Write-Host $msg -ForegroundColor ([Constants]::ColorError)
+        if (-not [string]::IsNullOrEmpty($detail)) {
+            Write-Host $detail -ForegroundColor ([Constants]::ColorGray)
+        }
+        Start-Sleep -Seconds 2
+    }
+
+    [void] ShowSuccess([string]$messageKey, [string]$defaultMessage) {
+        $msg = $this.GetLoc($messageKey, $defaultMessage)
+        Write-Host $msg -ForegroundColor ([Constants]::ColorSuccess)
+    }
+
+    [void] ShowNpmNotFound() {
+        $this.Console.ClearForWorkflow()
+        $this.Renderer.RenderError("npm not found")
+        Write-Host ""
+        Write-Host ($this.GetLoc("Error.Npm.NotFound", "Error: 'npm' command not found.")) -ForegroundColor ([Constants]::ColorError)
+        Write-Host ""
+        Write-Host ($this.GetLoc("Error.Npm.InstallNode", "Please install Node.js from https://nodejs.org/")) -ForegroundColor ([Constants]::ColorWarning)
+        Start-Sleep -Seconds 4
+    }
+
+    [void] ShowPreparingAnimation([string]$message) {
+        $cursorTop = $global:Host.UI.RawUI.CursorPosition.Y
+        $cursorLeft = $global:Host.UI.RawUI.CursorPosition.X
+        
+        $dotCount = 0
+        $maxIterations = 5  # Show animation for approx 2 seconds
+        
+        for ($i = 0; $i -lt $maxIterations; $i++) {
+             try { $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop } } catch {}
+             $dots = "." * $dotCount
+             Write-Host "$message$dots".PadRight(50) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
+             $dotCount = ($dotCount + 1) % 4
+             Start-Sleep -Milliseconds 400
+        }
+        
+        # Final clean state
+        try { $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop } } catch {}
+        Write-Host "$message...".PadRight(50) -ForegroundColor ([Constants]::ColorWarning)
+        Write-Host ""
+    }
+
+    [bool] ConfirmRemoval([string]$targetName) {
+        $prompt = $this.GetLoc("Prompt.Continue", "Continue?")
+        $fmt = $this.GetLoc("Msg.Npm.DeleteWarning", "This will delete: {0}")
+        $warning = $fmt -f $targetName
+
+        if ($this.OptionSelector) {
+            $yes = $this.GetLoc("Prompt.Yes", "Yes")
+            $no = $this.GetLoc("Prompt.No", "No")
+            $options = @(
+                @{ DisplayText = $yes; Value = $true },
+                @{ DisplayText = $no; Value = $false }
+            )
+            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $warning)
+            return ($result -eq $true)
+        } else {
+            Write-Host $warning -ForegroundColor ([Constants]::ColorWarning)
+            return $this.Console.ConfirmAction($prompt, $false)
+        }
+    }
+
+    [void] ShowOperationCancelled() {
+        Write-Host ($this.GetLoc("Msg.ActionCancelled", "Operation cancelled.")) -ForegroundColor ([Constants]::ColorWarning)
+        Start-Sleep -Seconds 1
+    }
+}
+
+#
+# Command Layer: Orchestrates Service and View
+#
 class NpmCommand : INavigationCommand {
+    
     [string] GetDescription() {
         return "Install npm (I) or Remove node_modules (X)"
     }
@@ -16,296 +123,191 @@ class NpmCommand : INavigationCommand {
         $currentIndex = $state.GetCurrentIndex()
         
         if ($repos.Count -eq 0) { return }
-        
         $currentRepo = $repos[$currentIndex]
         $key = $keyPress.VirtualKeyCode
         
-        # Stop the navigation loop to allow interactive input
-        $state.Stop()
+        $state.Stop() # Pause navigation loop
         
         try {
+            $view = [NpmView]::new($context)
+            $npmService = $context.RepoManager.NpmService
+
             if ($key -eq [Constants]::KEY_I) {
-                # Install node_modules
-                $this.InvokeNpmInstall($context, $currentRepo)
+                $this.InvokeInstall($context, $currentRepo, $view, $npmService)
             }
             elseif ($key -eq [Constants]::KEY_X) {
-                # Remove node_modules
-                $this.InvokeNodeModulesRemove($context, $currentRepo)
+                $this.InvokeRemove($context, $currentRepo, $view, $npmService)
             }
             
-            # Reload repositories to reflect changes (e.g., node_modules presence)
-            $repoManager = $context.RepoManager
-            if ($null -ne $repoManager) {
-                $repoManager.LoadRepositories($context.BasePath)
-                $updatedRepos = $repoManager.GetRepositories()
-                $state.SetRepositories($updatedRepos)
-                
-                # Try to maintain selection on the same repository
-                $newIndex = 0
-                for ($i = 0; $i -lt $updatedRepos.Count; $i++) {
-                    if ($updatedRepos[$i].Path -eq $currentRepo.Path) {
-                        $newIndex = $i
-                        break
-                    }
-                }
-                $state.SetCurrentIndex($newIndex)
-            }
-            
-            # Mark for full redraw
-            $state.MarkForFullRedraw()
+            # Refresh Repository Data logic
+            $this.RefreshRepositoryState($context, $currentRepo)
         }
         finally {
-            # Resume navigation loop
             $state.Resume()
         }
     }
 
-    hidden [void] InvokeNpmInstall($context, $Repository) {
-        $NpmService = $context.RepoManager.NpmService
-        $Console = $context.Console
-        $LocalizationService = $context.LocalizationService
-        $Renderer = $context.Renderer
+    hidden [void] InvokeInstall($context, $repo, $view, $service) {
+        # 1. Validation
+        if (-not ($service.HasPackageJson($repo.FullPath))) {
+            $view.ClearAndRenderHeader("Installing", $repo)
+            $view.ShowError("Error.Repo.NoPackageJson", "No package.json found.", $null)
+            return
+        }
 
-            # Helper for localization
-            $GetLoc = { param($key, $def) if ($LocalizationService) { return $LocalizationService.Get($key) } return $def }
+        $npmPath = $service.GetNpmExecutablePath()
+        if (-not $npmPath) {
+            $view.ShowNpmNotFound()
+            return
+        }
 
-            # Check if package.json exists
-            $packageJsonPath = Join-Path $Repository.FullPath "package.json"
-            if (-not (Test-Path $packageJsonPath)) {
-                $Console.ClearForWorkflow()
-                Write-Host (& $GetLoc "Error.Repo.NoPackageJson" "No package.json found in this repository.") -ForegroundColor ([Constants]::ColorError)
-                Start-Sleep -Seconds 2
-                return
-            }
-
-            # Check if npm is available using smart detection from NpmService
-            $npmPath = $NpmService.GetNpmExecutablePath()
+        # 2. Execution UI
+        $view.ClearAndRenderHeader("Installing", $repo)
+        
+        # 3. Process Execution
+        try {
+            # Display Preparing Animation
+            $msgRunning = $view.GetLoc("Msg.Npm.RunningInstall", "Running npm install")
+            $view.ShowPreparingAnimation($msgRunning)
             
-            if (-not $npmPath) {
-                $Console.ClearForWorkflow()
-                $Renderer.RenderError("npm not found")
-                Write-Host ""
-                Write-Host (& $GetLoc "Error.Npm.NotFound" "Error: 'npm' command was not found in your PATH or standard locations.") -ForegroundColor ([Constants]::ColorError)
-                Write-Host ""
-                Write-Host (& $GetLoc "Error.Npm.InstallNode" "To use this feature, you need to install Node.js.") -ForegroundColor ([Constants]::ColorWarning)
-                Write-Host (& $GetLoc "Error.Npm.InstallLink" "Please download and install it from: https://nodejs.org/") -ForegroundColor ([Constants]::ColorValue)
-                Write-Host (& $GetLoc "Error.Npm.NvmHint" "If you use NVM, ensure a version is currently selected ('nvm use ...').") -ForegroundColor ([Constants]::ColorGray)
-                Write-Host ""
-                Start-Sleep -Seconds 5
-                return
-            }
-            
-            $Console.ClearForWorkflow()
-            $Renderer.RenderWorkflowHeader((& $GetLoc "Msg.Npm.Installing" "INSTALL DEPENDENCIES"), $Repository)
-            
-            # Show brief animated "preparing" message
-                $cursorTop = $global:Host.UI.RawUI.CursorPosition.Y
-                $cursorLeft = $global:Host.UI.RawUI.CursorPosition.X
-            
-            $dotCount = 0
-            $iterations = 0
-            $maxIterations = 5  # Show animation for ~2 seconds
-            
-            $locRunMsg = & $GetLoc "Msg.Npm.RunningInstall" "Running npm install"
-
-            while ($iterations -lt $maxIterations) {
-                # Restore cursor position
-                try {
-                    $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop }
-                } catch {}
-                
-                # Create the dots string (0 to 3 dots)
-                $dots = "." * $dotCount
-                
-                # Display progress indicator
-                $message = $locRunMsg + $dots
-                Write-Host $message.PadRight(50) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
-                
-                # Increment dot count and cycle back to 0 after 3 dots
-                $dotCount = ($dotCount + 1) % 4
-                $iterations++
-                
-                Start-Sleep -Milliseconds 400
-            }
-            
-            # Leave the final static message visible
+            Push-Location $repo.FullPath
             try {
-                $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop }
-            } catch {}
-            Write-Host ($locRunMsg + "...").PadRight(50) -ForegroundColor ([Constants]::ColorWarning)
-            Write-Host ""
-            
-            Push-Location $Repository.FullPath
-            try {
-                # Ensure cursor is visible for npm output
                 try { [Console]::CursorVisible = $true } catch {}
+                
+                # Direct invocation to allow streaming to host
+                # We do NOT pipe to Write-Host to avoid buffering issues
+                & $npmPath install
+                
+                # Capture Exit Code
+                $exitCode = $LASTEXITCODE
 
-                # Force npm output to be visible by calling it with explicit output redirection
-                & $npmPath install *>&1 | Write-Host
-                
                 try { [Console]::CursorVisible = $false } catch {}
                 
-                Write-Host ""
-                Write-Host (& $GetLoc "Msg.Npm.Success" "Dependencies installed successfully!") -ForegroundColor ([Constants]::ColorSuccess)
-                Start-Sleep -Seconds 2
-            }
-            catch {
-                try { [Console]::CursorVisible = $false } catch {}
-                Write-Host ""
-                Write-Host "Error running npm install: $_" -ForegroundColor ([Constants]::ColorError)
-                Start-Sleep -Seconds 3
+                if ($exitCode -eq 0) {
+                     Write-Host ""
+                     $view.ShowSuccess("Msg.Npm.Success", "Dependencies installed successfully!")
+                     Start-Sleep -Seconds 2
+                } else {
+                     Write-Host ""
+                     $view.ShowError("Error.Npm.Failed", "npm install failed with exit code $exitCode", $null)
+                }
             }
             finally {
                 Pop-Location
             }
         }
-
-    hidden [void] InvokeNodeModulesRemove($context, $Repository) {
-        $RepoManager = $context.RepoManager
-        $Console = $context.Console
-        $LocalizationService = $context.LocalizationService
-        $OptionSelector = $context.OptionSelector
-        $NpmService = $context.RepoManager.NpmService
-        $Renderer = $context.Renderer
-
-        # Helper for localization
-        $GetLoc = { param($key, $def) if ($LocalizationService) { return $LocalizationService.Get($key) } return $def }
-
-        $nodeModulesPath = Join-Path $Repository.FullPath "node_modules"
-        
-        if (-not (Test-Path $nodeModulesPath)) {
-            $Console.ClearForWorkflow()
-            $msg = & $GetLoc "Error.Repo.NoNodeModules" "No node_modules folder found in {0}"
-            Write-Host ($msg -f $Repository.Name) -ForegroundColor ([Constants]::ColorWarning)
-            Start-Sleep -Seconds 2
-            return
-        }
-        
-        $Console.ClearForWorkflow()
-        $header = & $GetLoc "Msg.Npm.Removing" "REMOVE NODE_MODULES"
-        $Renderer.RenderWorkflowHeader($header, $Repository)
-
-        # Confirm
-        $continue = $false
-        $warningMsg = & $GetLoc "Msg.Npm.DeleteWarning" "This will delete the node_modules folder."
-        $prompt = & $GetLoc "Prompt.Continue" "Continue?"
-
-        if ($OptionSelector) {
-            $continue = $this.ConfirmSelection($prompt, $OptionSelector, $LocalizationService, $false, $warningMsg)
-        } else {
-            Write-Host $warningMsg -ForegroundColor ([Constants]::ColorWarning)
-            Write-Host ""
-            $continue = $Console.ConfirmAction($prompt, $false)
-        }
-
-        if ($continue) {
-            # Ask about package-lock.json
-            $packageLockPath = Join-Path $Repository.FullPath "package-lock.json"
-            $removePackageLock = $false
-            
-            if (Test-Path $packageLockPath) {
-                $lockPrompt = & $GetLoc "Msg.Npm.RemoveLockPrompt" "Do you also want to remove package-lock.json?"
-                
-                if ($OptionSelector) {
-                    $removePackageLock = $this.ConfirmSelection($lockPrompt, $OptionSelector, $LocalizationService, $false, $null)
-                } else {
-                    Write-Host ""
-                    $removePackageLock = $Console.ConfirmAction($lockPrompt, $false)
-                }
-            }
-            
-            $Console.ClearForWorkflow()
-            $Renderer.RenderWorkflowHeader($header, $Repository)
-            Write-Host ""
-            
-            # Remove with animation job
-            try {
-                # Save cursor position
-                $cursorTop = $global:Host.UI.RawUI.CursorPosition.Y
-                $cursorLeft = $global:Host.UI.RawUI.CursorPosition.X
-                
-                # Start the removal in a background job
-                $job = Start-Job -ScriptBlock {
-                    param($path, $remLock, $lockPath)
-                    Remove-Item -Path $path -Recurse -Force -ErrorAction Stop
-                    if ($remLock -and (Test-Path $lockPath)) {
-                        Remove-Item -Path $lockPath -Force -ErrorAction Stop
-                    }
-                } -ArgumentList $nodeModulesPath, $removePackageLock, $packageLockPath
-                
-                # Show animated progress while job runs
-                $dotCount = 0
-                $maxDots = 3
-                while ($job.State -eq 'Running') {
-                    # Restore cursor position
-                     try {
-                        $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop }
-                    } catch {}
-                    
-                    # Create the dots string (0 to 3 dots)
-                    $dots = "." * $dotCount
-                    
-                    # Display progress indicator with padding to clear previous text
-                    $message = "Removing node_modules" + $dots
-                    Write-Host $message.PadRight(50) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
-                    
-                    # Increment dot count and cycle back to 0 after maxDots
-                    $dotCount = ($dotCount + 1) % ($maxDots + 1)
-                    
-                    Start-Sleep -Milliseconds 400
-                }
-                
-                # Wait for job to complete and get result
-                $jobResult = Wait-Job -Job $job
-                
-                # Pre-declare error var to satisfy parser
-                $jobErrors = $null
-                $jobErrorOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue -ErrorVariable jobErrors
-                
-                Remove-Job -Job $job
-                
-                # Clear the progress line
-                 try {
-                    $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop }
-                } catch {}
-                Write-Host (" " * 50) -NoNewline
-                 try {
-                    $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop }
-                } catch {}
-                
-                if ($jobResult.State -eq 'Completed' -and ($null -eq $jobErrors -or $jobErrors.Count -eq 0)) {
-                     Write-Host (& $GetLoc "Msg.Npm.RemovedSuccess" "node_modules removed successfully!") -ForegroundColor ([Constants]::ColorSuccess)
-                     if ($removePackageLock) {
-                        Write-Host (& $GetLoc "Msg.Npm.RemovedLockSuccess" "package-lock.json removed successfully!") -ForegroundColor ([Constants]::ColorSuccess)
-                     }
-                }
-                else {
-                    Write-Host "Error removing node_modules: 	$jobErrors" -ForegroundColor ([Constants]::ColorError)
-                }
-            }
-            catch {
-                Write-Host "Error removing node_modules: $_" -ForegroundColor ([Constants]::ColorError)
-            }
-
-            Start-Sleep -Seconds 2
-        } else {
-            Write-Host (& $GetLoc "Msg.ActionCancelled" "Operation cancelled.") -ForegroundColor ([Constants]::ColorWarning)
-            Start-Sleep -Seconds 1
+        catch {
+            $view.ShowError("Error.Npm.Exception", "Error running npm: ", $_)
         }
     }
-    hidden [bool] ConfirmSelection($title, $OptionSelector, $LocalizationService, $defaultYes, $description) {
-        $yesText = if ($LocalizationService) { $LocalizationService.Get("Prompt.Yes") } else { "Yes" }
-        $noText = if ($LocalizationService) { $LocalizationService.Get("Prompt.No") } else { "No" }
+
+    hidden [void] InvokeRemove($context, $repo, $view, $service) {
+        $nodeModulesPath = Join-Path $repo.FullPath "node_modules"
         
-        $options = @(
-            @{ DisplayText = $yesText; Value = $true },
-            @{ DisplayText = $noText; Value = $false }
-        )
+        # 1. Validation
+        if (-not ($service.HasNodeModules($repo.FullPath))) {
+            $view.ClearAndRenderHeader("Removing", $repo)
+            $view.ShowError("Error.Repo.NoNodeModules", "No node_modules folder found.", $null)
+            return
+        }
+
+        # 2. Confirmation
+        $view.ClearAndRenderHeader("Removing", $repo)
+        if (-not ($view.ConfirmRemoval("node_modules"))) {
+            $view.ShowOperationCancelled()
+            return
+        }
+
+        # Check for package-lock.json
+        $removeLock = $false
+        $lockPath = Join-Path $repo.FullPath "package-lock.json"
         
-        $result = $OptionSelector.ShowSelection($title, $options, $defaultYes, "Cancel", $false, $description)
+        if ($service.HasPackageLock($repo.FullPath)) {
+             if ($view.ConfirmRemoval("package-lock.json")) {
+                 $removeLock = $true
+             }
+        }
+
+        # 3. Execution (Background Job for Animation)
+        $view.ClearAndRenderHeader("Removing", $repo)
+        Write-Host ""
+
+        # Using a job because deletion can take time and we want to animate
+        $scriptBlock = {
+            param($path, $remLock, $lPath)
+            Remove-Item -Path $path -Recurse -Force -ErrorAction Stop
+            if ($remLock -and (Test-Path $lPath)) {
+                Remove-Item -Path $lPath -Force -ErrorAction Stop
+            }
+        }
+
+        $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $nodeModulesPath, $removeLock, $lockPath
         
-        if ($null -eq $result) { return $false }
-        return $result
+        # Run Animation while waiting
+        $msgRunning = $view.GetLoc("Msg.Npm.Removing", "Removing node_modules")
+        $this.WaitForJobWithAnimation($job, $msgRunning)
+
+        # Process Result
+        $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
+        
+        # Wait-Job ensures we get the state correctly if loop exited early
+        $null = Wait-Job -Job $job -Timeout 1
+        
+        if ($job.State -eq 'Completed' -and -not $job.ChildJobs[0].Error) {
+             $view.ShowSuccess("Msg.Npm.RemovedSuccess", "node_modules removed successfully!")
+             if ($removeLock) {
+                 $view.ShowSuccess("Msg.Npm.RemovedLockSuccess", "package-lock.json removed successfully!")
+             }
+        } else {
+             $err = $job.ChildJobs[0].Error
+             $view.ShowError("Error.Npm.RemoveFailed", "Error removing files: ", "$err")
+        }
+        
+        Remove-Job -Job $job
+        Start-Sleep -Seconds 2
+    }
+
+    hidden [void] WaitForJobWithAnimation($job, $message) {
+        $cursorTop = $global:Host.UI.RawUI.CursorPosition.Y
+        $cursorLeft = $global:Host.UI.RawUI.CursorPosition.X
+        $dotCount = 0
+        
+        while ($job.State -eq 'Running') {
+            try { $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop } } catch {}
+            
+            $dots = "." * $dotCount
+            Write-Host "$message$dots".PadRight(50) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
+            
+            $dotCount = ($dotCount + 1) % 4
+            Start-Sleep -Milliseconds 400
+        }
+
+        # Final cleanup line
+        try { $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop } } catch {}
+        Write-Host "".PadRight(60) -NoNewline
+        try { $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop } } catch {}
+    }
+
+    hidden [void] RefreshRepositoryState($context, $currentRepo) {
+        $repoManager = $context.RepoManager
+        $state = $context.State
+        
+        if ($null -ne $repoManager) {
+            $repoManager.LoadRepositories($context.BasePath)
+            $updatedRepos = $repoManager.GetRepositories()
+            $state.SetRepositories($updatedRepos)
+            
+            # Try to Find index of current repo to maintain selection
+            $newIndex = 0
+            for ($i = 0; $i -lt $updatedRepos.Count; $i++) {
+                if ($updatedRepos[$i].Path -eq $currentRepo.Path) {
+                    $newIndex = $i
+                    break
+                }
+            }
+            $state.SetCurrentIndex($newIndex)
+        }
+        $state.MarkForFullRedraw()
     }
 }
 
