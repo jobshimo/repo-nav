@@ -32,7 +32,8 @@ class RepositoryCommand : INavigationCommand {
             # Enter container in navigation state
             $state.EnterContainer($containerPath, $newRepos)
             
-            $this.CheckAutoLoad($context, $newRepos)
+            # Check auto load using centralized method
+            $context.RepoManager.PerformAutoLoadGitStatus($newRepos, $context.Console)
             
             return
         }
@@ -43,36 +44,6 @@ class RepositoryCommand : INavigationCommand {
         
         # Stop the navigation loop
         $state.Stop()
-    }
-
-    [void] CheckAutoLoad([hashtable]$context, [array]$repos) {
-         $prefsService = $context.PreferencesService
-         if ($null -eq $prefsService) { return }
-
-         $mode = $prefsService.GetPreference("git", "autoLoadGitStatusMode")
-         if (-not $mode) { $mode = "None" }
-         
-         if ($mode -ne "None") {
-             $toLoad = @()
-             $msg = ""
-             if ($mode -eq "Favorites") {
-                 $toLoad = $repos | Where-Object { $_.IsFavorite }
-                 $msg = "favorites"
-             } elseif ($mode -eq "All") {
-                 $toLoad = $repos
-                 $msg = "all"
-             }
-             
-             if ($toLoad.Count -gt 0) {
-                  $progressIndicator = [ProgressIndicator]::new($context.Console)
-                  $progressCallback = {
-                     param([int]$c, [int]$t)
-                     $progressIndicator.RenderProgressBar("Loading git status ($msg)", $c, $t)
-                  }
-                  $context.RepoManager.LoadGitStatusForRepos($toLoad, $progressCallback)
-                  $progressIndicator.CompleteProgressBar()
-             }
-         }
     }
 }
 

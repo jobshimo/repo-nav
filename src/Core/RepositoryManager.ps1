@@ -237,10 +237,47 @@ class RepositoryManager {
         
         # Cache the loaded git status for all repos
         foreach ($repo in $reposToLoad) {
+            # Update cache regardless of whether it was newly loaded or not
+            # If ParallelGitLoader worked, HasGitStatusLoaded should be true
             if ($repo.HasGitStatusLoaded()) {
                 $this.GitStatusCache[$repo.FullPath] = $repo.GitStatus
             }
         }
+    }
+
+    <#
+    .SYNOPSIS
+        Checks user preferences and loads git status automatically
+    #>
+    [void] PerformAutoLoadGitStatus([array]$repos, [object]$console) {
+         if (-not $this.PreferencesService) { return }
+
+         $mode = $this.PreferencesService.GetPreference("git", "autoLoadGitStatusMode")
+         if (-not $mode) { $mode = "None" }
+         
+         if ($mode -ne "None") {
+             $toLoad = @()
+             $msg = ""
+             
+             if ($mode -eq "Favorites") {
+                 $toLoad = $repos | Where-Object { $_.IsFavorite }
+                 $msg = "favorites"
+             } elseif ($mode -eq "All") {
+                 $toLoad = $repos
+                 $msg = "all"
+             }
+             
+             if ($toLoad.Count -gt 0) {
+                  $progressIndicator = [ProgressIndicator]::new($console)
+                  $progressCallback = {
+                     param([int]$c, [int]$t)
+                     $progressIndicator.RenderProgressBar("Loading git status ($msg)", $c, $t)
+                  }
+                  
+                  $this.LoadGitStatusForRepos($toLoad, $progressCallback)
+                  $progressIndicator.CompleteProgressBar()
+             }
+         }
     }
     
     [int] GetLoadedGitStatusCount() {

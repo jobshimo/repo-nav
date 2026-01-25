@@ -43,30 +43,13 @@ function Start-NavigationLoop {
         
         $progressIndicator = [ProgressIndicator]::new($Console)
         
-        $autoLoadMode = $PreferencesService.GetPreference("git", "autoLoadGitStatusMode")
-        if (-not $autoLoadMode) { $autoLoadMode = "None" }
-        
-        $reposToLoad = @()
-        $loadingMsg = ""
+        $autoLoadFavorites = $PreferencesService.GetPreference("git", "autoLoadFavoritesStatus")
+        if ($null -ne $autoLoadFavorites) {
+             # Legacy cleanup if needed, though PerformAutoLoadGitStatus handles new pref
+        }
 
-        if ($autoLoadMode -eq "Favorites") {
-            $reposToLoad = $repos | Where-Object { $_.IsFavorite }
-            $loadingMsg = "favorites"
-        }
-        elseif ($autoLoadMode -eq "All") {
-            $reposToLoad = $repos
-            $loadingMsg = "all"
-        }
-        
-        if ($reposToLoad.Count -gt 0) {
-            $progressCallback = {
-                param([int]$current, [int]$total)
-                $progressIndicator.RenderProgressBar("Loading git status ($loadingMsg)", $current, $total)
-            }
-            
-            $RepoManager.LoadGitStatusForRepos($reposToLoad, $progressCallback)
-            $progressIndicator.CompleteProgressBar()
-        }
+        # Perform Auto Load using centralized logic
+        $RepoManager.PerformAutoLoadGitStatus($repos, $Console)
         
         # Initialize CommandFactory and InputHandler
         $factory = [CommandFactory]::new()
