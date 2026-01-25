@@ -174,14 +174,11 @@ class NpmCommand : INavigationCommand {
             try {
                 try { [Console]::CursorVisible = $true } catch {}
                 
-                # Using ForEach-Object to stream output line-by-line.
-                # explicitly converting "$_" to string removes the "ErrorRecord" wrapper
-                # that causes the red "NativeCommandError" text in PowerShell.
-                & $npmPath install 2>&1 | ForEach-Object { Write-Host "$_" }
-                
-                $exitCode = $LASTEXITCODE
-
-                try { [Console]::CursorVisible = $false } catch {}
+            # Use Start-Process with cmd /c to ensure native console experience (colors, progress bars)
+            # This bypasses PowerShell's stream handling which causes red text or monochrome output
+            $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$npmPath`" install" -WorkingDirectory $repo.FullPath -NoNewWindow -Wait -PassThru
+            
+            $exitCode = $proc.ExitCode
                 
                 if ($exitCode -eq 0) {
                      Write-Host ""
