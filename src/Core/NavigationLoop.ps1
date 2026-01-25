@@ -87,14 +87,14 @@ function Start-NavigationLoop {
         
         # Create context hashtable for commands
         $context = @{
-            State = $state
-            RepoManager = $RepoManager
-            Renderer = $Renderer
-            Console = $Console
-            ColorSelector = $ColorSelector
-            OptionSelector = $OptionSelector
+            State               = $state
+            RepoManager         = $RepoManager
+            Renderer            = $Renderer
+            Console             = $Console
+            ColorSelector       = $ColorSelector
+            OptionSelector      = $OptionSelector
             LocalizationService = $LocalizationService
-            BasePath = $BasePath
+            BasePath            = $BasePath
         }
         
         # Initial full render

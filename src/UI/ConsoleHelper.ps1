@@ -38,7 +38,7 @@ class ConsoleHelper {
             [Console]::CursorVisible = $true
         }
         catch {
-             # Fallback
+            # Fallback
         }
         try {
             $global:Host.UI.RawUI.CursorSize = 25

@@ -68,13 +68,27 @@ function Invoke-NpmInstall {
         $Repository,
 
         [Parameter(Mandatory = $false)]
-        $LocalizationService
+        $LocalizationService,
+
+        [Parameter(Mandatory = $false)]
+        $Console
     )
     
     # helper for localization
     function Get-Loc([string]$key, [string]$default) {
         if ($LocalizationService) { return $LocalizationService.Get($key) }
         return $default
+    }
+
+    # Hide cursor helper that handles missing ConsoleHelper
+    function Hide-Cursor {
+        if ($Console) { $Console.HideCursor() }
+        else { try { [Console]::CursorVisible = $false } catch {} }
+    }
+
+    function Show-Cursor {
+        if ($Console) { $Console.ShowCursor() }
+        else { try { [Console]::CursorVisible = $true } catch {} }
     }
 
     # Check if package.json exists
@@ -147,15 +161,23 @@ function Invoke-NpmInstall {
     
     Push-Location $Repository.FullPath
     try {
+        # Ensure cursor is visible for npm output (some tools might expect it)
+        Show-Cursor
+
         # Force npm output to be visible by calling it with explicit output redirection
         # Use invocation operator & with the resolved path
         & $npmPath install *>&1 | Write-Host
+        
+        # Hide cursor immediately after npm finishes
+        Hide-Cursor
+        
         Write-Host ""
         Write-Host $(Get-Loc "Msg.Npm.Success" "Dependencies installed successfully!") -ForegroundColor ([Constants]::ColorSuccess)
         Start-Sleep -Seconds 2
         return $true
     }
     catch {
+        Hide-Cursor
         Write-Host ""
         Write-Host "Error installing dependencies: $_" -ForegroundColor ([Constants]::ColorError)
         Start-Sleep -Seconds 3

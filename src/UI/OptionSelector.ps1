@@ -86,11 +86,11 @@ class OptionSelector {
                 # Clear and render
                 $this.Console.ClearScreen()
                 $this.Renderer.RenderHeader($title)
-                Write-Host ""
+                $this.Console.NewLine()
                 
                 if (-not [string]::IsNullOrWhiteSpace($description)) {
-                    Write-Host "  $description" -ForegroundColor ([Constants]::ColorWarning)
-                    Write-Host ""
+                    $this.Console.WriteLineColored("  $description", [Constants]::ColorWarning)
+                    $this.Console.NewLine()
                 }
 
                 # Display options
@@ -113,16 +113,16 @@ class OptionSelector {
 
                     if ($isColorPreview) {
                         # Show color preview
-                        Write-Host $displayLine -ForegroundColor $option.Value
+                        $this.Console.WriteLineColored($displayLine, $option.Value)
                     } else {
-                        Write-Host $displayLine -ForegroundColor $color
+                        $this.Console.WriteLineColored($displayLine, $color)
                     }
                 }
                 
-                Write-Host ""
-                Write-Host "  $cancelText" -ForegroundColor ([Constants]::ColorHint)
-                Write-Host ""
-                Write-Host "  Use Arrows to navigate | Enter to select | Q/Esc to cancel" -ForegroundColor ([Constants]::ColorHint)
+                $this.Console.NewLine()
+                $this.Console.WriteLineColored("  $cancelText", [Constants]::ColorHint)
+                $this.Console.NewLine()
+                $this.Console.WriteLineColored("  Use Arrows to navigate | Enter to select | Q/Esc to cancel", [Constants]::ColorHint)
                 
                 # Wait for input
                 $key = $this.Console.ReadKey()
@@ -160,7 +160,9 @@ class OptionSelector {
             }
         }
         finally {
-            $this.Console.ShowCursor()
+            # Ensure cursor remains hidden when returning to main UI
+            # (Unless explicitly expecting input next, but the main loop handles that)
+            $this.Console.HideCursor()
         }
         
         return $result

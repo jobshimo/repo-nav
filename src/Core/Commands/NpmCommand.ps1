@@ -26,7 +26,7 @@ class NpmCommand : INavigationCommand {
         try {
             if ($key -eq [Constants]::KEY_I) {
                 # Install node_modules
-                Invoke-NpmInstall -Repository $currentRepo -LocalizationService $context.LocalizationService
+                Invoke-NpmInstall -Repository $currentRepo -LocalizationService $context.LocalizationService -Console $context.Console
             }
             elseif ($key -eq [Constants]::KEY_X) {
                 # Remove node_modules - Pass required parameters
