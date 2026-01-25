@@ -174,11 +174,11 @@ class NpmCommand : INavigationCommand {
             try {
                 try { [Console]::CursorVisible = $true } catch {}
                 
-                # Direct invocation to allow streaming to host
-                # We do NOT pipe to Write-Host to avoid buffering issues
-                & $npmPath install
+                # Using ForEach-Object to stream output line-by-line.
+                # explicitly converting "$_" to string removes the "ErrorRecord" wrapper
+                # that causes the red "NativeCommandError" text in PowerShell.
+                & $npmPath install 2>&1 | ForEach-Object { Write-Host "$_" }
                 
-                # Capture Exit Code
                 $exitCode = $LASTEXITCODE
 
                 try { [Console]::CursorVisible = $false } catch {}
