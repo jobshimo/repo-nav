@@ -314,7 +314,7 @@ class PreferencesCommand : INavigationCommand {
              $newVal = -not $item.RawValue
              $preferences.display.menuSections.$sec = $newVal
              $PrefsService.SavePreferences($preferences)
-             $msg = (& $GetLoc "Msg.SectionToggled" -f $sec)
+             $msg = (& $GetLoc "Msg.SectionToggled") -f $sec
              $updated = $true
              $timeout = 1
         }
