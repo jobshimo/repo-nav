@@ -61,111 +61,111 @@ class NpmCommand : INavigationCommand {
     }
 
     hidden [void] InvokeNpmInstall($context, $Repository) {
-        $NpmService = $context.NpmService
+        $NpmService = $context.RepoManager.NpmService
         $Console = $context.Console
         $LocalizationService = $context.LocalizationService
         $Renderer = $context.Renderer
 
-        # Helper for localization
-        $GetLoc = { param($key, $def) if ($LocalizationService) { return $LocalizationService.Get($key) } return $def }
+            # Helper for localization
+            $GetLoc = { param($key, $def) if ($LocalizationService) { return $LocalizationService.Get($key) } return $def }
 
-        # Check if package.json exists
-        $packageJsonPath = Join-Path $Repository.FullPath "package.json"
-        if (-not (Test-Path $packageJsonPath)) {
+            # Check if package.json exists
+            $packageJsonPath = Join-Path $Repository.FullPath "package.json"
+            if (-not (Test-Path $packageJsonPath)) {
+                $Console.ClearForWorkflow()
+                Write-Host (& $GetLoc "Error.Repo.NoPackageJson" "No package.json found in this repository.") -ForegroundColor ([Constants]::ColorError)
+                Start-Sleep -Seconds 2
+                return
+            }
+
+            # Check if npm is available using smart detection from NpmService
+            $npmPath = $NpmService.GetNpmExecutablePath()
+            
+            if (-not $npmPath) {
+                $Console.ClearForWorkflow()
+                $Renderer.RenderError("npm not found")
+                Write-Host ""
+                Write-Host (& $GetLoc "Error.Npm.NotFound" "Error: 'npm' command was not found in your PATH or standard locations.") -ForegroundColor ([Constants]::ColorError)
+                Write-Host ""
+                Write-Host (& $GetLoc "Error.Npm.InstallNode" "To use this feature, you need to install Node.js.") -ForegroundColor ([Constants]::ColorWarning)
+                Write-Host (& $GetLoc "Error.Npm.InstallLink" "Please download and install it from: https://nodejs.org/") -ForegroundColor ([Constants]::ColorValue)
+                Write-Host (& $GetLoc "Error.Npm.NvmHint" "If you use NVM, ensure a version is currently selected ('nvm use ...').") -ForegroundColor ([Constants]::ColorGray)
+                Write-Host ""
+                Start-Sleep -Seconds 5
+                return
+            }
+            
             $Console.ClearForWorkflow()
-            Write-Host (& $GetLoc "Error.Repo.NoPackageJson" "No package.json found in this repository.") -ForegroundColor ([Constants]::ColorError)
-            Start-Sleep -Seconds 2
-            return
-        }
+            $Renderer.RenderWorkflowHeader((& $GetLoc "Msg.Npm.Installing" "INSTALL DEPENDENCIES"), $Repository)
+            
+            # Show brief animated "preparing" message
+                $cursorTop = $global:Host.UI.RawUI.CursorPosition.Y
+                $cursorLeft = $global:Host.UI.RawUI.CursorPosition.X
+            
+            $dotCount = 0
+            $iterations = 0
+            $maxIterations = 5  # Show animation for ~2 seconds
+            
+            $locRunMsg = & $GetLoc "Msg.Npm.RunningInstall" "Running npm install"
 
-        # Check if npm is available using smart detection from NpmService
-        $npmPath = $NpmService.GetNpmExecutablePath()
-        
-        if (-not $npmPath) {
-            $Console.ClearForWorkflow()
-            $Renderer.RenderError("npm not found")
-            Write-Host ""
-            Write-Host (& $GetLoc "Error.Npm.NotFound" "Error: 'npm' command was not found in your PATH or standard locations.") -ForegroundColor ([Constants]::ColorError)
-            Write-Host ""
-            Write-Host (& $GetLoc "Error.Npm.InstallNode" "To use this feature, you need to install Node.js.") -ForegroundColor ([Constants]::ColorWarning)
-            Write-Host (& $GetLoc "Error.Npm.InstallLink" "Please download and install it from: https://nodejs.org/") -ForegroundColor ([Constants]::ColorValue)
-            Write-Host (& $GetLoc "Error.Npm.NvmHint" "If you use NVM, ensure a version is currently selected ('nvm use ...').") -ForegroundColor ([Constants]::ColorGray)
-            Write-Host ""
-            Start-Sleep -Seconds 5
-            return
-        }
-        
-        $Console.ClearForWorkflow()
-        $Renderer.RenderWorkflowHeader((& $GetLoc "Msg.Npm.Installing" "INSTALL DEPENDENCIES"), $Repository)
-        
-        # Show brief animated "preparing" message
-        $cursorTop = $global:Host.UI.RawUI.CursorPosition.Y
-        $cursorLeft = $global:Host.UI.RawUI.CursorPosition.X
-        
-        $dotCount = 0
-        $iterations = 0
-        $maxIterations = 5  # Show animation for ~2 seconds
-        
-        $locRunMsg = & $GetLoc "Msg.Npm.RunningInstall" "Running npm install"
-
-        while ($iterations -lt $maxIterations) {
-            # Restore cursor position
+            while ($iterations -lt $maxIterations) {
+                # Restore cursor position
+                try {
+                    $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop }
+                } catch {}
+                
+                # Create the dots string (0 to 3 dots)
+                $dots = "." * $dotCount
+                
+                # Display progress indicator
+                $message = $locRunMsg + $dots
+                Write-Host $message.PadRight(50) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
+                
+                # Increment dot count and cycle back to 0 after 3 dots
+                $dotCount = ($dotCount + 1) % 4
+                $iterations++
+                
+                Start-Sleep -Milliseconds 400
+            }
+            
+            # Leave the final static message visible
             try {
                 $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop }
             } catch {}
+            Write-Host ($locRunMsg + "...").PadRight(50) -ForegroundColor ([Constants]::ColorWarning)
+            Write-Host ""
             
-            # Create the dots string (0 to 3 dots)
-            $dots = "." * $dotCount
-            
-            # Display progress indicator
-            $message = $locRunMsg + $dots
-            Write-Host $message.PadRight(50) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
-            
-            # Increment dot count and cycle back to 0 after 3 dots
-            $dotCount = ($dotCount + 1) % 4
-            $iterations++
-            
-            Start-Sleep -Milliseconds 400
-        }
-        
-        # Leave the final static message visible
-        try {
-            $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop }
-        } catch {}
-        Write-Host ($locRunMsg + "...").PadRight(50) -ForegroundColor ([Constants]::ColorWarning)
-        Write-Host ""
-        
-        Push-Location $Repository.FullPath
-        try {
-            # Ensure cursor is visible for npm output
-            try { [Console]::CursorVisible = $true } catch {}
+            Push-Location $Repository.FullPath
+            try {
+                # Ensure cursor is visible for npm output
+                try { [Console]::CursorVisible = $true } catch {}
 
-            # Force npm output to be visible by calling it with explicit output redirection
-            & $npmPath install *>&1 | Write-Host
-            
-            try { [Console]::CursorVisible = $false } catch {}
-            
-            Write-Host ""
-            Write-Host (& $GetLoc "Msg.Npm.Success" "Dependencies installed successfully!") -ForegroundColor ([Constants]::ColorSuccess)
-            Start-Sleep -Seconds 2
+                # Force npm output to be visible by calling it with explicit output redirection
+                & $npmPath install *>&1 | Write-Host
+                
+                try { [Console]::CursorVisible = $false } catch {}
+                
+                Write-Host ""
+                Write-Host (& $GetLoc "Msg.Npm.Success" "Dependencies installed successfully!") -ForegroundColor ([Constants]::ColorSuccess)
+                Start-Sleep -Seconds 2
+            }
+            catch {
+                try { [Console]::CursorVisible = $false } catch {}
+                Write-Host ""
+                Write-Host "Error running npm install: $_" -ForegroundColor ([Constants]::ColorError)
+                Start-Sleep -Seconds 3
+            }
+            finally {
+                Pop-Location
+            }
         }
-        catch {
-            try { [Console]::CursorVisible = $false } catch {}
-            Write-Host ""
-            Write-Host "Error installing dependencies: $_" -ForegroundColor ([Constants]::ColorError)
-            Start-Sleep -Seconds 3
-        }
-        finally {
-            Pop-Location
-        }
-    }
 
     hidden [void] InvokeNodeModulesRemove($context, $Repository) {
         $RepoManager = $context.RepoManager
         $Console = $context.Console
         $LocalizationService = $context.LocalizationService
         $OptionSelector = $context.OptionSelector
-        $NpmService = $context.NpmService
+        $NpmService = $context.RepoManager.NpmService
         $Renderer = $context.Renderer
 
         # Helper for localization
