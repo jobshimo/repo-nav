@@ -144,7 +144,9 @@ class RepositoryManagementCommand : INavigationCommand {
                 
                 if (-not $isEmpty) {
                     # Folder has content - show error message inline
-                    $currentTop = [Console]::CursorTop
+                    # Save current cursor position
+                    $savedTop = [Console]::CursorTop
+                    $savedLeft = [Console]::CursorLeft
                     
                     # Get localized message
                     $errorMsg = "Cannot delete: Folder is not empty"
@@ -156,14 +158,25 @@ class RepositoryManagementCommand : INavigationCommand {
                         # Hide cursor during this operation
                         [Console]::CursorVisible = $false
                         
-                        # Move up 2 lines (Separator line + Status line)
-                        if ($currentTop -ge 2) {
-                            [Console]::CursorTop = $currentTop - 2
-                            # Move to the right side (col 38 right after "Status: Folder (Enter / → to browse)")
-                            [Console]::CursorLeft = 38
+                        # Calculate target line (Status line is 2 lines above current position)
+                        $targetLine = $savedTop - 2
+                        if ($targetLine -ge 0) {
+                            # Move to the Status line
+                            [Console]::SetCursorPosition(38, $targetLine)
                             
+                            # Clear rest of line first (to avoid duplicate messages)
+                            $clearLength = [Console]::WindowWidth - 38 - 1
+                            if ($clearLength -gt 0) {
+                                Write-Host (" " * $clearLength) -NoNewline
+                            }
+                            
+                            # Move back to write the message
+                            [Console]::SetCursorPosition(38, $targetLine)
                             Write-Host " <- " -NoNewline -ForegroundColor Red
                             Write-Host $errorMsg -NoNewline -ForegroundColor Red
+                            
+                            # Restore cursor position
+                            [Console]::SetCursorPosition($savedLeft, $savedTop)
                         }
                     }
                     catch {
