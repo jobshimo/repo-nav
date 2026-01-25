@@ -217,9 +217,10 @@ class UIRenderer {
         $grpTool = $this.GetLoc("UI.Group.Tools", "Tools")
         $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
         $cmdFolder = $this.GetLoc("Cmd.Desc.CreateFolder", "N=New Folder")
+        $cmdSearch = $this.GetLoc("Cmd.Desc.Search", "S=Search")
         
         $lblTool = "${grpTool}:".PadRight($labelWidth)
-        $this.Console.WriteLineColored("  $lblTool $cmdFolder | $cmdPref", [Constants]::ColorMenuText)
+        $this.Console.WriteLineColored("  $lblTool $cmdSearch | $cmdFolder | $cmdPref", [Constants]::ColorMenuText)
         return 1
     }
 

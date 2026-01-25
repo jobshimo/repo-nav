@@ -11,6 +11,7 @@
     - Real-time filtering as user types
     - Seamless navigation between search input and results list
     - Keyboard-driven interface (Tab, Arrows, Enter, Esc)
+    - Dynamic viewport that adapts to window size (like main view)
 #>
 
 class SearchView {
@@ -18,6 +19,14 @@ class SearchView {
     [UIRenderer] $Renderer
     [SearchService] $SearchService
     [LocalizationService] $LocalizationService
+    [WindowSizeCalculator] $WindowCalculator
+    
+    # Layout constants
+    [int] $HeaderLines = 3          # Title separator lines
+    [int] $SearchInputLines = 3     # Search label + input + blank
+    [int] $CounterLines = 2         # Result count + blank
+    [int] $SeparatorLines = 1       # Separator before list
+    [int] $FooterLines = 4          # Separator + hints + blank + separator
     
     # Constructor with dependency injection
     SearchView([ConsoleHelper]$console, [UIRenderer]$renderer, [LocalizationService]$localizationService) {
@@ -25,6 +34,7 @@ class SearchView {
         $this.Renderer = $renderer
         $this.SearchService = [SearchService]::new()
         $this.LocalizationService = $localizationService
+        $this.WindowCalculator = [WindowSizeCalculator]::new()
     }
     
     # Helper for localization
@@ -33,6 +43,21 @@ class SearchView {
             return $this.LocalizationService.Get($key)
         }
         return $default
+    }
+    
+    <#
+    .SYNOPSIS
+        Calculates the available page size for the results list
+    #>
+    hidden [int] CalculatePageSize() {
+        $reservedLines = $this.HeaderLines + $this.SearchInputLines + $this.CounterLines + $this.SeparatorLines + $this.FooterLines + 2
+        $windowHeight = $this.WindowCalculator.GetWindowHeight()
+        $available = $windowHeight - $reservedLines
+        
+        # Bounds
+        if ($available -lt 3) { return 3 }
+        if ($available -gt 20) { return 20 }
+        return $available
     }
     
     <#
@@ -65,22 +90,25 @@ class SearchView {
         $running = $true
         $cancelled = $false
         
+        # Viewport state
+        $viewportStart = 0
+        $pageSize = $this.CalculatePageSize()
+        
         # If we have a current repo, try to find it in the list
         if ($null -ne $currentRepo) {
             $selectedIndex = $this.SearchService.FindRepositoryIndex($filteredRepos, $currentRepo)
         }
         
-        # Calculate viewport
-        $maxVisibleItems = 10
-        $viewportStart = 0
+        # Calculate line positions
+        $listStartLine = $this.HeaderLines + $this.SearchInputLines + $this.CounterLines + $this.SeparatorLines
         
         try {
             $this.Console.HideCursor()
             
+            # Initial full render
+            $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+            
             while ($running) {
-                # Render the search UI
-                $this.RenderSearchUI($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $maxVisibleItems, $allRepos.Count)
-                
                 # Show cursor only when in input mode
                 if ($focusMode -eq "input") {
                     $this.Console.ShowCursor()
@@ -94,10 +122,11 @@ class SearchView {
                 $keyChar = $key.Character
                 
                 # Handle Escape - context-aware
-                if ($keyCode -eq [Constants]::KEY_ESCAPE) {
+                if ($keyCode -eq [Constants]::KEY_ESCAPE -or $keyCode -eq [Constants]::KEY_ESC) {
                     if ($focusMode -eq "list") {
                         # Return to input
                         $focusMode = "input"
+                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
                     } else {
                         # Exit search
                         $running = $false
@@ -121,6 +150,7 @@ class SearchView {
                     } else {
                         $focusMode = "input"
                     }
+                    $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
                     continue
                 }
                 
@@ -129,59 +159,90 @@ class SearchView {
                     if ($focusMode -eq "input" -and $filteredRepos.Count -gt 0) {
                         # Move from input to list
                         $focusMode = "list"
-                    } elseif ($focusMode -eq "list") {
+                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                    } elseif ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
+                        $prevIndex = $selectedIndex
+                        $prevViewport = $viewportStart
+                        
                         # Navigate down in list
                         if ($selectedIndex -lt ($filteredRepos.Count - 1)) {
                             $selectedIndex++
-                            # Adjust viewport
-                            if ($selectedIndex -ge ($viewportStart + $maxVisibleItems)) {
-                                $viewportStart = $selectedIndex - $maxVisibleItems + 1
+                            # Scroll check
+                            if ($selectedIndex -ge ($viewportStart + $pageSize)) {
+                                $viewportStart = $selectedIndex - $pageSize + 1
                             }
                         } else {
                             # Wrap to top
                             $selectedIndex = 0
                             $viewportStart = 0
                         }
+                        
+                        # Render update
+                        if ($viewportStart -ne $prevViewport) {
+                            # Full list redraw needed
+                            $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
+                        } else {
+                            # Partial update - just the two affected lines
+                            $this.UpdateListItem($filteredRepos, $prevIndex, $false, $viewportStart, $pageSize, $listStartLine)
+                            $this.UpdateListItem($filteredRepos, $selectedIndex, $true, $viewportStart, $pageSize, $listStartLine)
+                        }
+                        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine, $pageSize)
                     }
                     continue
                 }
                 
                 if ($keyCode -eq [Constants]::KEY_UP_ARROW) {
-                    if ($focusMode -eq "list") {
+                    if ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
+                        $prevIndex = $selectedIndex
+                        $prevViewport = $viewportStart
+                        
                         if ($selectedIndex -gt 0) {
                             $selectedIndex--
-                            # Adjust viewport
+                            # Scroll check
                             if ($selectedIndex -lt $viewportStart) {
                                 $viewportStart = $selectedIndex
                             }
                         } else {
                             # Move back to input when at top
                             $focusMode = "input"
+                            $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                            continue
                         }
+                        
+                        # Render update
+                        if ($viewportStart -ne $prevViewport) {
+                            $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
+                        } else {
+                            $this.UpdateListItem($filteredRepos, $prevIndex, $false, $viewportStart, $pageSize, $listStartLine)
+                            $this.UpdateListItem($filteredRepos, $selectedIndex, $true, $viewportStart, $pageSize, $listStartLine)
+                        }
+                        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine, $pageSize)
                     }
                     continue
                 }
                 
                 # Handle text input (only in input mode)
                 if ($focusMode -eq "input") {
+                    $needsFilterUpdate = $false
+                    
                     # Backspace
                     if ($keyCode -eq [Constants]::KEY_BACKSPACE) {
                         if ($searchText.Length -gt 0) {
                             $searchText = $searchText.Substring(0, $searchText.Length - 1)
-                            $filteredRepos = $this.SearchService.FilterRepositories($allRepos, $searchText)
-                            $selectedIndex = 0
-                            $viewportStart = 0
+                            $needsFilterUpdate = $true
                         }
-                        continue
+                    }
+                    # Regular character input (letters, numbers, common chars)
+                    elseif ($keyChar -match '[a-zA-Z0-9\s\-_\.]') {
+                        $searchText += $keyChar
+                        $needsFilterUpdate = $true
                     }
                     
-                    # Regular character input
-                    if ($keyChar -and $keyChar -match '[\w\s\-_\.]') {
-                        $searchText += $keyChar
+                    if ($needsFilterUpdate) {
                         $filteredRepos = $this.SearchService.FilterRepositories($allRepos, $searchText)
                         $selectedIndex = 0
                         $viewportStart = 0
-                        continue
+                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
                     }
                 }
             }
@@ -206,45 +267,37 @@ class SearchView {
         }
     }
     
+    #region Rendering Methods
+    
     <#
     .SYNOPSIS
-        Renders the complete search UI
+        Full screen render
     #>
-    hidden [void] RenderSearchUI([string]$searchText, [array]$filteredRepos, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$maxVisible, [int]$totalCount) {
+    hidden [void] RenderFull([string]$searchText, [array]$filteredRepos, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$totalCount, [int]$listStartLine) {
         $this.Console.ClearScreen()
         
-        # Header
+        # Header (3 lines)
         $title = $this.GetLoc("Search.Title", "SEARCH REPOSITORIES")
         $this.Renderer.RenderHeader($title)
-        $this.Console.NewLine()
         
-        # Search input field
+        # Search input (3 lines: label+input, blank)
         $this.RenderSearchInput($searchText, ($focusMode -eq "input"))
         $this.Console.NewLine()
         
-        # Results count
+        # Results count (2 lines)
         $resultCount = $filteredRepos.Count
         $countText = $this.GetLoc("Search.ResultCount", "{0} of {1} repositories") -f $resultCount, $totalCount
         $this.Console.WriteLineColored("  $countText", [Constants]::ColorHint)
         $this.Console.NewLine()
         
-        # Separator
+        # Separator before list
         $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)
         
-        # Results list
-        if ($resultCount -eq 0) {
-            $noResults = $this.GetLoc("Search.NoResults", "No repositories found")
-            $this.Console.NewLine()
-            $this.Console.WriteLineColored("  $noResults", [Constants]::ColorWarning)
-            $this.Console.NewLine()
-        } else {
-            $this.RenderResultsList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $maxVisible)
-        }
+        # Render list
+        $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
         
-        # Footer hints
-        $this.Console.NewLine()
-        $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)
-        $this.RenderHints($focusMode)
+        # Footer
+        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $totalCount, $focusMode, $listStartLine, $pageSize)
     }
     
     <#
@@ -270,61 +323,116 @@ class SearchView {
     
     <#
     .SYNOPSIS
-        Renders the filtered results list with viewport support
+        Renders the results list with viewport
     #>
-    hidden [void] RenderResultsList([array]$repos, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$maxVisible) {
+    hidden [void] RenderList([array]$repos, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$startLine) {
         $listHasFocus = ($focusMode -eq "list")
-        $endIndex = [Math]::Min($viewportStart + $maxVisible, $repos.Count)
+        $total = $repos.Count
         
-        # Show scroll indicator if not at top
-        if ($viewportStart -gt 0) {
-            $this.Console.WriteLineColored("    $([char]0x2191) more above", [Constants]::ColorHint)
+        for ($i = 0; $i -lt $pageSize; $i++) {
+            $currentLine = $startLine + $i
+            $this.Console.SetCursorPosition(0, $currentLine)
+            $this.Console.ClearCurrentLine()
+            
+            $repoIndex = $viewportStart + $i
+            if ($repoIndex -lt $total) {
+                $repo = $repos[$repoIndex]
+                $isSelected = ($repoIndex -eq $selectedIndex) -and $listHasFocus
+                $this.RenderListItem($repo, $isSelected, $listHasFocus)
+            }
+        }
+    }
+    
+    <#
+    .SYNOPSIS
+        Updates a single list item (partial render)
+    #>
+    hidden [void] UpdateListItem([array]$repos, [int]$repoIndex, [bool]$isSelected, [int]$viewportStart, [int]$pageSize, [int]$startLine) {
+        # Check if index is in viewport
+        if ($repoIndex -lt $viewportStart -or $repoIndex -ge ($viewportStart + $pageSize)) {
+            return
+        }
+        
+        $lineOffset = $repoIndex - $viewportStart
+        $currentLine = $startLine + $lineOffset
+        
+        $this.Console.SetCursorPosition(0, $currentLine)
+        $this.Console.ClearCurrentLine()
+        
+        if ($repoIndex -lt $repos.Count) {
+            $repo = $repos[$repoIndex]
+            $this.RenderListItem($repo, $isSelected, $true)
+        }
+    }
+    
+    <#
+    .SYNOPSIS
+        Renders a single list item
+    #>
+    hidden [void] RenderListItem([object]$repo, [bool]$isSelected, [bool]$listHasFocus) {
+        $prefix = if ($isSelected) { ">" } else { " " }
+        
+        if ($isSelected) {
+            $nameColor = [Constants]::ColorSelected
         } else {
-            $this.Console.NewLine()
+            $nameColor = [Constants]::ColorMenuText
         }
         
-        for ($i = $viewportStart; $i -lt $endIndex; $i++) {
-            $repo = $repos[$i]
-            $isSelected = ($i -eq $selectedIndex)
-            
-            # Determine prefix and colors
-            $prefix = if ($isSelected -and $listHasFocus) { ">" } else { " " }
-            
-            if ($isSelected -and $listHasFocus) {
-                $nameColor = [Constants]::ColorSelected
-            } else {
-                $nameColor = [Constants]::ColorMenuText
-            }
-            
-            # Build display text
-            $displayText = $repo.Name
-            
-            # Add alias if exists
-            if ($repo.HasAlias -and $null -ne $repo.AliasInfo) {
-                $aliasColor = $repo.AliasInfo.Color
-                $aliasText = " [$($repo.AliasInfo.Alias)]"
-                
-                $this.Console.WriteColored("  $prefix ", $nameColor)
-                $this.Console.WriteColored($displayText, $nameColor)
-                $this.Console.WriteLineColored($aliasText, $aliasColor)
-            } else {
-                $this.Console.WriteLineColored("  $prefix $displayText", $nameColor)
-            }
-            
-            # Add favorite indicator
-            if ($repo.IsFavorite) {
-                # Already rendered, just note it's a favorite
-            }
-        }
+        # Build display
+        $this.Console.WriteColored("  $prefix ", $nameColor)
         
-        # Show scroll indicator if more items below
-        if ($endIndex -lt $repos.Count) {
-            $remaining = $repos.Count - $endIndex
-            $moreText = "    $(([char]0x2193)) $remaining more below"
-            $this.Console.WriteLineColored($moreText, [Constants]::ColorHint)
+        # Favorite indicator
+        if ($repo.IsFavorite) {
+            $this.Console.WriteColored("$([Constants]::FavoriteSymbol) ", [Constants]::ColorFavorite)
         } else {
-            $this.Console.NewLine()
+            $this.Console.Write("  ")
         }
+        
+        # Repo name
+        $this.Console.WriteColored($repo.Name, $nameColor)
+        
+        # Alias if exists
+        if ($repo.HasAlias -and $null -ne $repo.AliasInfo) {
+            $aliasText = " [$($repo.AliasInfo.Alias)]"
+            $this.Console.WriteColored($aliasText, $repo.AliasInfo.Color)
+        }
+    }
+    
+    <#
+    .SYNOPSIS
+        Renders the footer with position info and hints
+    #>
+    hidden [void] RenderFooter([int]$selectedIndex, [int]$filteredCount, [int]$totalCount, [string]$focusMode, [int]$listStartLine, [int]$pageSize) {
+        $footerLine = $listStartLine + $pageSize
+        $this.Console.SetCursorPosition(0, $footerLine)
+        
+        # Clear footer area (4 lines)
+        for ($i = 0; $i -lt $this.FooterLines; $i++) {
+            $this.Console.ClearCurrentLine()
+            $this.Console.SetCursorPosition(0, $footerLine + $i)
+        }
+        $this.Console.SetCursorPosition(0, $footerLine)
+        
+        # Separator
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        
+        # Position info
+        if ($filteredCount -gt 0) {
+            $currentPos = $selectedIndex + 1
+            $this.Console.WriteColored("  Item: ", [Constants]::ColorLabel)
+            $this.Console.WriteColored("$currentPos/$filteredCount", [Constants]::ColorValue)
+            $this.Console.WriteColored(" | Filtered: ", [Constants]::ColorLabel)
+            $this.Console.WriteLineColored("$filteredCount of $totalCount", [Constants]::ColorHint)
+        } else {
+            $noResults = $this.GetLoc("Search.NoResults", "No repositories found")
+            $this.Console.WriteLineColored("  $noResults", [Constants]::ColorWarning)
+        }
+        
+        # Hints
+        $this.RenderHints($focusMode)
+        
+        # Final separator
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
     }
     
     <#
@@ -340,4 +448,6 @@ class SearchView {
             $this.Console.WriteLineColored("  $hint2", [Constants]::ColorHint)
         }
     }
+    
+    #endregion
 }
