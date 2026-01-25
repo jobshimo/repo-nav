@@ -125,6 +125,63 @@ class RepositoryManagementCommand : INavigationCommand {
         try { [Console]::CursorVisible = $true } catch {}
         
         try {
+            # Special handling for Folder Containers (non-git folders)
+            if ($repository.IsContainer) {
+                # Attempt to delete folder (checks for emptiness)
+                $result = $repoManager.DeleteFolder($repository)
+                
+                if (-not $result.Success) {
+                    if ($result.IsNotEmpty) {
+                        # Display specific status message as requested
+                        # Use cursor manipulation to show error next to "Status: ..." line
+                        # Footer structure: Sep / Info / Status / Sep / (Cursor Here)
+                        $currentTop = [Console]::CursorTop
+                        
+                        try {
+                            # Move up 2 lines (Separator line + Status line)
+                            if ($currentTop -ge 2) {
+                                [Console]::CursorTop = $currentTop - 2
+                                # Move to the right side (approx col 55 to be safe after "Status: Folder ...")
+                                [Console]::CursorLeft = 55
+                                
+                                # Clean potential previous text
+                                Write-Host "                                    " -NoNewline
+                                [Console]::CursorLeft = 55
+                                
+                                Write-Host "<- " -NoNewline -ForegroundColor Red
+                                Write-Host $result.Message -NoNewline -ForegroundColor Red
+                            } else {
+                                # Fallback if for some reason we are at top
+                                Write-Host $result.Message -ForegroundColor Red
+                            }
+                            
+                            Start-Sleep -Seconds 2
+                        }
+                        catch {
+                            # Fallback if cursor manipulation fails
+                            Write-Host $result.Message -ForegroundColor Red
+                            Start-Sleep -Seconds 2
+                        }
+                        finally {
+                            # Restore cursor roughly (redraw handles it anyway)
+                             [Console]::CursorTop = $currentTop
+                             [Console]::CursorLeft = 0
+                             
+                             # Force full redraw to clean up the temporary message
+                             $context.State.MarkForFullRedraw()
+                        }
+                    } else {
+                        # Standard error
+                        $view.ShowDeleteResult($false, $result.Message)
+                    }
+                    return
+                }
+                
+                # Success
+                $view.ShowDeleteResult($true, $result.Message)
+                return
+            }
+
             # Ensure git status is loaded
             if (-not $repository.HasGitStatusLoaded()) {
                 $repoManager.LoadGitStatus($repository)

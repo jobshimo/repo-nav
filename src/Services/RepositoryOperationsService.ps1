@@ -264,4 +264,53 @@ class RepositoryOperationsService {
             CanClone     = $isValid -and -not $targetExists
         }
     }
+    
+    <#
+    .SYNOPSIS
+        Deletes a folder if it is empty
+        
+    .PARAMETER folder
+        The folder (RepositoryModel) to delete
+        
+    .RETURNS
+        Hashtable with Success (bool) and Message (string)
+    #>
+    [hashtable] DeleteFolder([RepositoryModel]$folder) {
+        # Check if path exists
+        if (-not (Test-Path $folder.FullPath)) {
+             return @{
+                Success = $false
+                Message = "Path does not exist"
+            }
+        }
+
+        # Check if folder is empty
+        # We look for any item. If we find one, it's not empty.
+        $hasItems = Get-ChildItem -Path $folder.FullPath -Force -ErrorAction SilentlyContinue | Select-Object -First 1
+        
+        if ($hasItems) {
+            return @{
+                Success = $false
+                Message = "Cannot delete: Folder is not empty"
+                IsNotEmpty = $true
+            }
+        }
+        
+        # Delete empty folder
+        try {
+            Remove-Item -Path $folder.FullPath -Force -Recurse -ErrorAction Stop
+            
+            return @{
+                Success = $true
+                Message = "Folder deleted successfully"
+                DeletedPath = $folder.FullPath
+            }
+        }
+        catch {
+            return @{
+                Success = $false
+                Message = "Error deleting folder: $_"
+            }
+        }
+    }
 }

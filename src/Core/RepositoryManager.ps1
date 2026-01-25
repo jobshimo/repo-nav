@@ -350,4 +350,19 @@ class RepositoryManager {
             $this.LoadGitStatus($repository)
         }
     }
+
+    # Delete a folder (delegates to RepositoryOperationsService)
+    # Returns a result object { Success: bool, Message: string }
+    [hashtable] DeleteFolder([RepositoryModel]$folder) {
+        $result = $this.RepoOperationsService.DeleteFolder($folder)
+        
+        if ($result.Success) {
+            # Remove from local list if strictly necessary, but usually reload happens after
+            if ($this.Repositories.Contains($folder)) {
+                $this.Repositories.Remove($folder)
+            }
+        }
+        
+        return $result
+    }
 }
