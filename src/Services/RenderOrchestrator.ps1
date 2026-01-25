@@ -91,13 +91,23 @@ class RenderOrchestrator {
         # Header (Takes 3 lines)
         $this.Renderer.RenderHeader("REPOSITORY NAVIGATOR")
         
+        # Render breadcrumb if we're inside a container
+        $breadcrumbLines = 0
+        if ($state.CanGoBack()) {
+            $breadcrumb = $state.GetBreadcrumb()
+            if (-not [string]::IsNullOrEmpty($breadcrumb)) {
+                $this.Renderer.RenderBreadcrumb($breadcrumb)
+                $breadcrumbLines = 1
+            }
+        }
+        
         # Menu (dynamic height)
         # Returns number of lines used
         $menuLines = $this.Renderer.RenderMenu($menuMode)
         
         # Calculate cursor start line dynamically
-        # Header (3) + Menu (menuLines)
-        $this.CursorStartLine = 3 + $menuLines
+        # Header (3) + Breadcrumb (0 or 1) + Menu (menuLines)
+        $this.CursorStartLine = 3 + $breadcrumbLines + $menuLines
         
         # Calculate correct PageSize based on NEW CursorStartLine
         # This prevents scrolling artifacts when switching between Menu Modes

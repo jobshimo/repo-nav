@@ -67,6 +67,9 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Models\AliasInfo.ps1"
 . "$srcPath\Models\RepositoryModel.ps1"
 
+# Services - WindowSizeCalculator needed by NavigationState
+. "$srcPath\Services\WindowSizeCalculator.ps1"
+
 # Core - Navigation State (Accessed by UI and Services)
 . "$srcPath\Core\NavigationState.ps1"
 
@@ -77,6 +80,9 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Services\AliasManager.ps1"
 . "$srcPath\Services\GitService.ps1"
 . "$srcPath\Services\NpmService.ps1"
+. "$srcPath\Services\ParallelGitLoader.ps1"
+. "$srcPath\Services\RepositoryOperationsService.ps1"
+. "$srcPath\Services\FavoriteService.ps1"
 . "$srcPath\Services\RenderOrchestrator.ps1"
 
 # UI (depend on models and config)
@@ -85,6 +91,10 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\UIRenderer.ps1"
 . "$srcPath\UI\ColorSelector.ps1"
 . "$srcPath\UI\OptionSelector.ps1"
+
+# Views (depend on UI components)
+. "$srcPath\UI\Views\RepositoryManagementView.ps1"
+. "$srcPath\UI\Views\AliasView.ps1"
 
 # Commands (Interfaces and Implementations)
 . "$srcPath\Core\Commands\INavigationCommand.ps1"
@@ -135,6 +145,9 @@ function Start-RepositoryNavigator {
 
         # Create managers (depend on services)
         $aliasManager = [AliasManager]::new($configService)
+        $favoriteService = [FavoriteService]::new($configService)
+        $parallelGitLoader = [ParallelGitLoader]::new()
+        $repoOperationsService = [RepositoryOperationsService]::new($gitService)
         
         # Create repository coordinator (Facade pattern)
         $repoManager = [RepositoryManager]::new(
@@ -142,7 +155,10 @@ function Start-RepositoryNavigator {
             $npmService,
             $aliasManager,
             $configService,
-            $preferencesService
+            $preferencesService,
+            $favoriteService,
+            $parallelGitLoader,
+            $repoOperationsService
         )
         
         # Create UI layer

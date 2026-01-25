@@ -35,7 +35,8 @@ function Start-NavigationLoop {
     try {
         $Console.HideCursor()
         
-        $state = [NavigationState]::new($repos)
+        # Create state with base path for hierarchical navigation
+        $state = [NavigationState]::new($repos, $BasePath)
         
         $cursorStartLine = [Constants]::CursorStartLine
         $renderOrchestrator = [RenderOrchestrator]::new($Renderer, $Console, $cursorStartLine)

@@ -16,23 +16,29 @@ class RepositoryManagementCommand : INavigationCommand {
         $currentIndex = $state.GetCurrentIndex()
         $key = $keyPress.VirtualKeyCode
         
+        # Create View
+        $view = [RepositoryManagementView]::new($context.Console, $context.LocalizationService, $context.Renderer)
+        
         # Stop the navigation loop to allow interactive input
         $state.Stop()
         
         try {
             if ($key -eq [Constants]::KEY_C) {
                 # Clone repository
-                $this.InvokeRepositoryClone($context)
+                $this.InvokeRepositoryClone($context, $view)
             }
             elseif ($key -eq [Constants]::KEY_DELETE) {
                 # Delete repository
                 if ($repos.Count -gt 0) {
                     $currentRepo = $repos[$currentIndex]
-                    $this.InvokeRepositoryDelete($context, $currentRepo)
+                    $this.InvokeRepositoryDelete($context, $currentRepo, $view)
                 }
             }
             
             # Reload repositories after clone/delete
+            # Note: RepoManager.CloneRepository/DeleteRepository handles the file system,
+            # but we need to refresh the in-memory list.
+            
             $repoManager = $context.RepoManager
             if ($null -ne $repoManager) {
                 $repoManager.LoadRepositories($context.BasePath)
@@ -51,8 +57,8 @@ class RepositoryManagementCommand : INavigationCommand {
                     # Otherwise keep current index (which now points to the next item)
                 }
                 elseif ($key -eq [Constants]::KEY_C) {
-                    # Select the new repo if possible? 
-                    # For now just reload.
+                    # Optional: Select the new repo. 
+                    # Simpler to just let user find it or implement logic to find the new repo by path
                 }
             }
             
@@ -65,128 +71,48 @@ class RepositoryManagementCommand : INavigationCommand {
         }
     }
 
-    hidden [void] InvokeRepositoryClone($context) {
-        $RepoManager = $context.RepoManager
-        $BasePath = $context.BasePath
-        $Console = $context.Console
-        $LocalizationService = $context.LocalizationService
+    hidden [void] InvokeRepositoryClone($context, [RepositoryManagementView]$view) {
+        $repoManager = $context.RepoManager
+        $basePath = $context.BasePath
 
-        # Helper for localization
-        $GetLoc = { param($key, $def) if ($LocalizationService) { return $LocalizationService.Get($key) } return $def }
+        # 1. View: Get Input
+        $details = $view.GetCloneDetails()
+        if ($null -eq $details) { return }
 
-        $Console.ClearForWorkflow()
-        $header = & $GetLoc "Repo.CloneTitle" "CLONE REPOSITORY"
-        Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host "    $header" -ForegroundColor ([Constants]::ColorHeader)
-        Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host ""
+        $url = $details.Url
+        $name = $details.Name
+
+        # 2. Service: Perform Action
+        $view.ShowCloningMessage("...$name") # Using placeholder, or reconstruct path if needed
         
-        Write-Host "GitHub URL (https://... or git@...): " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
-        $url = Read-Host
-        
-        if ([string]::IsNullOrWhiteSpace($url)) {
-            Write-Host "Operation cancelled." -ForegroundColor ([Constants]::ColorWarning)
-            Start-Sleep -Seconds 1
-            return
-        }
-        
-        # Extract name from URL
-        $repoName = $url.Split('/')[-1].Replace('.git', '')
-        
-        Write-Host "Target folder name (Enter = '$repoName'): " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
-        $customName = Read-Host
-        
-        if (-not [string]::IsNullOrWhiteSpace($customName)) {
-            $repoName = $customName
-        }
-        
-        $targetPath = Join-Path $BasePath $repoName
-        
-        if (Test-Path $targetPath) {
-            Write-Host "Error: Folder '$repoName' already exists." -ForegroundColor ([Constants]::ColorError)
-            Start-Sleep -Seconds 2
-            return
-        }
-        
-        Write-Host ""
-        Write-Host "Cloning into '$targetPath'..." -ForegroundColor ([Constants]::ColorHighlight)
-        
-        # Show cursor for git output
         try {
             [Console]::CursorVisible = $true
-        } catch {}
-        
-        try {
-            git clone $url $targetPath
             
-            if ($?) {
-                Write-Host ""
-                Write-Host "Repository cloned successfully!" -ForegroundColor ([Constants]::ColorSuccess)
-            } else {
-                Write-Host ""
-                Write-Host "Failed to clone repository." -ForegroundColor ([Constants]::ColorError)
-            }
-        }
-        catch {
-            Write-Host "Error executing git clone: $_" -ForegroundColor ([Constants]::ColorError)
+            # Call Service method
+            $result = $repoManager.CloneRepository($url, $name, $basePath)
+            
+            # 3. View: Show Result
+            $view.ShowCloneResult($result.Success, $result.Message)
         }
         finally {
-            try { [Console]::CursorVisible = $false } catch {}
+             try { [Console]::CursorVisible = $false } catch {}
         }
-        
-        Start-Sleep -Seconds 2
     }
 
-    hidden [void] InvokeRepositoryDelete($context, [RepositoryModel]$Repository) {
-        $RepoManager = $context.RepoManager
-        $Console = $context.Console
-        $LocalizationService = $context.LocalizationService
-        $OptionSelector = $context.OptionSelector
-
-        # Helper for localization
-        $GetLoc = { param($key, $def) if ($LocalizationService) { return $LocalizationService.Get($key) } return $def }
-
-        $Console.ClearForWorkflow()
-        $header = & $GetLoc "Repo.DeleteTitle" "DELETE REPOSITORY"
-        Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host "    $header" -ForegroundColor ([Constants]::ColorHeader)
-        Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
-        Write-Host $Repository.Name -ForegroundColor ([Constants]::ColorValue)
-        Write-Host "Path:       " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
-        Write-Host $Repository.FullPath -ForegroundColor ([Constants]::ColorValue)
-        Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host ""
+    hidden [void] InvokeRepositoryDelete($context, [RepositoryModel]$repository, [RepositoryManagementView]$view) {
+        $repoManager = $context.RepoManager
         
-        $warningMsg = & $GetLoc "Repo.DeleteWarning" "WARNING: This will permanently delete the folder and all contents!"
-        $confirmMsg = & $GetLoc "Prompt.DeleteConfirm" "Type 'DELETE' to confirm"
+        # 1. View: Confirm
+        $confirmed = $view.ConfirmDelete($repository)
+        if (-not $confirmed) { return }
         
-        Write-Host $warningMsg -ForegroundColor Red
-        Write-Host ""
-        Write-Host "$confirmMsg : " -NoNewline -ForegroundColor Red
+        # 2. View: Show Progress
+        $view.ShowDeletingMessage()
         
-        $confirmation = Read-Host
+        # 3. Service: Perform Action
+        $result = $repoManager.DeleteRepository($repository)
         
-        if ($confirmation -eq "DELETE") {
-            try {
-                Write-Host "Deleting..." -ForegroundColor ([Constants]::ColorWarning)
-                Remove-Item -Path $Repository.FullPath -Recurse -Force -ErrorAction Stop
-                
-                # Also remove from aliases if exists
-                if ($Repository.HasAlias) {
-                    $RepoManager.RemoveAlias($Repository)
-                }
-                
-                Write-Host "Repository deleted successfully." -ForegroundColor ([Constants]::ColorSuccess)
-            }
-            catch {
-                Write-Host "Error deleting repository: $_" -ForegroundColor ([Constants]::ColorError)
-                Write-Host "Check if files are open in another program." -ForegroundColor ([Constants]::ColorGray)
-            }
-        } else {
-            Write-Host "Operation cancelled." -ForegroundColor ([Constants]::ColorWarning)
-        }
-        
-        Start-Sleep -Seconds 2
+        # 4. View: Show Result
+        $view.ShowDeleteResult($result.Success, $result.Message)
     }
 }

@@ -48,6 +48,14 @@ class UIRenderer {
         $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
     }
     
+    # Render breadcrumb for hierarchical navigation
+    [void] RenderBreadcrumb([string]$path) {
+        $backHint = $this.GetLoc("Nav.BackHint", "< back")
+        $this.Console.WriteColored("  $backHint | ", [Constants]::ColorHint)
+        $this.Console.WriteColored("Path: ", [Constants]::ColorLabel)
+        $this.Console.WriteLineColored($path, [Constants]::ColorHighlight)
+    }
+    
     # Render interactive workflow header with repository info
     [void] RenderWorkflowHeader([string]$title, [RepositoryModel]$repository) {
         $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
@@ -252,8 +260,10 @@ class UIRenderer {
             }
         }
         
-        # Determine name color
-        $nameColor = if (-not $repo.HasNodeModules) { 
+        # Determine name color - containers use Cyan, repos use normal logic
+        $nameColor = if ($repo.IsContainer) {
+            [Constants]::ColorHighlight  # Cyan for containers
+        } elseif (-not $repo.HasNodeModules) { 
             [Constants]::ColorRepoWithoutModules  # Red si no tiene node_modules
         } elseif ($isSelected) { 
             $selectedTextColor  # Color optimizado según fondo
@@ -263,21 +273,26 @@ class UIRenderer {
         
         $prefix = if ($isSelected) { "  > " } else { "    " }
         
-        # Get git status display
-        $gitDisplay = $this.GetGitStatusDisplay($repo.GitStatus)
-        
         # Render prefix - usar color optimizado
         $this.Console.WriteColored($prefix, $(if ($isSelected) { $selectedTextColor } else { [Constants]::ColorUnselected }))
         
-        # Render favorite indicator
-        if ($repo.IsFavorite) {
+        # Render favorite indicator (not for containers)
+        if (-not $repo.IsContainer -and $repo.IsFavorite) {
             $this.Console.WriteColored("$([Constants]::FavoriteSymbol) ", [Constants]::ColorFavorite)
+        } elseif ($repo.IsContainer) {
+            # Container indicator
+            $this.Console.WriteColored("+ ", [Constants]::ColorHighlight)
         } else {
             $this.Console.Write("  ")
         }
         
-        # Render git indicator
-        $this.Console.WriteColored("$($gitDisplay.Symbol) ", $gitDisplay.Color)
+        # Render git indicator (only for non-containers)
+        if ($repo.IsContainer) {
+            $this.Console.Write("  ")  # No git status for containers
+        } else {
+            $gitDisplay = $this.GetGitStatusDisplay($repo.GitStatus)
+            $this.Console.WriteColored("$($gitDisplay.Symbol) ", $gitDisplay.Color)
+        }
         
         # Render left delimiter
         if ($leftDelimiter -ne '') {
@@ -304,8 +319,13 @@ class UIRenderer {
             }
         }
         
-        # Render alias if exists (always without background)
-        if ($repo.HasAlias -and $repo.AliasInfo) {
+        # For containers, show count of repos inside
+        if ($repo.IsContainer) {
+            $countText = " ($($repo.ContainedRepoCount) repos)"
+            $this.Console.WriteColored($countText, [Constants]::ColorInfo)
+        }
+        # Render alias if exists (always without background) - only for non-containers
+        elseif ($repo.HasAlias -and $repo.AliasInfo) {
             $aliasText = " - $($repo.AliasInfo.Alias)"
             $this.Console.WriteColored($aliasText, $repo.AliasInfo.Color)
         } else {

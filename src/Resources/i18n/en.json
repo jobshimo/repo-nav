@@ -29,6 +29,10 @@
     "Pref.SelectedDelim": "Selected Item Delimiter",
     "Pref.AutoLoadGit": "Auto-load Git Status (Favorites)",
     "Pref.MenuMode": "Menu Display",
+    "Pref.MenuMode.Full": "Full (All commands)",
+    "Pref.MenuMode.Minimal": "Minimal (Navigation only)",
+    "Pref.MenuMode.Custom": "Custom (Select sections)",
+    "Pref.MenuMode.Hidden": "Hidden (Hide menu)",
     "Pref.Back": "Back to main menu",
     "Pref.Value.Top": "Top of list",
     "Pref.Value.Original": "Original position",
@@ -36,8 +40,19 @@
     "Pref.Value.Disabled": "Disabled",
     "Pref.Value.Show": "Show",
     "Pref.Value.Hide": "Hide",
+
+    "Msg.LanguageChanged": "Language changed to {0}",
+    "Msg.FavoritesPosUpdated": "Updated favorites position",
+    "Msg.BackgroundUpdated": "Updated background",
+    "Msg.DelimiterUpdated": "Updated delimiter",
+    "Msg.AutoLoadUpdated": "Updated auto-load settings",
+    "Msg.MenuModeUpdated": "Updated menu mode",
+    "Msg.SectionToggled": "{0}: {1}",
     "Prompt.SelectLanguage": "Select Language",
     
+    "Lang.en": "English",
+    "Lang.es": "Spanish",
+
     "UI.Status": "Status",
     "UI.Branch": "Branch",
     "UI.Changes": "Changes",
@@ -56,11 +71,16 @@
     "Cmd.Desc.Exit": "Exit: Q/Esc",
     "Cmd.Desc.Favorite": "Set / Unset favorite (F)",
     "Cmd.Desc.Git": "GitStatus: Load (L) / (G)",
-    "Cmd.Desc.Nav": "↑/↓ | Enter",
+    "Cmd.Desc.Nav": "\u2190/\u2191/\u2193 | Enter",
     "Cmd.Desc.Npm": "Npm: Install (I) / Remove (X)",
     "Cmd.Desc.Pref": "Prefs: U",
     "Cmd.Desc.Repo": "Open repository (Enter)",
     "Cmd.Desc.RepoMgmt": "Clone (C) / Delete (Del)",
+
+    "Nav.BackHint": "\u2190 back",
+    "Nav.Container": "Folder",
+    "Nav.ContainsRepos": "Contains {0} repos",
+    "Nav.EnterToOpen": "Enter to open",
 
     "Alias.Title": "SET ALIAS",
     "Alias.Current": "Current alias",
@@ -83,12 +103,10 @@
     "Alias.RemovedSuccess": "Alias removed successfully!",
     "Alias.RemoveFail": "Failed to remove alias.",
     "Alias.KeepColorTitle": "Keep current color?",
-    "Alias.CurrentColor": "Current color",
 
-    "Prompt.Continue": "Continue?",
     "Msg.ActionCancelled": "Operation cancelled.",
 
-    "Msg.Npm.DeleteWarning": "This will delete the node_modules folder.",
+    "Msg.Npm.DeleteWarning": "This will delete: {0}",
     "Msg.Npm.RemoveLockPrompt": "Do you also want to remove package-lock.json?",
     "Error.Npm.RemoveFailed": "Error removing node_modules.",
 
@@ -116,5 +134,31 @@
     "Prompt.ConfirmTitle": "CONFIRMATION",
     "Prompt.Yes": "YES",
     "Prompt.No": "NO",
-    "Prompt.DeleteConfirmInput": "DELETE"
+    "Prompt.DeleteConfirmInput": "DELETE",
+
+    "Prompt.Continue": "Continue?",
+    "Prompt.Cancelled": "Operation cancelled.",
+    
+    "Alias.NewPrompt": "New alias (Enter = keep '{0}'): ",
+    "Alias.EnterPrompt": "Enter alias (no spaces): ",
+    "Alias.CurrentColor": "Current color",
+    "Alias.SavedSuccess": "Alias saved successfully with color ",
+    "Alias.SaveFail": "Failed to save alias.",
+    
+    "Error.AliasSpaces": "Error: Alias cannot contain spaces.",
+    "Error.AliasEmpty": "Alias not saved (empty).",
+    "Error.FolderExists": "Error: Folder '{0}' already exists.",
+    
+    "Repo.CloneTitle": "CLONE REPOSITORY",
+    "Repo.CloningInto": "Cloning into '{0}'...",
+    "Repo.CloneSuccess": "Repository cloned successfully!",
+    "Repo.CloneFail": "Failed to clone repository.",
+    
+    "Repo.DeleteTitle": "DELETE REPOSITORY",
+    "Repo.DeleteWarning": "WARNING: This will permanently delete the folder and all contents!",
+    "Prompt.DeleteConfirm": "Type 'DELETE' to confirm",
+    "Repo.Deleting": "Deleting...",
+    "Repo.DeleteSuccess": "Repository deleted successfully.",
+    "Repo.DeleteFail": "Error deleting repository: {0}",
+    "Repo.DeleteFailHint": "Check if files are open in another program."
 }

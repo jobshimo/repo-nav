@@ -33,6 +33,8 @@ class Constants {
     static [int] $KEY_L = 76
     static [int] $KEY_F = 70
     static [int] $KEY_U = 85
+    static [int] $KEY_LEFT_ARROW = 37
+    static [int] $KEY_RIGHT_ARROW = 39
     
     # UI Constants
     static [int] $CursorStartLine = 10
@@ -46,6 +48,10 @@ class Constants {
     
     # Favorite Symbol
     static [string] $FavoriteSymbol = [char]0x2605      # ★
+    
+    # Container Symbol (for multi-repo folders)
+    static [string] $ContainerSymbol = "+"              # Simple + for containers
+    static [string] $ContainerSymbolAlt = ">"           # Fallback alternative
     
     # UI Colors - Single source of truth for all UI colors
     static [string] $ColorHeader = "Cyan"

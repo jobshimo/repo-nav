@@ -4,18 +4,18 @@
     
 .DESCRIPTION
     Following SOLID principles:
-    - SRP: Only manages repository operations coordination
+    - SRP: Coordinates repository operations (delegates to specialized services)
     - OCP: Open for extension (new operations), closed for modification
-    - DIP: Depends on service abstractions (GitService, NpmService, AliasManager)
+    - DIP: Depends on service abstractions (GitService, NpmService, etc.)
     - Composition over Inheritance: Uses services through composition
     
     This is the "Facade" that provides high-level operations:
     - Loading and initializing repositories
     - Setting/removing aliases
-    - Managing favorites
-    - Git operations (load status, clone)
-    - Npm operations (install, remove)
-    - Repository deletion
+    - Delegating to specialized services for:
+      - Favorites (FavoriteService)
+      - Parallel Git loading (ParallelGitLoader)
+      - Clone/Delete operations (RepositoryOperationsService)
 #>
 
 class RepositoryManager {
@@ -25,6 +25,9 @@ class RepositoryManager {
     [AliasManager] $AliasManager
     [ConfigurationService] $ConfigService
     [UserPreferencesService] $PreferencesService
+    [FavoriteService] $FavoriteService
+    [ParallelGitLoader] $ParallelGitLoader
+    [RepositoryOperationsService] $RepoOperationsService
     
     # Cache for loaded repositories
     [System.Collections.ArrayList] $Repositories
@@ -35,18 +38,64 @@ class RepositoryManager {
         [NpmService]$npmService,
         [AliasManager]$aliasManager,
         [ConfigurationService]$configService,
-        [UserPreferencesService]$preferencesService
+        [UserPreferencesService]$preferencesService,
+        [FavoriteService]$favoriteService,
+        [ParallelGitLoader]$parallelGitLoader,
+        [RepositoryOperationsService]$repoOperationsService
     ) {
         $this.GitService = $gitService
         $this.NpmService = $npmService
         $this.AliasManager = $aliasManager
         $this.ConfigService = $configService
         $this.PreferencesService = $preferencesService
+        $this.FavoriteService = $favoriteService
+        $this.ParallelGitLoader = $parallelGitLoader
+        $this.RepoOperationsService = $repoOperationsService
         $this.Repositories = [System.Collections.ArrayList]::new()
     }
     
+    # Clone a new repository (delegates to RepositoryOperationsService)
+    # Returns a result object { Success: bool, Message: string }
+    [hashtable] CloneRepository([string]$url, [string]$customName, [string]$basePath) {
+        return $this.RepoOperationsService.CloneRepository($url, $customName, $basePath)
+    }
+
+    # Delete a repository (delegates to RepositoryOperationsService)
+    # Returns a result object { Success: bool, Message: string }
+    [hashtable] DeleteRepository([RepositoryModel]$repository) {
+        # Ensure git status is loaded for safety check
+        if (-not $repository.HasGitStatusLoaded()) {
+            $this.LoadGitStatus($repository)
+        }
+        
+        $result = $this.RepoOperationsService.DeleteRepository($repository, $false)
+        
+        if ($result.Success) {
+            # Remove alias if exists
+            if ($repository.HasAlias) {
+                $this.RemoveAlias($repository)
+            }
+            
+            # Remove from favorites
+            $this.FavoriteService.RemoveFavorite($repository.Name)
+            
+            # Remove from local list
+            if ($this.Repositories.Contains($repository)) {
+                $this.Repositories.Remove($repository)
+            }
+        }
+        
+        return $result
+    }
+
     # Load all repositories from base path
+    # Now supports container folders (folders with repos inside)
     [void] LoadRepositories([string]$basePath) {
+        $this.LoadRepositoriesInternal($basePath, $null)
+    }
+    
+    # Load repositories with optional parent path (for hierarchical navigation)
+    [void] LoadRepositoriesInternal([string]$basePath, [string]$parentPath) {
         $oldRepos = @{}
         foreach ($repo in $this.Repositories) {
             $oldRepos[$repo.Name] = $repo
@@ -62,20 +111,32 @@ class RepositoryManager {
         }
         
         $aliases = $this.AliasManager.GetAllAliases()
-        $favorites = $this.AliasManager.GetFavorites()
         
         foreach ($dir in $directories) {
             $repo = [RepositoryModel]::new($dir)
+            
+            # Check if this is a container (has repos inside but is not a repo itself)
+            if ($this.GitService.IsContainerDirectory($dir.FullName)) {
+                $repoCount = $this.GitService.CountContainedRepositories($dir.FullName)
+                $repo.MarkAsContainer($repoCount)
+            }
+            
+            # Set parent path if provided (for back navigation)
+            if ($parentPath) {
+                $repo.SetParentPath($parentPath)
+            }
             
             if ($aliases.ContainsKey($repo.Name)) {
                 $repo.SetAlias($aliases[$repo.Name])
             }
             
-            if ($favorites -contains $repo.Name) {
-                $repo.MarkAsFavorite($true)
-            }
+            # Delegate favorite check to FavoriteService
+            $this.FavoriteService.UpdateRepositoryModel($repo)
             
-            $this.NpmService.UpdateRepositoryModel($repo)
+            # Only check node_modules for non-container folders
+            if (-not $repo.IsContainer) {
+                $this.NpmService.UpdateRepositoryModel($repo)
+            }
             
             if ($oldRepos.ContainsKey($repo.Name) -and $oldRepos[$repo.Name].HasGitStatusLoaded()) {
                 $repo.SetGitStatus($oldRepos[$repo.Name].GitStatus)
@@ -98,6 +159,11 @@ class RepositoryManager {
         
         $this.Repositories.Clear()
         $this.Repositories.AddRange($sorted)
+    }
+    
+    # Load repositories from a container folder (for hierarchical navigation)
+    [void] LoadContainerRepositories([string]$containerPath, [string]$parentPath) {
+        $this.LoadRepositoriesInternal($containerPath, $parentPath)
     }
     
     # Get all loaded repositories
@@ -135,131 +201,14 @@ class RepositoryManager {
         $this.LoadGitStatusForRepos($missingRepos, $progressCallback)
     }
     
+    # Load git status for specified repositories (delegates to ParallelGitLoader)
     [void] LoadGitStatusForRepos([array]$repos, [scriptblock]$progressCallback = $null) {
-        $total = $repos.Count
+        $total = @($repos).Count
         
         if ($total -eq 0) { return }
         
-        if ($null -ne $progressCallback) {
-            & $progressCallback 0 $total
-        }
-        
-        # Parallel execution using Runspaces (more reliable than Start-Job)
-        $runspacePool = [runspacefactory]::CreateRunspacePool(1, [Environment]::ProcessorCount)
-        $runspacePool.Open()
-        
-        $runspaces = [System.Collections.Generic.List[hashtable]]::new()
-        
-        $scriptBlock = {
-            param([string]$repoPath)
-            
-            Set-StrictMode -Version Latest
-            
-            $local:isGitRepo = $false
-            $local:branchResult = ""
-            $local:hasChangesResult = $false
-            $local:hasUnpushedResult = $false
-            
-            Push-Location $repoPath
-            try {
-                $local:isGitRepo = Test-Path ".git"
-                if (-not $local:isGitRepo) {
-                    return [PSCustomObject]@{
-                        IsGitRepo = $false
-                        CurrentBranch = ""
-                        HasUncommittedChanges = $false
-                        HasUnpushedCommits = $false
-                    }
-                }
-                
-                $local:branchOutput = git rev-parse --abbrev-ref HEAD 2>$null
-                $local:branchResult = ($local:branchOutput | Out-String).Trim()
-                
-                $local:statusOutput = git status --porcelain 2>$null
-                $local:statusStr = ($local:statusOutput | Out-String).Trim()
-                $local:hasChangesResult = ($local:statusStr.Length -gt 0)
-                
-                $local:upstream = git rev-parse --abbrev-ref "@{u}" 2>$null
-                $local:unpushedCount = git rev-list --count "@{u}..HEAD" 2>$null
-                $local:countStr = ($local:unpushedCount | Out-String).Trim()
-                $local:hasUnpushedResult = $false
-                if ($local:countStr -match '^\d+$') {
-                    $local:hasUnpushedResult = ([int]$local:countStr -gt 0)
-                }
-                
-                return [PSCustomObject]@{
-                    IsGitRepo = $local:isGitRepo
-                    CurrentBranch = $local:branchResult
-                    HasUncommittedChanges = $local:hasChangesResult
-                    HasUnpushedCommits = $local:hasUnpushedResult
-                }
-            }
-            finally {
-                Pop-Location
-            }
-        }
-        
-        foreach ($repo in $repos) {
-            $powershell = [powershell]::Create().AddScript($scriptBlock).AddArgument($repo.FullPath)
-            $powershell.RunspacePool = $runspacePool
-            
-            $runspaces.Add(@{
-                PowerShell = $powershell
-                Handle = $powershell.BeginInvoke()
-                Repository = $repo
-            })
-        }
-        
-        # Wait for completion and update progress
-        $completed = 0
-        $maxWaitSeconds = 30
-        $startTime = Get-Date
-        
-        while ($completed -lt $total) {
-            # Check timeout
-            if (((Get-Date) - $startTime).TotalSeconds -gt $maxWaitSeconds) {
-                break
-            }
-            
-            foreach ($runspaceInfo in $runspaces) {
-                if ($null -ne $runspaceInfo.Handle -and $runspaceInfo.Handle.IsCompleted) {
-                    try {
-                        $resultArray = $runspaceInfo.PowerShell.EndInvoke($runspaceInfo.Handle)
-                        
-                        if ($resultArray.Count -gt 0) {
-                            $result = $resultArray[0]
-                            
-                            $gitStatus = [GitStatusModel]::new(
-                                $result.IsGitRepo,
-                                $result.HasUncommittedChanges,
-                                $result.HasUnpushedCommits,
-                                $result.CurrentBranch
-                            )
-                            $runspaceInfo.Repository.SetGitStatus($gitStatus)
-                        }
-                    }
-                    catch {
-                    }
-                    finally {
-                        $runspaceInfo.PowerShell.Dispose()
-                        $runspaceInfo.Handle = $null
-                    }
-                    
-                    $completed++
-                    
-                    if ($null -ne $progressCallback) {
-                        & $progressCallback $completed $total
-                    }
-                }
-            }
-            
-            if ($completed -lt $total) {
-                Start-Sleep -Milliseconds 10
-            }
-        }
-        
-        $runspacePool.Close()
-        $runspacePool.Dispose()
+        # Delegate to ParallelGitLoader
+        $this.ParallelGitLoader.LoadGitStatusParallel($repos, $progressCallback)
     }
     
     [int] GetLoadedGitStatusCount() {
@@ -290,9 +239,9 @@ class RepositoryManager {
         return $false
     }
     
-    # Toggle favorite status
+    # Toggle favorite status (delegates to FavoriteService)
     [bool] ToggleFavorite([RepositoryModel]$repository) {
-        $result = $this.AliasManager.ToggleFavorite($repository.Name)
+        $result = $this.FavoriteService.ToggleFavorite($repository.Name)
         if ($result) {
             $repository.MarkAsFavorite(-not $repository.IsFavorite)
         }
@@ -317,66 +266,6 @@ class RepositoryManager {
             $this.NpmService.UpdateRepositoryModel($repository)
         }
         return $result
-    }
-    
-    # Clone a repository
-    [bool] CloneRepository([string]$url, [string]$basePath) {
-        # Validate URL
-        if (-not $this.GitService.IsValidGitUrl($url)) {
-            Write-Error "Invalid Git URL format"
-            return $false
-        }
-        
-        # Get repo name
-        $repoName = $this.GitService.GetRepoNameFromUrl($url)
-        if ([string]::IsNullOrWhiteSpace($repoName)) {
-            Write-Error "Could not extract repository name from URL"
-            return $false
-        }
-        
-        # Check if already exists
-        $targetPath = Join-Path $basePath $repoName
-        if (Test-Path $targetPath) {
-            Write-Error "Repository '$repoName' already exists"
-            return $false
-        }
-        
-        # Clone
-        $result = $this.GitService.CloneRepository($url, $basePath)
-        
-        if ($result) {
-            # Reload repositories to include the new one
-            $this.LoadRepositories($basePath)
-        }
-        
-        return $result
-    }
-    
-    # Delete a repository (with safety checks)
-    [bool] DeleteRepository([RepositoryModel]$repository, [bool]$force = $false) {
-        # Safety check: Load git status if not loaded
-        if (-not $repository.HasGitStatusLoaded()) {
-            $this.LoadGitStatus($repository)
-        }
-        
-        # Check for uncommitted changes or unpushed commits
-        if (-not $force -and $repository.GitStatus -and $repository.GitStatus.NeedsAttention()) {
-            Write-Warning "Repository has uncommitted changes or unpushed commits. Use -force to delete anyway."
-            return $false
-        }
-        
-        try {
-            Remove-Item -Path $repository.FullPath -Recurse -Force -ErrorAction Stop
-            
-            # Remove from collection
-            $this.Repositories.Remove($repository)
-            
-            return $true
-        }
-        catch {
-            Write-Error "Error deleting repository: $_"
-            return $false
-        }
     }
     
     # Refresh a specific repository (reload from disk)

@@ -167,4 +167,30 @@ class GitService {
             Pop-Location
         }
     }
+    
+    # Check if a directory contains Git repositories in its subdirectories
+    # Returns the count of repositories found (0 if none)
+    [int] CountContainedRepositories([string]$path) {
+        $count = 0
+        $subdirs = Get-ChildItem -Directory -Path $path -ErrorAction SilentlyContinue
+        
+        foreach ($subdir in $subdirs) {
+            if ($this.IsGitRepository($subdir.FullName)) {
+                $count++
+            }
+        }
+        
+        return $count
+    }
+    
+    # Check if a directory is a container (has repos inside but is not a repo itself)
+    [bool] IsContainerDirectory([string]$path) {
+        # If it's already a git repo, it's not a container
+        if ($this.IsGitRepository($path)) {
+            return $false
+        }
+        
+        # Check if any subdirectory is a git repo
+        return ($this.CountContainedRepositories($path) -gt 0)
+    }
 }
