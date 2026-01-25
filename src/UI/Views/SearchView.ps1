@@ -109,8 +109,11 @@ class SearchView {
             $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
             
             while ($running) {
-                # Show cursor only when in input mode
+                # Manage cursor visibility based on focus mode
                 if ($focusMode -eq "input") {
+                    # Position cursor at end of search input (line 4, after "  > Search: " + text)
+                    $cursorX = 13 + $searchText.Length  # "  > Search: " = 13 chars
+                    $this.Console.SetCursorPosition($cursorX, 3)
                     $this.Console.ShowCursor()
                 } else {
                     $this.Console.HideCursor()
@@ -274,6 +277,8 @@ class SearchView {
         Full screen render
     #>
     hidden [void] RenderFull([string]$searchText, [array]$filteredRepos, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$totalCount, [int]$listStartLine) {
+        # Hide cursor during render to prevent flickering
+        $this.Console.HideCursor()
         $this.Console.ClearScreen()
         
         # Header (3 lines)
@@ -298,6 +303,8 @@ class SearchView {
         
         # Footer
         $this.RenderFooter($selectedIndex, $filteredRepos.Count, $totalCount, $focusMode, $listStartLine, $pageSize)
+        
+        # Keep cursor hidden after render - the main loop will show it if needed
     }
     
     <#
@@ -403,6 +410,9 @@ class SearchView {
         Renders the footer with position info and hints
     #>
     hidden [void] RenderFooter([int]$selectedIndex, [int]$filteredCount, [int]$totalCount, [string]$focusMode, [int]$listStartLine, [int]$pageSize) {
+        # Hide cursor during footer render
+        $this.Console.HideCursor()
+        
         $footerLine = $listStartLine + $pageSize
         $this.Console.SetCursorPosition(0, $footerLine)
         
