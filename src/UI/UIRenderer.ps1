@@ -56,6 +56,14 @@ class UIRenderer {
         $this.Console.WriteLineColored($path, [Constants]::ColorHighlight)
     }
     
+    # Render simple workflow header (title only)
+    [void] RenderWorkflowHeader([string]$title) {
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        $this.Console.WriteLineColored("    $title", [Constants]::ColorHeader)
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        $this.Console.NewLine()
+    }
+    
     # Render interactive workflow header with repository info
     [void] RenderWorkflowHeader([string]$title, [RepositoryModel]$repository) {
         $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)

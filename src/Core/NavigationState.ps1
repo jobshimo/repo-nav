@@ -544,6 +544,30 @@ class NavigationState {
     
     <#
     .SYNOPSIS
+        Gets the parent path from the navigation stack (if inside a container)
+    #>
+    [string] GetParentPath() {
+        if ($this.NavigationStack.Count -eq 0) {
+            return $null
+        }
+        $parentEntry = $this.NavigationStack.Peek()
+        return $parentEntry.Path
+    }
+    
+    <#
+    .SYNOPSIS
+        Checks if currently inside a container (not at base level)
+    #>
+    [bool] IsInsideContainer() {
+        # Safety check for null values
+        if ([string]::IsNullOrEmpty($this.CurrentPath) -or [string]::IsNullOrEmpty($this.BasePath)) {
+            return $false
+        }
+        return $this.CurrentPath -ne $this.BasePath
+    }
+    
+    <#
+    .SYNOPSIS
         Gets the current path
     #>
     [string] GetCurrentPath() {

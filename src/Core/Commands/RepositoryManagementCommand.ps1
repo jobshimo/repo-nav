@@ -41,7 +41,18 @@ class RepositoryManagementCommand : INavigationCommand {
             
             $repoManager = $context.RepoManager
             if ($null -ne $repoManager) {
-                $repoManager.LoadRepositories($context.BasePath)
+                # Check if we're inside a container (not at base level)
+                if ($state.IsInsideContainer()) {
+                    # Reload container contents
+                    $currentPath = $state.GetCurrentPath()
+                    $parentPath = $state.GetParentPath()
+                    $repoManager.LoadContainerRepositories($currentPath, $parentPath)
+                }
+                else {
+                    # At base level - normal reload
+                    $repoManager.LoadRepositories($context.BasePath)
+                }
+                
                 $updatedRepos = $repoManager.GetRepositories()
                 $state.SetRepositories($updatedRepos)
                 
@@ -101,18 +112,28 @@ class RepositoryManagementCommand : INavigationCommand {
 
     hidden [void] InvokeRepositoryDelete($context, [RepositoryModel]$repository, [RepositoryManagementView]$view) {
         $repoManager = $context.RepoManager
+        $console = $context.Console
         
-        # 1. View: Confirm
-        $confirmed = $view.ConfirmDelete($repository)
-        if (-not $confirmed) { return }
+        # Show cursor for user input BEFORE clearing screen
+        try { [Console]::CursorVisible = $true } catch {}
         
-        # 2. View: Show Progress
-        $view.ShowDeletingMessage()
-        
-        # 3. Service: Perform Action
-        $result = $repoManager.DeleteRepository($repository)
-        
-        # 4. View: Show Result
-        $view.ShowDeleteResult($result.Success, $result.Message)
+        try {
+            # 1. View: Confirm
+            $confirmed = $view.ConfirmDelete($repository)
+            if (-not $confirmed) { return }
+            
+            # 2. View: Show Progress
+            $view.ShowDeletingMessage()
+            
+            # 3. Service: Perform Action
+            $result = $repoManager.DeleteRepository($repository)
+            
+            # 4. View: Show Result
+            $view.ShowDeleteResult($result.Success, $result.Message)
+        }
+        finally {
+            # Hide cursor again
+            try { [Console]::CursorVisible = $false } catch {}
+        }
     }
 }
