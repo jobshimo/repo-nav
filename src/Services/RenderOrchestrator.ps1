@@ -33,6 +33,26 @@ class RenderOrchestrator {
     }
     
     #region Public Rendering Methods
+
+    <#
+    .SYNOPSIS
+        Initializes the screen and adjusts layout to fit window
+    #>
+    [void] Initialize([object]$state) {
+        # First render to establish the layout components (Header, Menu height, etc.)
+        # This calculates the properties like CursorStartLine
+        $this.RenderFull($state)
+        
+        # Now that we know the interface height, calculate the correct Viewport size (PageSize)
+        $state.UpdateWindowSize($this.CursorStartLine)
+        
+        # If the window size calculation changed the PageSize, we need to redraw
+        # to fill the empty space or trim the list
+        if ($state.RequiresFullRedraw) {
+            $this.RenderFull($state)
+            $state.RequiresFullRedraw = $false
+        }
+    }
     
     <#
     .SYNOPSIS
@@ -78,6 +98,10 @@ class RenderOrchestrator {
         # Calculate cursor start line dynamically
         # Header (3) + Menu (menuLines)
         $this.CursorStartLine = 3 + $menuLines
+        
+        # Calculate correct PageSize based on NEW CursorStartLine
+        # This prevents scrolling artifacts when switching between Menu Modes
+        $state.UpdateWindowSize($this.CursorStartLine)
         
         # Explicitly enforce start position to match partial updates
         $this.Console.SetCursorPosition(0, $this.CursorStartLine)

@@ -43,103 +43,153 @@ class UIRenderer {
     
     # Render header
     [void] RenderHeader([string]$title) {
-        $separator = "=" * [Constants]::UIWidth
-        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host "    $title" -ForegroundColor ([Constants]::ColorHeader)
-        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        $this.Console.WriteLineColored("    $title", [Constants]::ColorHeader)
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
     }
     
     # Render interactive workflow header with repository info
     [void] RenderWorkflowHeader([string]$title, [RepositoryModel]$repository) {
-        $separator = "=" * [Constants]::UIWidth
-        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host "    $title" -ForegroundColor ([Constants]::ColorHeader)
-        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host ("{0}: " -f $this.GetLoc("UI.Group.Repo", "Repository")) -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
-        Write-Host $repository.Name -ForegroundColor ([Constants]::ColorValue)
-        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host ""
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        $this.Console.WriteLineColored("    $title", [Constants]::ColorHeader)
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        $this.Console.WriteColored(("{0}: " -f $this.GetLoc("UI.Group.Repo", "Repository")), [Constants]::ColorPrompt)
+        $this.Console.WriteLineColored($repository.Name, [Constants]::ColorValue)
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        $this.Console.NewLine()
     }
     
     # Render interactive workflow header with additional info line
     [void] RenderWorkflowHeaderWithInfo([string]$title, [RepositoryModel]$repository, [string]$infoLabel, [string]$infoValue, [ConsoleColor]$infoColor) {
-        $separator = "=" * [Constants]::UIWidth
-        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host "    $title" -ForegroundColor ([Constants]::ColorHeader)
-        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
-        Write-Host $repository.Name -ForegroundColor ([Constants]::ColorValue)
-        Write-Host "$infoLabel : " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
-        Write-Host $infoValue -ForegroundColor $infoColor
-        Write-Host $separator -ForegroundColor ([Constants]::ColorSeparator)
-        Write-Host ""
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        $this.Console.WriteLineColored("    $title", [Constants]::ColorHeader)
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        $this.Console.WriteColored("Repository: ", [Constants]::ColorPrompt)
+        $this.Console.WriteLineColored($repository.Name, [Constants]::ColorValue)
+        $this.Console.WriteColored("$infoLabel : ", [Constants]::ColorPrompt)
+        $this.Console.WriteLineColored($infoValue, $infoColor)
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        $this.Console.NewLine()
     }
     
     # Render menu/instructions
     [int] RenderMenu([string]$mode) {
-        Write-Host ""
+        $this.Console.NewLine()
         $linesRendered = 1 # Initial empty line
         
         if ($mode -eq 'Hidden') {
-             # Render nothing (just the empty line above)
              return $linesRendered
         }
         
-        # Minimal Mode: Only Nav and Exit
-        $grpNav = $this.GetLoc("UI.Group.Nav", "Navigation")
-        $cmdNav = $this.GetLoc("Cmd.Desc.Nav", "Arrows | Enter=open")
-        $cmdExit = $this.GetLoc("Cmd.Desc.Exit", "Q=quit")
-        $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
-        
+        # Minimal Mode: Only Nav and Exit (compact)
         if ($mode -eq 'Minimal') {
-             Write-Host "  $cmdNav | $cmdExit | $cmdPref" -ForegroundColor ([Constants]::ColorMenuText)
+             $grpNav = $this.GetLoc("UI.Group.Nav", "Navigation")
+             $cmdNav = $this.GetLoc("Cmd.Desc.Nav", "Arrows | Enter=open")
+             $cmdExit = $this.GetLoc("Cmd.Desc.Exit", "Q=quit")
+             $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
+             
+             $this.Console.WriteLineColored("  $cmdNav | $cmdExit | $cmdPref", [Constants]::ColorMenuText)
              $linesRendered++
-             Write-Host ""
+             $this.Console.NewLine()
              $linesRendered++
              return $linesRendered
         }
         
-        # Full Mode (Default)
-        $labelWidth = 13 # Width for the label including colon to ensure alignment
-
-        # 1. Navigation
-        $lblNav = "${grpNav}:".PadRight($labelWidth)
-        Write-Host "  $lblNav $cmdNav | $cmdExit | $cmdPref" -ForegroundColor ([Constants]::ColorMenuText)
-        $linesRendered++
-
-        # 2. Alias
-        $cmdAlias = $this.GetLoc("Cmd.Desc.Alias", "E=set | R=remove")
-        $lblAlias = "Alias:".PadRight($labelWidth)
-        Write-Host "  $lblAlias $cmdAlias" -ForegroundColor ([Constants]::ColorMenuText)
-        $linesRendered++
-
-        # 3. Modules
-        $grpMod = $this.GetLoc("UI.Group.Modules", "Modules")
-        $cmdNpm = $this.GetLoc("Cmd.Desc.Npm", "I=install | X=remove")
-        $lblMod = "${grpMod}:".PadRight($labelWidth)
-        Write-Host "  $lblMod $cmdNpm" -ForegroundColor ([Constants]::ColorMenuText)
-        $linesRendered++
-
-        # 4. Repository
-        $grpRepo = $this.GetLoc("UI.Group.Repo", "Repository")
-        $cmdClone = $this.GetLoc("Cmd.Desc.RepoMgmt", "C=clone | Del=delete")
-        $cmdFav = $this.GetLoc("Cmd.Desc.Favorite", "Space=favorite")
-        $lblRepo = "${grpRepo}:".PadRight($labelWidth)
-        Write-Host "  $lblRepo $cmdClone | $cmdFav" -ForegroundColor ([Constants]::ColorMenuText)
-        $linesRendered++
-
-        # 5. Git Status
-        $cmdGit = $this.GetLoc("Cmd.Desc.Git", "L=load current | G=load all")
-        $lblGit = "Git Status:".PadRight($labelWidth)
-        Write-Host "  $lblGit $cmdGit" -ForegroundColor ([Constants]::ColorMenuText)
-        $linesRendered++
+        # Determine visibility based on mode
+        $showNav     = $true
+        $showAlias   = $true
+        $showModules = $true
+        $showRepo    = $true
+        $showGit     = $true
         
-        Write-Host ""
+        if ($mode -eq 'Custom') {
+            $preferences = $this.PreferencesService.LoadPreferences()
+            if ($preferences.display.PSObject.Properties.Name -contains 'menuSections') {
+                $sections = $preferences.display.menuSections
+                $showNav     = if ($sections.PSObject.Properties.Name -contains 'navigation') { $sections.navigation } else { $true }
+                $showAlias   = if ($sections.PSObject.Properties.Name -contains 'alias') { $sections.alias } else { $true }
+                $showModules = if ($sections.PSObject.Properties.Name -contains 'modules') { $sections.modules } else { $true }
+                $showRepo    = if ($sections.PSObject.Properties.Name -contains 'repository') { $sections.repository } else { $true }
+                $showGit     = if ($sections.PSObject.Properties.Name -contains 'git') { $sections.git } else { $true }
+            }
+        }
+        
+        # Common constants
+        $labelWidth = 13 
+        
+        if ($showNav) {
+            $linesRendered += $this.RenderSectionNavigation($labelWidth)
+        }
+        
+        if ($showAlias) {
+            $linesRendered += $this.RenderSectionAlias($labelWidth)
+        }
+        
+        if ($showModules) {
+            $linesRendered += $this.RenderSectionModules($labelWidth)
+        }
+        
+        if ($showRepo) {
+            $linesRendered += $this.RenderSectionRepository($labelWidth)
+        }
+        
+        if ($showGit) {
+            $linesRendered += $this.RenderSectionGitStatus($labelWidth)
+        }
+        
+        $this.Console.NewLine()
         $linesRendered++
         
         return $linesRendered
     }
     
+    # Helper: Render Navigation Section
+    hidden [int] RenderSectionNavigation([int]$labelWidth) {
+        $grpNav = $this.GetLoc("UI.Group.Nav", "Navigation")
+        $cmdNav = $this.GetLoc("Cmd.Desc.Nav", "Arrows | Enter=open")
+        $cmdExit = $this.GetLoc("Cmd.Desc.Exit", "Q=quit")
+        $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
+        
+        $lblNav = "${grpNav}:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblNav $cmdNav | $cmdExit | $cmdPref", [Constants]::ColorMenuText)
+        return 1
+    }
+    
+    # Helper: Render Alias Section
+    hidden [int] RenderSectionAlias([int]$labelWidth) {
+        $cmdAlias = $this.GetLoc("Cmd.Desc.Alias", "E=set | R=remove")
+        $lblAlias = "Alias:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblAlias $cmdAlias", [Constants]::ColorMenuText)
+        return 1
+    }
+    
+    # Helper: Render Modules Section
+    hidden [int] RenderSectionModules([int]$labelWidth) {
+        $grpMod = $this.GetLoc("UI.Group.Modules", "Modules")
+        $cmdNpm = $this.GetLoc("Cmd.Desc.Npm", "I=install | X=remove")
+        $lblMod = "${grpMod}:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblMod $cmdNpm", [Constants]::ColorMenuText)
+        return 1
+    }
+    
+    # Helper: Render Repository Section
+    hidden [int] RenderSectionRepository([int]$labelWidth) {
+        $grpRepo = $this.GetLoc("UI.Group.Repo", "Repository")
+        $cmdClone = $this.GetLoc("Cmd.Desc.RepoMgmt", "C=clone | Del=delete")
+        $cmdFav = $this.GetLoc("Cmd.Desc.Favorite", "Space=favorite")
+        $lblRepo = "${grpRepo}:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblRepo $cmdClone | $cmdFav", [Constants]::ColorMenuText)
+        return 1
+    }
+    
+    # Helper: Render Git Status Section
+    hidden [int] RenderSectionGitStatus([int]$labelWidth) {
+        $cmdGit = $this.GetLoc("Cmd.Desc.Git", "L=load current | G=load all")
+        $lblGit = "Git Status:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblGit $cmdGit", [Constants]::ColorMenuText)
+        return 1
+    }
+
     # Get git status display info
     [hashtable] GetGitStatusDisplay([GitStatusModel]$gitStatus) {
         if (-not $gitStatus -or -not $gitStatus.IsGitRepo) {
@@ -217,47 +267,47 @@ class UIRenderer {
         $gitDisplay = $this.GetGitStatusDisplay($repo.GitStatus)
         
         # Render prefix - usar color optimizado
-        Write-Host $prefix -NoNewline -ForegroundColor $(if ($isSelected) { $selectedTextColor } else { [Constants]::ColorUnselected })
+        $this.Console.WriteColored($prefix, $(if ($isSelected) { $selectedTextColor } else { [Constants]::ColorUnselected }))
         
         # Render favorite indicator
         if ($repo.IsFavorite) {
-            Write-Host "$([Constants]::FavoriteSymbol) " -NoNewline -ForegroundColor ([Constants]::ColorFavorite)
+            $this.Console.WriteColored("$([Constants]::FavoriteSymbol) ", [Constants]::ColorFavorite)
         } else {
-            Write-Host "  " -NoNewline
+            $this.Console.Write("  ")
         }
         
         # Render git indicator
-        Write-Host "$($gitDisplay.Symbol) " -NoNewline -ForegroundColor $gitDisplay.Color
+        $this.Console.WriteColored("$($gitDisplay.Symbol) ", $gitDisplay.Color)
         
         # Render left delimiter
         if ($leftDelimiter -ne '') {
             if ($backgroundColor) {
-                Write-Host $leftDelimiter -NoNewline -ForegroundColor $selectedTextColor -BackgroundColor $backgroundColor
+                $this.Console.WriteWithBackground($leftDelimiter, $selectedTextColor, $backgroundColor)
             } else {
-                Write-Host $leftDelimiter -NoNewline -ForegroundColor $selectedTextColor
+                $this.Console.WriteColored($leftDelimiter, $selectedTextColor)
             }
         }
         
         # Render repo name
         if ($backgroundColor) {
-            Write-Host $repo.Name -NoNewline -ForegroundColor $nameColor -BackgroundColor $backgroundColor
+            $this.Console.WriteWithBackground($repo.Name, $nameColor, $backgroundColor)
         } else {
-            Write-Host $repo.Name -NoNewline -ForegroundColor $nameColor
+            $this.Console.WriteColored($repo.Name, $nameColor)
         }
         
         # Render right delimiter
         if ($rightDelimiter -ne '') {
             if ($backgroundColor) {
-                Write-Host $rightDelimiter -NoNewline -ForegroundColor $selectedTextColor -BackgroundColor $backgroundColor
+                $this.Console.WriteWithBackground($rightDelimiter, $selectedTextColor, $backgroundColor)
             } else {
-                Write-Host $rightDelimiter -NoNewline -ForegroundColor $selectedTextColor
+                $this.Console.WriteColored($rightDelimiter, $selectedTextColor)
             }
         }
         
         # Render alias if exists (always without background)
         if ($repo.HasAlias -and $repo.AliasInfo) {
             $aliasText = " - $($repo.AliasInfo.Alias)"
-            Write-Host $aliasText -ForegroundColor $repo.AliasInfo.Color -NoNewline
+            $this.Console.WriteColored($aliasText, $repo.AliasInfo.Color)
         } else {
              # Do nothing or just ensure no residual text (handled by ClearCurrentLine)
              # Write-Host "" -NoNewline 
@@ -307,15 +357,16 @@ class UIRenderer {
         $displayColor = $this.GetLoc("Color.$color", $color)
 
         if ($isSelected) {
-            Write-Host "  > " -NoNewline -ForegroundColor ([Constants]::ColorSelected)
+            $this.Console.WriteColored("  > ", [Constants]::ColorSelected)
             if ($backgroundColor) {
-                Write-Host $displayColor -ForegroundColor $color -BackgroundColor $backgroundColor
+                $this.Console.WriteWithBackground($displayColor, $color, $backgroundColor)
             } else {
-                Write-Host $displayColor -ForegroundColor $color
+                $this.Console.WriteColored($displayColor, $color)
             }
+            $this.Console.NewLine()
         } else {
-            Write-Host "    " -NoNewline
-            Write-Host $displayColor -ForegroundColor $color
+            $this.Console.Write("    ")
+            $this.Console.WriteLineColored($displayColor, $color)
         }
     }
     
@@ -338,20 +389,20 @@ class UIRenderer {
     # Render git status footer
     [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalRepos, [int]$loadedRepos, [int]$currentIndex) {
         # Line 1: Separator
-        Write-Host ("=" * [Constants]::UIWidth) -ForegroundColor ([Constants]::ColorSeparator)
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
         
         # Line 2: Counters
-        Write-Host ("Repos: ") -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+        $this.Console.WriteColored("Repos: ", [Constants]::ColorLabel)
         
         $currentPos = $currentIndex + 1
-        Write-Host "$currentPos/$totalRepos" -NoNewline -ForegroundColor ([Constants]::ColorValue)
+        $this.Console.WriteColored("$currentPos/$totalRepos", [Constants]::ColorValue)
         
-        Write-Host (" | Git Info: ") -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+        $this.Console.WriteColored(" | Git Info: ", [Constants]::ColorLabel)
         
         $counterColor = if ($loadedRepos -eq $totalRepos) { [Constants]::ColorCounterComplete } 
                        elseif ($loadedRepos -eq 0) { [Constants]::ColorCounterEmpty } 
                        else { [Constants]::ColorCounterPartial }
-        Write-Host "$loadedRepos" -ForegroundColor $counterColor
+        $this.Console.WriteLineColored("$loadedRepos", $counterColor)
         
         $lblStatus = $this.GetLoc("UI.Status", "Status")
         $lblBranch = $this.GetLoc("UI.Branch", "Branch")
@@ -360,28 +411,28 @@ class UIRenderer {
 
         # Line 3: Git status details
         if (-not $repo.HasGitStatusLoaded()) {
-            Write-Host "${lblStatus}: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
-            Write-Host "${lblNotLoaded} " -NoNewline -ForegroundColor ([Constants]::ColorHint)
-            Write-Host ("(" + $this.GetLoc("Cmd.Desc.Git", "press L to load current or G for all") + ")") -ForegroundColor ([Constants]::ColorWarning)
+            $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
+            $this.Console.WriteColored("${lblNotLoaded} ", [Constants]::ColorHint)
+            $this.Console.WriteLineColored(("(" + $this.GetLoc("Cmd.Desc.Git", "press L to load current or G for all") + ")"), [Constants]::ColorWarning)
         } else {
             $gitStatus = $repo.GitStatus
             
             if (-not $gitStatus.IsGitRepo) {
-                Write-Host "${lblStatus}: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
-                Write-Host $lblNoGit -ForegroundColor ([Constants]::ColorHint)
+                $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
+                $this.Console.WriteLineColored($lblNoGit, [Constants]::ColorHint)
             } else {
-                Write-Host "${lblStatus}: " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
-                Write-Host "${lblBranch}: " -NoNewline -ForegroundColor ([Constants]::ColorHighlight)
-                Write-Host $gitStatus.CurrentBranch -NoNewline -ForegroundColor ([Constants]::ColorValue)
-                Write-Host " | " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+                $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
+                $this.Console.WriteColored("${lblBranch}: ", [Constants]::ColorHighlight)
+                $this.Console.WriteColored($gitStatus.CurrentBranch, [Constants]::ColorValue)
+                $this.Console.WriteColored(" | ", [Constants]::ColorLabel)
                 
                 $gitDisplay = $this.GetGitStatusDisplay($gitStatus)
-                Write-Host "$($gitDisplay.Symbol) $($gitDisplay.Description)" -ForegroundColor $gitDisplay.Color
+                $this.Console.WriteLineColored("$($gitDisplay.Symbol) $($gitDisplay.Description)", $gitDisplay.Color)
             }
         }
         
         # Line 4: Separator
-        Write-Host ("=" * [Constants]::UIWidth) -ForegroundColor ([Constants]::ColorSeparator) -NoNewline
+        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
     }
     
     # Render error message
@@ -390,16 +441,16 @@ class UIRenderer {
         # Simplistic format since we can't easily pass args to PS format for partial string
         # If message is already localized/dynamic, we just prepend Error if needed.
         # But here we just print as is usually.
-        Write-Host "Error: $message" -ForegroundColor ([Constants]::ColorError)
+        $this.Console.WriteLineColored("Error: $message", [Constants]::ColorError)
     }
     
     # Render success message
     [void] RenderSuccess([string]$message) {
-        Write-Host $message -ForegroundColor ([Constants]::ColorSuccess)
+        $this.Console.WriteLineColored($message, [Constants]::ColorSuccess)
     }
     
     # Render warning message
     [void] RenderWarning([string]$message) {
-        Write-Host $message -ForegroundColor ([Constants]::ColorWarning)
+        $this.Console.WriteLineColored($message, [Constants]::ColorWarning)
     }
 }

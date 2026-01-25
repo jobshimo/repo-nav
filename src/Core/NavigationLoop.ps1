@@ -10,26 +10,18 @@
 function Start-NavigationLoop {
     param(
         [Parameter(Mandatory = $true)]
-        $RepoManager,
-        
-        [Parameter(Mandatory = $true)]
-        $Renderer,
-        
-        [Parameter(Mandatory = $true)]
-        $Console,
-        
-        [Parameter(Mandatory = $true)]
-        $ColorSelector,
-        
-        [Parameter(Mandatory = $true)]
-        $OptionSelector,
-        
-        [Parameter(Mandatory = $true)]
-        $LocalizationService,
-
-        [Parameter(Mandatory = $true)]
-        [string]$BasePath
+        [PSCustomObject]$Context
     )
+    
+    # Unpack context for local usage
+    $RepoManager = $Context.RepoManager
+    $Renderer = $Context.Renderer
+    $Console = $Context.Console
+    $ColorSelector = $Context.ColorSelector
+    $OptionSelector = $Context.OptionSelector
+    $LocalizationService = $Context.LocalizationService
+    $PreferencesService = $Context.PreferencesService
+    $BasePath = $Context.BasePath
     
     # Load repositories
     $RepoManager.LoadRepositories($BasePath)
@@ -48,12 +40,9 @@ function Start-NavigationLoop {
         $cursorStartLine = [Constants]::CursorStartLine
         $renderOrchestrator = [RenderOrchestrator]::new($Renderer, $Console, $cursorStartLine)
         
-        $progressIndicatorPath = Join-Path $PSScriptRoot "..\UI\ProgressIndicator.ps1"
-        . $progressIndicatorPath
         $progressIndicator = [ProgressIndicator]::new($Console)
         
-        $preferencesService = [UserPreferencesService]::new()
-        $autoLoadFavorites = $preferencesService.GetPreference("git", "autoLoadFavoritesStatus")
+        $autoLoadFavorites = $PreferencesService.GetPreference("git", "autoLoadFavoritesStatus")
         
         if ($autoLoadFavorites) {
             $favorites = $repos | Where-Object { $_.IsFavorite }
@@ -68,44 +57,34 @@ function Start-NavigationLoop {
             }
         }
         
-        . "$PSScriptRoot\Commands\INavigationCommand.ps1"
-        . "$PSScriptRoot\Commands\ExitCommand.ps1"
-        . "$PSScriptRoot\Commands\NavigationCommand.ps1"
-        . "$PSScriptRoot\Commands\RepositoryCommand.ps1"
-        . "$PSScriptRoot\Commands\GitCommand.ps1"
-        . "$PSScriptRoot\Commands\FavoriteCommand.ps1"
-        . "$PSScriptRoot\Commands\AliasCommand.ps1"
-        . "$PSScriptRoot\Commands\NpmCommand.ps1"
-        . "$PSScriptRoot\Commands\RepositoryManagementCommand.ps1"
-        . "$PSScriptRoot\Commands\PreferencesCommand.ps1"
-        . "$PSScriptRoot\CommandFactory.ps1"
-        . "$PSScriptRoot\InputHandler.ps1"
-        
         # Initialize CommandFactory and InputHandler
         $factory = [CommandFactory]::new()
         $inputHandler = [InputHandler]::new($factory)
         
         # Create context hashtable for commands
-        $context = @{
-            State = $state
-            RepoManager = $RepoManager
-            Renderer = $Renderer
-            Console = $Console
-            ColorSelector = $ColorSelector
-            OptionSelector = $OptionSelector
+        $commandContext = @{
+            State               = $state
+            RepoManager         = $RepoManager
+            Renderer            = $Renderer
+            Console             = $Console
+            ColorSelector       = $ColorSelector
+            OptionSelector      = $OptionSelector
             LocalizationService = $LocalizationService
-            BasePath = $BasePath
+            BasePath            = $BasePath
         }
         
-        # Initial full render
-        $renderOrchestrator.RenderFull($state)
+        # Initial full render and layout calculation
+        $renderOrchestrator.Initialize($state)
         
         # Main input loop - Simplified using Command Pattern
         while (-not $state.ShouldExit()) {
+            # Ensure cursor is hidden at the start of each loop iteration
+            $Console.HideCursor()
+
             $keyPress = $Console.ReadKey()
             
             # Delegate input handling to InputHandler
-            $handled = $inputHandler.HandleInput($keyPress, $context)
+            $handled = $inputHandler.HandleInput($keyPress, $commandContext)
             
             if (-not $handled) {
                 # Key not handled by any command - ignore silently

@@ -82,16 +82,22 @@ class OptionSelector {
         try {
             $this.Console.HideCursor()
             
+            # Clear screen once and render header
+            $this.Console.ClearScreen()
+            $this.Renderer.RenderHeader($title)
+            $this.Console.NewLine()
+            
+            if (-not [string]::IsNullOrWhiteSpace($description)) {
+                $this.Console.WriteLineColored("  $description", [Constants]::ColorWarning)
+                $this.Console.NewLine()
+            }
+            
+            # Store the starting position of the list to avoid full screen clears
+            $listStartTop = $this.Console.GetCursorTop()
+            
             while ($running) {
-                # Clear and render
-                $this.Console.ClearScreen()
-                $this.Renderer.RenderHeader($title)
-                Write-Host ""
-                
-                if (-not [string]::IsNullOrWhiteSpace($description)) {
-                    Write-Host "  $description" -ForegroundColor ([Constants]::ColorWarning)
-                    Write-Host ""
-                }
+                # Reset cursor to the start of the list
+                $this.Console.SetCursorPosition(0, $listStartTop)
 
                 # Display options
                 for ($i = 0; $i -lt $options.Count; $i++) {
@@ -113,16 +119,16 @@ class OptionSelector {
 
                     if ($isColorPreview) {
                         # Show color preview
-                        Write-Host $displayLine -ForegroundColor $option.Value
+                        $this.Console.WriteLineColored($displayLine, $option.Value)
                     } else {
-                        Write-Host $displayLine -ForegroundColor $color
+                        $this.Console.WriteLineColored($displayLine, $color)
                     }
                 }
                 
-                Write-Host ""
-                Write-Host "  $cancelText" -ForegroundColor ([Constants]::ColorHint)
-                Write-Host ""
-                Write-Host "  Use Arrows to navigate | Enter to select | Q/Esc to cancel" -ForegroundColor ([Constants]::ColorHint)
+                $this.Console.NewLine()
+                $this.Console.WriteLineColored("  $cancelText", [Constants]::ColorHint)
+                $this.Console.NewLine()
+                $this.Console.WriteLineColored("  Use Arrows to navigate | Enter to select | Q/Esc to cancel", [Constants]::ColorHint)
                 
                 # Wait for input
                 $key = $this.Console.ReadKey()
@@ -160,7 +166,9 @@ class OptionSelector {
             }
         }
         finally {
-            $this.Console.ShowCursor()
+            # Ensure cursor remains hidden when returning to main UI
+            # (Unless explicitly expecting input next, but the main loop handles that)
+            $this.Console.HideCursor()
         }
         
         return $result

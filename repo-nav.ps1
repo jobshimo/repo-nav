@@ -76,10 +76,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Services\LocalizationService.ps1"
 . "$srcPath\Services\AliasManager.ps1"
 . "$srcPath\Services\GitService.ps1"
-. "$srcPath\Services\NpmHelpers.ps1"
 . "$srcPath\Services\NpmService.ps1"
-. "$srcPath\Services\InteractiveHelpers.ps1"
-. "$srcPath\Services\PreferencesHelpers.ps1"
 . "$srcPath\Services\RenderOrchestrator.ps1"
 
 # UI (depend on models and config)
@@ -89,7 +86,21 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\ColorSelector.ps1"
 . "$srcPath\UI\OptionSelector.ps1"
 
-# Core (depend on everything)
+# Commands (Interfaces and Implementations)
+. "$srcPath\Core\Commands\INavigationCommand.ps1"
+. "$srcPath\Core\Commands\ExitCommand.ps1"
+. "$srcPath\Core\Commands\NavigationCommand.ps1"
+. "$srcPath\Core\Commands\RepositoryCommand.ps1"
+. "$srcPath\Core\Commands\GitCommand.ps1"
+. "$srcPath\Core\Commands\FavoriteCommand.ps1"
+. "$srcPath\Core\Commands\AliasCommand.ps1"
+. "$srcPath\Core\Commands\NpmCommand.ps1"
+. "$srcPath\Core\Commands\RepositoryManagementCommand.ps1"
+. "$srcPath\Core\Commands\PreferencesCommand.ps1"
+
+# Core Components
+. "$srcPath\Core\CommandFactory.ps1"
+. "$srcPath\Core\InputHandler.ps1"
 . "$srcPath\Core\RepositoryManager.ps1"
 . "$srcPath\Core\NavigationLoop.ps1"
 #endregion
@@ -140,14 +151,21 @@ function Start-RepositoryNavigator {
         $colorSelector = [ColorSelector]::new($renderer, $consoleHelper)
         $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
         
+        # Create Application Context (Composition Root)
+        # Bundles all services and dependencies into a single object
+        $appContext = [PSCustomObject]@{
+            RepoManager         = $repoManager
+            Renderer            = $renderer
+            Console             = $consoleHelper
+            ColorSelector       = $colorSelector
+            OptionSelector      = $optionSelector
+            LocalizationService = $localizationService
+            PreferencesService  = $preferencesService
+            BasePath            = $BasePath
+        }
+
         # Start navigation loop
-        Start-NavigationLoop -RepoManager $repoManager `
-                            -Renderer $renderer `
-                            -Console $consoleHelper `
-                            -ColorSelector $colorSelector `
-                            -OptionSelector $optionSelector `
-                            -LocalizationService $localizationService `
-                            -BasePath $BasePath
+        Start-NavigationLoop -Context $appContext
     }
     catch {
         Write-Host ""

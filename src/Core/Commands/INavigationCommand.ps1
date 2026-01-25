@@ -20,13 +20,16 @@ class INavigationCommand {
     .SYNOPSIS
         Determines if the command can be executed in the current state
     
-    .PARAMETER state
-        The current NavigationState
+    .PARAMETER keyPress
+        The key press object to evaluate
+    
+    .PARAMETER context
+        Hashtable with dependencies (State, RepoManager, Renderer, etc.)
     
     .RETURNS
         True if the command can execute, False otherwise
     #>
-    [bool] CanExecute([object]$state) {
+    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
         throw "CanExecute() must be implemented by derived class"
     }
     
@@ -34,13 +37,13 @@ class INavigationCommand {
     .SYNOPSIS
         Executes the command
     
-    .PARAMETER state
-        The NavigationState to modify
+    .PARAMETER keyPress
+        The key press object that triggered the command
     
     .PARAMETER context
-        Hashtable with dependencies (RepoManager, Renderer, Console, etc.)
+        Hashtable with dependencies (State, RepoManager, Renderer, etc.)
     #>
-    [void] Execute([object]$state, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [hashtable]$context) {
         throw "Execute() must be implemented by derived class"
     }
     

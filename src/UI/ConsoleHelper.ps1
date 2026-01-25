@@ -19,6 +19,12 @@ class ConsoleHelper {
     # Hide cursor
     [void] HideCursor() {
         try {
+            [Console]::CursorVisible = $false
+        }
+        catch {
+            # Fallback for environments where Console API fails
+        }
+        try {
             $global:Host.UI.RawUI.CursorSize = 0
         }
         catch {
@@ -28,6 +34,12 @@ class ConsoleHelper {
     
     # Show cursor
     [void] ShowCursor() {
+        try {
+            [Console]::CursorVisible = $true
+        }
+        catch {
+            # Fallback
+        }
         try {
             $global:Host.UI.RawUI.CursorSize = 25
         }
@@ -46,6 +58,16 @@ class ConsoleHelper {
         }
     }
     
+    # Get current cursor X (Left) position
+    [int] GetCursorLeft() {
+        return $global:Host.UI.RawUI.CursorPosition.X
+    }
+
+    # Get current cursor Y (Top) position
+    [int] GetCursorTop() {
+        return $global:Host.UI.RawUI.CursorPosition.Y
+    }
+
     # Clear entire screen
     [void] ClearScreen() {
         Clear-Host
@@ -58,9 +80,15 @@ class ConsoleHelper {
     
     # Prompt user for confirmation with configurable default
     [bool] ConfirmAction([string]$prompt, [bool]$defaultYes = $true) {
+        # Ensure cursor is visible for input
+        $this.ShowCursor()
+        
         $suffix = if ($defaultYes) { "(Y/n)" } else { "(y/N)" }
         Write-Host "$prompt $suffix : " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
         $response = Read-Host
+        
+        # Hide cursor again after input
+        $this.HideCursor()
         
         # Empty response uses the default
         if ([string]::IsNullOrWhiteSpace($response)) {
@@ -91,5 +119,35 @@ class ConsoleHelper {
     # Read key press (non-blocking)
     [System.Management.Automation.Host.KeyInfo] ReadKey() {
         return $global:Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+
+    # Wrapper for Write-Host with NoNewline
+    [void] Write([string]$text) {
+        Write-Host $text -NoNewline
+    }
+
+    # Wrapper for Write-Host with NoNewline and ForegroundColor
+    [void] WriteColored([string]$text, [System.ConsoleColor]$color) {
+        Write-Host $text -NoNewline -ForegroundColor $color
+    }
+
+    # Wrapper for Write-Host with ForegroundColor (with newline)
+    [void] WriteLineColored([string]$text, [System.ConsoleColor]$color) {
+        Write-Host $text -ForegroundColor $color
+    }
+    
+    # Wrapper for Write-Host with Background and Foreground Color (NoNewline)
+    [void] WriteWithBackground([string]$text, [System.ConsoleColor]$foreground, [System.ConsoleColor]$background) {
+        Write-Host $text -NoNewline -ForegroundColor $foreground -BackgroundColor $background
+    }
+
+    # Write a separator line
+    [void] WriteSeparator([string]$char, [int]$length, [System.ConsoleColor]$color) {
+        Write-Host ($char * $length) -ForegroundColor $color
+    }
+
+    # Write a new line
+    [void] NewLine() {
+        Write-Host ""
     }
 }
