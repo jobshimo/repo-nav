@@ -124,7 +124,7 @@ class GitService {
     }
     
     # Clone a repository
-    [bool] CloneRepository([string]$url, [string]$targetPath) {
+    [bool] CloneRepository([string]$url, [string]$targetPath, [string]$folderName = "") {
         if (-not $this.IsValidGitUrl($url)) {
             Write-Error "Invalid Git URL format"
             return $false
@@ -137,7 +137,12 @@ class GitService {
         
         Push-Location $targetPath
         try {
-            git clone $url 2>&1 | Out-Null
+            if ([string]::IsNullOrWhiteSpace($folderName)) {
+                git clone $url 2>&1 | Out-Null
+            }
+            else {
+                git clone $url $folderName 2>&1 | Out-Null
+            }
             return $LASTEXITCODE -eq 0
         }
         catch {

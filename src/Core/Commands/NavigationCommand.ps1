@@ -22,6 +22,19 @@ class NavigationCommand : INavigationCommand {
         if ($key -eq [Constants]::KEY_LEFT_ARROW) {
             if ($state.CanGoBack()) {
                 $state.GoBack()
+                
+                # Refresh current view to update counts of children
+                # This ensures that if we added/removed items in the subfolder,
+                # the count displayed in the parent folder is updated.
+                $repoManager = $context.RepoManager
+                $currentPath = $state.GetCurrentPath()
+                
+                if (-not [string]::IsNullOrEmpty($currentPath)) {
+                    $repoManager.LoadRepositories($currentPath)
+                    $updatedRepos = $repoManager.GetRepositories()
+                    $state.SetRepositories($updatedRepos)
+                    $state.MarkForFullRedraw()
+                }
             }
             return
         }

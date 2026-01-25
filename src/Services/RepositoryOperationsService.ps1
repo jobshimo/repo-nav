@@ -71,7 +71,7 @@ class RepositoryOperationsService {
         
         # Perform clone
         try {
-            $success = $this.GitService.CloneRepository($url, $basePath)
+            $success = $this.GitService.CloneRepository($url, $basePath, $repoName)
             
             if ($success) {
                 return @{ 
