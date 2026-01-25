@@ -183,5 +183,14 @@
     "Folder.DeleteTitle": "DELETE FOLDER",
     "Folder.DeleteConfirm": "Delete empty folder '{0}'?",
     "Folder.DeleteSuccess": "Folder deleted successfully.",
-    "Folder.CannotDelete": "Cannot delete: Folder is not empty"
+    "Folder.CannotDelete": "Cannot delete: Folder is not empty",
+    
+    "Search.Title": "SEARCH REPOSITORIES",
+    "Search.Label": "Search",
+    "Search.Placeholder": "Type to filter...",
+    "Search.ResultCount": "{0} of {1} repositories",
+    "Search.NoResults": "No repositories found",
+    "Search.Hint.Input": "Type to filter | ↓/Tab=Go to list | Esc=Close",
+    "Search.Hint.List": "↑↓=Navigate | Enter=Open | ↑(top)/Tab=Back to search | Esc=Close",
+    "Cmd.Desc.Search": "Search (S)"
 }

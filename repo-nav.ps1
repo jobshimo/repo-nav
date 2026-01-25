@@ -83,6 +83,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Services\ParallelGitLoader.ps1"
 . "$srcPath\Services\RepositoryOperationsService.ps1"
 . "$srcPath\Services\FavoriteService.ps1"
+. "$srcPath\Services\SearchService.ps1"
 . "$srcPath\Services\RenderOrchestrator.ps1"
 
 # UI (depend on models and config)
@@ -95,6 +96,7 @@ $srcPath = Join-Path $scriptRoot "src"
 # Views (depend on UI components)
 . "$srcPath\UI\Views\RepositoryManagementView.ps1"
 . "$srcPath\UI\Views\AliasView.ps1"
+. "$srcPath\UI\Views\SearchView.ps1"
 
 # Commands (Interfaces and Implementations)
 . "$srcPath\Core\Commands\INavigationCommand.ps1"
@@ -108,6 +110,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Core\Commands\RepositoryManagementCommand.ps1"
 . "$srcPath\Core\Commands\PreferencesCommand.ps1"
 . "$srcPath\Core\Commands\CreateFolderCommand.ps1"
+. "$srcPath\Core\Commands\SearchCommand.ps1"
 
 # Core Components
 . "$srcPath\Core\CommandFactory.ps1"

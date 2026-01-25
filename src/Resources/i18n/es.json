@@ -184,5 +184,14 @@
     "Folder.DeleteTitle": "ELIMINAR CARPETA",
     "Folder.DeleteConfirm": "¿Eliminar carpeta vacía '{0}'?",
     "Folder.DeleteSuccess": "Carpeta eliminada correctamente.",
-    "Folder.CannotDelete": "No se puede eliminar: La carpeta no está vacía"
+    "Folder.CannotDelete": "No se puede eliminar: La carpeta no está vacía",
+    
+    "Search.Title": "BUSCAR REPOSITORIOS",
+    "Search.Label": "Buscar",
+    "Search.Placeholder": "Escribe para filtrar...",
+    "Search.ResultCount": "{0} de {1} repositorios",
+    "Search.NoResults": "No se encontraron repositorios",
+    "Search.Hint.Input": "Escribe para filtrar | ↓/Tab=Ir a lista | Esc=Cerrar",
+    "Search.Hint.List": "↑↓=Navegar | Enter=Abrir | ↑(arriba)/Tab=Volver a buscar | Esc=Cerrar",
+    "Cmd.Desc.Search": "Buscar (S)"
 }

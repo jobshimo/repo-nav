@@ -45,6 +45,9 @@ class CommandFactory {
         
         # Folder commands
         $this.commands.Add([CreateFolderCommand]::new())
+        
+        # Search command
+        $this.commands.Add([SearchCommand]::new())
     }
     
     <#

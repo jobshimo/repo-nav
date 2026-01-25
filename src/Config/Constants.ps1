@@ -25,6 +25,9 @@ class Constants {
     static [int] $KEY_R = 82
     static [int] $KEY_Q = 81
     static [int] $KEY_ESC = 27
+    static [int] $KEY_ESCAPE = 27
+    static [int] $KEY_TAB = 9
+    static [int] $KEY_BACKSPACE = 8
     static [int] $KEY_I = 73
     static [int] $KEY_X = 88
     static [int] $KEY_DELETE = 46
