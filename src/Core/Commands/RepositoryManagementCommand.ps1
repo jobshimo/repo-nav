@@ -19,6 +19,9 @@ class RepositoryManagementCommand : INavigationCommand {
         # Create View
         $view = [RepositoryManagementView]::new($context.Console, $context.LocalizationService, $context.Renderer, $context.OptionSelector)
         
+        # Flag to track if we need to refresh repos (skip if folder delete was blocked)
+        $needsRefresh = $true
+        
         # Stop the navigation loop to allow interactive input
         $state.Stop()
         
@@ -31,13 +34,19 @@ class RepositoryManagementCommand : INavigationCommand {
                 # Delete repository
                 if ($repos.Count -gt 0) {
                     $currentRepo = $repos[$currentIndex]
-                    $this.InvokeRepositoryDelete($context, $currentRepo, $view)
+                    $needsRefresh = $this.InvokeRepositoryDelete($context, $currentRepo, $view)
                 }
             }
             
             # Reload repositories after clone/delete
             # Note: RepoManager.CloneRepository/DeleteRepository handles the file system,
             # but we need to refresh the in-memory list.
+            # Skip refresh if folder delete was blocked (needsRefresh = false)
+            
+            if (-not $needsRefresh) {
+                # Don't reload or redraw - just resume navigation
+                return
+            }
             
             $repoManager = $context.RepoManager
             if ($null -ne $repoManager) {
@@ -116,7 +125,8 @@ class RepositoryManagementCommand : INavigationCommand {
         }
     }
 
-    hidden [void] InvokeRepositoryDelete($context, [RepositoryModel]$repository, [RepositoryManagementView]$view) {
+    # Returns $true if refresh is needed, $false if operation was blocked (no refresh needed)
+    hidden [bool] InvokeRepositoryDelete($context, [RepositoryModel]$repository, [RepositoryManagementView]$view) {
         $repoManager = $context.RepoManager
         $console = $context.Console
         $forceDelete = $false
@@ -136,50 +146,40 @@ class RepositoryManagementCommand : INavigationCommand {
                         # Use cursor manipulation to show error next to "Status: ..." line
                         # Footer structure: Sep / Info / Status / Sep / (Cursor Here)
                         $currentTop = [Console]::CursorTop
+                        $currentLeft = [Console]::CursorLeft
                         
                         try {
+                            # Hide cursor during this operation
+                            [Console]::CursorVisible = $false
+                            
                             # Move up 2 lines (Separator line + Status line)
                             if ($currentTop -ge 2) {
                                 [Console]::CursorTop = $currentTop - 2
-                                # Move to the right side (approx col 55 to be safe after "Status: Folder ...")
-                                [Console]::CursorLeft = 55
+                                # Move to the right side (col 38 right after "Status: Folder (Enter / → to browse)")
+                                [Console]::CursorLeft = 38
                                 
-                                # Clean potential previous text
-                                Write-Host "                                    " -NoNewline
-                                [Console]::CursorLeft = 55
-                                
-                                Write-Host "<- " -NoNewline -ForegroundColor Red
+                                Write-Host " <- " -NoNewline -ForegroundColor Red
                                 Write-Host $result.Message -NoNewline -ForegroundColor Red
-                            } else {
-                                # Fallback if for some reason we are at top
-                                Write-Host $result.Message -ForegroundColor Red
                             }
                             
-                            Start-Sleep -Seconds 2
+                            # No sleep - let user continue navigating immediately
+                            # Message will be cleaned on next redraw when user moves to another item
                         }
                         catch {
-                            # Fallback if cursor manipulation fails
-                            Write-Host $result.Message -ForegroundColor Red
-                            Start-Sleep -Seconds 2
+                            # Silently fail - message just won't show
                         }
-                        finally {
-                            # Restore cursor roughly (redraw handles it anyway)
-                             [Console]::CursorTop = $currentTop
-                             [Console]::CursorLeft = 0
-                             
-                             # Force full redraw to clean up the temporary message
-                             $context.State.MarkForFullRedraw()
-                        }
+                        # Return false = no refresh needed, don't redraw
+                        return $false
                     } else {
                         # Standard error
                         $view.ShowDeleteResult($false, $result.Message)
                     }
-                    return
+                    return $true
                 }
                 
                 # Success
                 $view.ShowDeleteResult($true, $result.Message)
-                return
+                return $true
             }
 
             # Ensure git status is loaded
@@ -191,13 +191,13 @@ class RepositoryManagementCommand : INavigationCommand {
             if ($repository.GitStatus -and $repository.GitStatus.NeedsAttention()) {
                 # Show warning and ask for confirmation
                 $continueAnyway = $view.ConfirmGitStatusWarning($repository)
-                if (-not $continueAnyway) { return }
+                if (-not $continueAnyway) { return $true }
                 $forceDelete = $true
             }
             
             # Step 2: Confirm deletion by typing repo name
             $confirmed = $view.ConfirmDelete($repository)
-            if (-not $confirmed) { return }
+            if (-not $confirmed) { return $true }
             
             # Step 3: Show Progress
             $view.ShowDeletingMessage()
@@ -207,6 +207,8 @@ class RepositoryManagementCommand : INavigationCommand {
             
             # Step 5: Show Result
             $view.ShowDeleteResult($result.Success, $result.Message)
+            
+            return $true
         }
         finally {
             # Hide cursor again
