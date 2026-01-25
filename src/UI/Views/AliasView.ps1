@@ -114,14 +114,16 @@ class AliasView {
         $noText = $this.GetLoc("Prompt.No", "No")
         
         $options = @(
-            @{ Label = $yesText; Value = $true; Description = $description },
-            @{ Label = $noText; Value = $false; Description = "" }
+            @{ DisplayText = $yesText; Value = $true; Description = $description },
+            @{ DisplayText = $noText; Value = $false; Description = "" }
         )
         
-        $result = $this.OptionSelector.ShowSelection($title, $options)
+        # Call ShowSelection with all required arguments
+        # ShowSelection($title, $options, $currentValue, $cancelText, $showCurrentMarker, $description)
+        $result = $this.OptionSelector.ShowSelection($title, $options, $null, $noText, $false, "")
         
-        if ($null -eq $result) { return $true } # Default to yes if cancelled? Or handle cancel?
-        return $result.Value
+        if ($null -eq $result) { return $false } 
+        return $result
     }
 
     # Show save result

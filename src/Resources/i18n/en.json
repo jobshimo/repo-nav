@@ -131,5 +131,31 @@
     "Prompt.ConfirmTitle": "CONFIRMATION",
     "Prompt.Yes": "YES",
     "Prompt.No": "NO",
-    "Prompt.DeleteConfirmInput": "DELETE"
+    "Prompt.DeleteConfirmInput": "DELETE",
+
+    "Prompt.Continue": "Continue?",
+    "Prompt.Cancelled": "Operation cancelled.",
+    
+    "Alias.NewPrompt": "New alias (Enter = keep '{0}'): ",
+    "Alias.EnterPrompt": "Enter alias (no spaces): ",
+    "Alias.CurrentColor": "Current color",
+    "Alias.SavedSuccess": "Alias saved successfully with color ",
+    "Alias.SaveFail": "Failed to save alias.",
+    
+    "Error.AliasSpaces": "Error: Alias cannot contain spaces.",
+    "Error.AliasEmpty": "Alias not saved (empty).",
+    "Error.FolderExists": "Error: Folder '{0}' already exists.",
+    
+    "Repo.CloneTitle": "CLONE REPOSITORY",
+    "Repo.CloningInto": "Cloning into '{0}'...",
+    "Repo.CloneSuccess": "Repository cloned successfully!",
+    "Repo.CloneFail": "Failed to clone repository.",
+    
+    "Repo.DeleteTitle": "DELETE REPOSITORY",
+    "Repo.DeleteWarning": "WARNING: This will permanently delete the folder and all contents!",
+    "Prompt.DeleteConfirm": "Type 'DELETE' to confirm",
+    "Repo.Deleting": "Deleting...",
+    "Repo.DeleteSuccess": "Repository deleted successfully.",
+    "Repo.DeleteFail": "Error deleting repository: {0}",
+    "Repo.DeleteFailHint": "Check if files are open in another program."
 }
