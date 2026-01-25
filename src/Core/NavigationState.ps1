@@ -438,11 +438,20 @@ class NavigationState {
     
     <#
     .SYNOPSIS
-        Gets the count of repositories with loaded git status
+        Gets the count of repositories with loaded git status (excludes containers)
     #>
     [int] GetLoadedCount() {
-        $loaded = $this.Repositories | Where-Object { $_.HasGitStatusLoaded() }
+        $loaded = $this.Repositories | Where-Object { -not $_.IsContainer -and $_.HasGitStatusLoaded() }
         return ($loaded | Measure-Object | Select-Object -ExpandProperty Count)
+    }
+    
+    <#
+    .SYNOPSIS
+        Gets the count of actual repositories (excludes containers)
+    #>
+    [int] GetRepoCount() {
+        $repos = $this.Repositories | Where-Object { -not $_.IsContainer }
+        return ($repos | Measure-Object | Select-Object -ExpandProperty Count)
     }
     
     #endregion

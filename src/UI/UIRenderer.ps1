@@ -319,9 +319,9 @@ class UIRenderer {
             }
         }
         
-        # For containers, show count of repos inside
+        # For containers, show count of items inside (could be repos or more folders)
         if ($repo.IsContainer) {
-            $countText = " ($($repo.ContainedRepoCount) repos)"
+            $countText = " ($($repo.ContainedRepoCount))"
             $this.Console.WriteColored($countText, [Constants]::ColorInfo)
         }
         # Render alias if exists (always without background) - only for non-containers
@@ -407,22 +407,28 @@ class UIRenderer {
     }
     
     # Render git status footer
-    [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalRepos, [int]$loadedRepos, [int]$currentIndex) {
+    # Now receives additional counts: totalItems (all), totalRepos (only non-containers), loadedRepos (git status loaded)
+    [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalItems, [int]$totalRepos, [int]$loadedRepos, [int]$currentIndex) {
         # Line 1: Separator
         $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
         
         # Line 2: Counters
-        $this.Console.WriteColored("Repos: ", [Constants]::ColorLabel)
-        
         $currentPos = $currentIndex + 1
-        $this.Console.WriteColored("$currentPos/$totalRepos", [Constants]::ColorValue)
+        $this.Console.WriteColored("Item: ", [Constants]::ColorLabel)
+        $this.Console.WriteColored("$currentPos/$totalItems", [Constants]::ColorValue)
+        
+        # Show repos count only if different from total items (means there are containers)
+        if ($totalRepos -ne $totalItems) {
+            $this.Console.WriteColored(" | Repos: ", [Constants]::ColorLabel)
+            $this.Console.WriteColored("$totalRepos", [Constants]::ColorValue)
+        }
         
         $this.Console.WriteColored(" | Git Info: ", [Constants]::ColorLabel)
         
         $counterColor = if ($loadedRepos -eq $totalRepos) { [Constants]::ColorCounterComplete } 
                        elseif ($loadedRepos -eq 0) { [Constants]::ColorCounterEmpty } 
                        else { [Constants]::ColorCounterPartial }
-        $this.Console.WriteLineColored("$loadedRepos", $counterColor)
+        $this.Console.WriteLineColored("$loadedRepos/$totalRepos", $counterColor)
         
         $lblStatus = $this.GetLoc("UI.Status", "Status")
         $lblBranch = $this.GetLoc("UI.Branch", "Branch")
