@@ -141,6 +141,7 @@
     "Prompt.ConfirmTitle": "CONFIRMATION",
     "Prompt.Yes": "YES",
     "Prompt.No": "NO",
+    "Prompt.Cancel": "Cancel",
     "Prompt.DeleteConfirmInput": "DELETE",
 
     "Prompt.Continue": "Continue?",

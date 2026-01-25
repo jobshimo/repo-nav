@@ -193,12 +193,18 @@ class RepositoryManagementCommand : INavigationCommand {
                 $result = $repoManager.DeleteFolder($repository)
                 
                 if (-not $result.Success) {
-                    $view.ShowDeleteResult($false, $result.Message)
+                    Write-Host $result.Message -ForegroundColor ([Constants]::ColorError)
+                    Start-Sleep -Seconds 2
                     return $true
                 }
                 
-                # Success
-                $view.ShowDeleteResult($true, $result.Message)
+                # Success - show localized folder message
+                $successMsg = "Folder deleted successfully."
+                if ($null -ne $locService) {
+                    $successMsg = $locService.Get("Folder.DeleteSuccess")
+                }
+                Write-Host $successMsg -ForegroundColor ([Constants]::ColorSuccess)
+                Start-Sleep -Seconds 2
                 return $true
             }
 

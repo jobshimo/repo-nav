@@ -196,7 +196,7 @@ class OptionSelector {
         if ($null -ne $localizationService) {
             $yesText = $localizationService.Get("Prompt.Yes")
             $noText = $localizationService.Get("Prompt.No")
-            $cancelText = $localizationService.Get("Prompt.Cancelled")
+            $cancelText = $localizationService.Get("Prompt.Cancel")
         }
         
         $options = @(
