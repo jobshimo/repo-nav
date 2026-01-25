@@ -62,7 +62,7 @@
     "UI.Behind": "Behind",
     "UI.Ahead": "Ahead",
     "UI.NoGit": "No git repo",
-    "UI.Container": "Folder (Enter to browse)",
+    "UI.Container": "Folder (Enter / \u2192 to browse)",
     "UI.Loading": "loading...",
     "UI.NotLoaded": "Not loaded",
     "UI.Commands": "COMMANDS",
