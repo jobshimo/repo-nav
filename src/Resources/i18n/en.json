@@ -71,11 +71,16 @@
     "Cmd.Desc.Exit": "Exit: Q/Esc",
     "Cmd.Desc.Favorite": "Set / Unset favorite (F)",
     "Cmd.Desc.Git": "GitStatus: Load (L) / (G)",
-    "Cmd.Desc.Nav": "↑/↓ | Enter",
+    "Cmd.Desc.Nav": "\u2190/\u2191/\u2193 | Enter",
     "Cmd.Desc.Npm": "Npm: Install (I) / Remove (X)",
     "Cmd.Desc.Pref": "Prefs: U",
     "Cmd.Desc.Repo": "Open repository (Enter)",
     "Cmd.Desc.RepoMgmt": "Clone (C) / Delete (Del)",
+
+    "Nav.BackHint": "\u2190 back",
+    "Nav.Container": "Folder",
+    "Nav.ContainsRepos": "Contains {0} repos",
+    "Nav.EnterToOpen": "Enter to open",
 
     "Alias.Title": "SET ALIAS",
     "Alias.Current": "Current alias",

@@ -2,7 +2,7 @@
 
 class RepositoryCommand : INavigationCommand {
     [string] GetDescription() {
-        return "Open repository (ENTER)"
+        return "Open repository/container (ENTER)"
     }
 
     [bool] CanExecute([object]$keyPress, [hashtable]$context) {
@@ -18,6 +18,24 @@ class RepositoryCommand : INavigationCommand {
         
         $selectedRepo = $repos[$currentIndex]
         
+        # Check if this is a container folder
+        if ($selectedRepo.IsContainer) {
+            # Enter the container - load its repositories
+            $repoManager = $context.RepoManager
+            $containerPath = $selectedRepo.FullPath
+            $parentPath = $state.GetCurrentPath()
+            
+            # Load repositories from the container
+            $repoManager.LoadContainerRepositories($containerPath, $parentPath)
+            $newRepos = $repoManager.GetRepositories()
+            
+            # Enter container in navigation state
+            $state.EnterContainer($containerPath, $newRepos)
+            
+            return
+        }
+        
+        # Regular repository - open it
         # Set exit state to "OpenRepository"
         $state.SetExitState("OpenRepository")
         

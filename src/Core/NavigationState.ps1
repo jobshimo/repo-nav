@@ -37,6 +37,11 @@ class NavigationState {
     [bool] $ViewportChanged  # New flag for scroll detection
     [int] $PreviousIndex
     
+    # Hierarchical navigation state (for container folders)
+    [System.Collections.Generic.Stack[hashtable]] $NavigationStack
+    [string] $CurrentPath
+    [string] $BasePath
+    
     # Dependency for window calculations
     hidden [WindowSizeCalculator] $WindowCalculator
     
@@ -53,6 +58,35 @@ class NavigationState {
         # Initialize paging defaults
         $this.ViewportStart = 0
         $this.ViewportChanged = $false
+        
+        # Initialize navigation stack for hierarchical navigation
+        $this.NavigationStack = [System.Collections.Generic.Stack[hashtable]]::new()
+        $this.CurrentPath = $null
+        $this.BasePath = $null
+        
+        # Create WindowSizeCalculator for size calculations
+        $this.WindowCalculator = [WindowSizeCalculator]::new()
+        $this.PageSize = $this.WindowCalculator.CalculateInitialPageSize()
+    }
+    
+    # Constructor with base path (for hierarchical navigation)
+    NavigationState([array]$repositories, [string]$basePath) {
+        $this.Repositories = $repositories
+        $this.SelectedIndex = 0
+        $this.PreviousIndex = 0
+        $this.IsRunning = $true
+        $this.ExitState = "None"
+        $this.RequiresFullRedraw = $false
+        $this.SelectionChanged = $false
+        
+        # Initialize paging defaults
+        $this.ViewportStart = 0
+        $this.ViewportChanged = $false
+        
+        # Initialize navigation stack for hierarchical navigation
+        $this.NavigationStack = [System.Collections.Generic.Stack[hashtable]]::new()
+        $this.CurrentPath = $basePath
+        $this.BasePath = $basePath
         
         # Create WindowSizeCalculator for size calculations
         $this.WindowCalculator = [WindowSizeCalculator]::new()
@@ -409,6 +443,121 @@ class NavigationState {
     [int] GetLoadedCount() {
         $loaded = $this.Repositories | Where-Object { $_.HasGitStatusLoaded() }
         return ($loaded | Measure-Object | Select-Object -ExpandProperty Count)
+    }
+    
+    #endregion
+    
+    #region Hierarchical Navigation (Container Folders)
+    
+    <#
+    .SYNOPSIS
+        Enters a container folder, saving current state to stack
+    #>
+    [void] EnterContainer([string]$containerPath, [array]$newRepositories) {
+        # Save current state to stack
+        $currentState = @{
+            Repositories = $this.Repositories
+            SelectedIndex = $this.SelectedIndex
+            ViewportStart = $this.ViewportStart
+            Path = $this.CurrentPath
+        }
+        $this.NavigationStack.Push($currentState)
+        
+        # Update to new container state
+        $this.Repositories = $newRepositories
+        $this.SelectedIndex = 0
+        $this.PreviousIndex = 0
+        $this.ViewportStart = 0
+        $this.CurrentPath = $containerPath
+        
+        # Mark for full redraw
+        $this.RequiresFullRedraw = $true
+    }
+    
+    <#
+    .SYNOPSIS
+        Goes back to previous navigation level
+    .RETURNS
+        $true if went back, $false if already at root
+    #>
+    [bool] GoBack() {
+        if ($this.NavigationStack.Count -eq 0) {
+            return $false
+        }
+        
+        # Restore previous state from stack
+        $previousState = $this.NavigationStack.Pop()
+        $this.Repositories = $previousState.Repositories
+        $this.SelectedIndex = $previousState.SelectedIndex
+        $this.PreviousIndex = $previousState.SelectedIndex
+        $this.ViewportStart = $previousState.ViewportStart
+        $this.CurrentPath = $previousState.Path
+        
+        # Mark for full redraw
+        $this.RequiresFullRedraw = $true
+        
+        return $true
+    }
+    
+    <#
+    .SYNOPSIS
+        Checks if we can go back (not at root level)
+    #>
+    [bool] CanGoBack() {
+        return $this.NavigationStack.Count -gt 0
+    }
+    
+    <#
+    .SYNOPSIS
+        Gets the current navigation depth (0 = root)
+    #>
+    [int] GetNavigationDepth() {
+        return $this.NavigationStack.Count
+    }
+    
+    <#
+    .SYNOPSIS
+        Gets the current path for display (breadcrumb)
+    #>
+    [string] GetBreadcrumb() {
+        if ([string]::IsNullOrEmpty($this.BasePath) -or [string]::IsNullOrEmpty($this.CurrentPath)) {
+            return ""
+        }
+        
+        if ($this.CurrentPath -eq $this.BasePath) {
+            return ""
+        }
+        
+        # Get relative path from base
+        $relativePath = $this.CurrentPath.Substring($this.BasePath.Length).TrimStart('\', '/')
+        return $relativePath
+    }
+    
+    <#
+    .SYNOPSIS
+        Gets the current path
+    #>
+    [string] GetCurrentPath() {
+        return $this.CurrentPath
+    }
+    
+    <#
+    .SYNOPSIS
+        Sets the current path
+    #>
+    [void] SetCurrentPath([string]$path) {
+        $this.CurrentPath = $path
+    }
+    
+    <#
+    .SYNOPSIS
+        Sets the base path
+    #>
+    [void] SetBasePath([string]$path) {
+        $this.BasePath = $path
+        if ([string]::IsNullOrEmpty($this.CurrentPath)) {
+            $this.CurrentPath = $path
+        }
     }
     
     #endregion

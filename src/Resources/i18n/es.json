@@ -71,11 +71,16 @@
     "Cmd.Desc.Exit": "Salir: Q/Esc",
     "Cmd.Desc.Favorite": "Añadir / Quitar favorito (F)",
     "Cmd.Desc.Git": "GtStatus: Cargar (L) / (G)",
-    "Cmd.Desc.Nav": "↑/↓ | Enter",
+    "Cmd.Desc.Nav": "\u2190/\u2191/\u2193 | Enter",
     "Cmd.Desc.Npm": "Npm: Instalar (I) / Borrar (X)",
     "Cmd.Desc.Pref": "Preferencias: U",
     "Cmd.Desc.Repo": "Abrir repositorio (Enter)",
     "Cmd.Desc.RepoMgmt": "Clonar (C) / Borrar (Supr)",
+
+    "Nav.BackHint": "\u2190 volver",
+    "Nav.Container": "Carpeta",
+    "Nav.ContainsRepos": "Contiene {0} repos",
+    "Nav.EnterToOpen": "Enter para abrir",
 
     "Alias.Title": "ESTABLECER ALIAS",
     "Alias.Current": "Alias actual",

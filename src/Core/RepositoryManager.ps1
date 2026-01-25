@@ -89,7 +89,13 @@ class RepositoryManager {
     }
 
     # Load all repositories from base path
+    # Now supports container folders (folders with repos inside)
     [void] LoadRepositories([string]$basePath) {
+        $this.LoadRepositoriesInternal($basePath, $null)
+    }
+    
+    # Load repositories with optional parent path (for hierarchical navigation)
+    [void] LoadRepositoriesInternal([string]$basePath, [string]$parentPath) {
         $oldRepos = @{}
         foreach ($repo in $this.Repositories) {
             $oldRepos[$repo.Name] = $repo
@@ -109,6 +115,17 @@ class RepositoryManager {
         foreach ($dir in $directories) {
             $repo = [RepositoryModel]::new($dir)
             
+            # Check if this is a container (has repos inside but is not a repo itself)
+            if ($this.GitService.IsContainerDirectory($dir.FullName)) {
+                $repoCount = $this.GitService.CountContainedRepositories($dir.FullName)
+                $repo.MarkAsContainer($repoCount)
+            }
+            
+            # Set parent path if provided (for back navigation)
+            if ($parentPath) {
+                $repo.SetParentPath($parentPath)
+            }
+            
             if ($aliases.ContainsKey($repo.Name)) {
                 $repo.SetAlias($aliases[$repo.Name])
             }
@@ -116,7 +133,10 @@ class RepositoryManager {
             # Delegate favorite check to FavoriteService
             $this.FavoriteService.UpdateRepositoryModel($repo)
             
-            $this.NpmService.UpdateRepositoryModel($repo)
+            # Only check node_modules for non-container folders
+            if (-not $repo.IsContainer) {
+                $this.NpmService.UpdateRepositoryModel($repo)
+            }
             
             if ($oldRepos.ContainsKey($repo.Name) -and $oldRepos[$repo.Name].HasGitStatusLoaded()) {
                 $repo.SetGitStatus($oldRepos[$repo.Name].GitStatus)
@@ -139,6 +159,11 @@ class RepositoryManager {
         
         $this.Repositories.Clear()
         $this.Repositories.AddRange($sorted)
+    }
+    
+    # Load repositories from a container folder (for hierarchical navigation)
+    [void] LoadContainerRepositories([string]$containerPath, [string]$parentPath) {
+        $this.LoadRepositoriesInternal($containerPath, $parentPath)
     }
     
     # Get all loaded repositories

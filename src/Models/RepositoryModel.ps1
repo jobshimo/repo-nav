@@ -30,6 +30,11 @@ class RepositoryModel {
     [bool] $HasNodeModules
     [bool] $IsFavorite
     
+    # Container properties (for multi-repo folders)
+    [bool] $IsContainer
+    [int] $ContainedRepoCount
+    [string] $ParentPath
+    
     # Constructor
     RepositoryModel([System.IO.DirectoryInfo]$directoryInfo) {
         $this.DirectoryInfo = $directoryInfo
@@ -42,6 +47,11 @@ class RepositoryModel {
         $this.GitStatus = $null
         $this.HasNodeModules = $false
         $this.IsFavorite = $false
+        
+        # Container defaults
+        $this.IsContainer = $false
+        $this.ContainedRepoCount = 0
+        $this.ParentPath = $null
     }
     
     # Set alias information
@@ -85,9 +95,28 @@ class RepositoryModel {
         $this.IsFavorite = $isFavorite
     }
     
+    # Mark as container (multi-repo folder)
+    [void] MarkAsContainer([int]$repoCount) {
+        $this.IsContainer = $true
+        $this.ContainedRepoCount = $repoCount
+    }
+    
+    # Set parent path for navigation hierarchy
+    [void] SetParentPath([string]$parentPath) {
+        $this.ParentPath = $parentPath
+    }
+    
+    # Check if this is a container
+    [bool] IsContainerFolder() {
+        return $this.IsContainer
+    }
+    
     # ToString for debugging
     [string] ToString() {
         $status = $this.Name
+        if ($this.IsContainer) {
+            $status += " [CONTAINER: $($this.ContainedRepoCount) repos]"
+        }
         if ($this.HasAlias) {
             $status += " (Alias: $($this.AliasInfo.Alias))"
         }

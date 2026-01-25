@@ -2,22 +2,32 @@
 
 class NavigationCommand : INavigationCommand {
     [string] GetDescription() {
-        return "Navigate (UP/DOWN arrows)"
+        return "Navigate (UP/DOWN/LEFT arrows)"
     }
 
     [bool] CanExecute([object]$keyPress, [hashtable]$context) {
         $key = $keyPress.VirtualKeyCode
-        return $key -eq [Constants]::KEY_UP_ARROW -or $key -eq [Constants]::KEY_DOWN_ARROW
+        return $key -eq [Constants]::KEY_UP_ARROW -or 
+               $key -eq [Constants]::KEY_DOWN_ARROW -or
+               $key -eq [Constants]::KEY_LEFT_ARROW
     }
 
     [void] Execute([object]$keyPress, [hashtable]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
+        $key = $keyPress.VirtualKeyCode
+        
+        # Handle LEFT arrow - Go back in container hierarchy
+        if ($key -eq [Constants]::KEY_LEFT_ARROW) {
+            if ($state.CanGoBack()) {
+                $state.GoBack()
+            }
+            return
+        }
         
         if ($repos.Count -eq 0) { return }
         
         $currentIndex = $state.GetCurrentIndex()
-        $key = $keyPress.VirtualKeyCode
         
         # Calculate new index
         if ($key -eq [Constants]::KEY_UP_ARROW) {
