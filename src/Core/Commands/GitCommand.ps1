@@ -55,7 +55,11 @@ class GitCommand : INavigationCommand {
             }
             
             try {
-                $repoManager.LoadMissingGitStatus($progressCallback)
+                # Load missing status ONLY for repositories in the current view (passed from state)
+                # This ensures we don't accidentally load global repos if RepoManager state drifts,
+                # and satisfies the requirement "only repositories in the current folder".
+                $visibleRepos = $repos | Where-Object { -not $_.IsContainer -and -not $_.HasGitStatusLoaded() }
+                $repoManager.LoadGitStatusForRepos($visibleRepos, $progressCallback)
             }
             finally {
                 $progressIndicator.CompleteProgressBar()

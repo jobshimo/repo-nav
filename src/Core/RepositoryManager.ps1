@@ -260,10 +260,12 @@ class RepositoryManager {
              $msg = ""
              
              if ($mode -eq "Favorites") {
-                 $toLoad = $repos | Where-Object { $_.IsFavorite }
+                 # Only load if favorite AND not loaded yet (respects cache)
+                 $toLoad = $repos | Where-Object { $_.IsFavorite -and -not $_.HasGitStatusLoaded() }
                  $msg = "favorites"
              } elseif ($mode -eq "All") {
-                 $toLoad = $repos
+                 # Only load if not loaded yet (respects cache)
+                 $toLoad = $repos | Where-Object { -not $_.HasGitStatusLoaded() }
                  $msg = "all"
              }
              
