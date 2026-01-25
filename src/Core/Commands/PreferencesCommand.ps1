@@ -254,7 +254,7 @@ class PreferencesCommand : INavigationCommand {
                                 if ($null -ne $newValue) {
                                     $LocalizationService.SetLanguage($newValue)
                                     $PreferencesService.SetPreference("general", "language", $newValue)
-                                    $confirmationMessage = "Language changed to $newValue"
+                                    $confirmationMessage = (& $GetLoc "Msg.LanguageChanged" "Language changed to {0}") -f $newValue
                                     $confirmationTimeout = 5
                                     $preferences = $PreferencesService.LoadPreferences()
                                 }
@@ -275,7 +275,7 @@ class PreferencesCommand : INavigationCommand {
                                 
                                 if ($null -ne $newValue) {
                                     $PreferencesService.SetPreference("display", "favoritesOnTop", $newValue)
-                                    $confirmationMessage = "Updated favorites position"
+                                    $confirmationMessage = (& $GetLoc "Msg.FavoritesPosUpdated" "Updated favorites position")
                                     $confirmationTimeout = 2
                                     $preferences = $PreferencesService.LoadPreferences()
                                 }
@@ -302,7 +302,7 @@ class PreferencesCommand : INavigationCommand {
 
                                 if ($null -ne $newValue) {
                                     $PreferencesService.SetPreference("display", "selectedBackground", $newValue)
-                                    $confirmationMessage = "Updated background"
+                                    $confirmationMessage = (& $GetLoc "Msg.BackgroundUpdated" "Updated background")
                                     $confirmationTimeout = 2
                                     $preferences = $PreferencesService.LoadPreferences()
                                 }
@@ -323,7 +323,7 @@ class PreferencesCommand : INavigationCommand {
 
                                 if ($null -ne $newValue) {
                                     $PreferencesService.SetPreference("display", "selectedDelimiter", $newValue)
-                                    $confirmationMessage = "Updated delimiter"
+                                    $confirmationMessage = (& $GetLoc "Msg.DelimiterUpdated" "Updated delimiter")
                                     $confirmationTimeout = 2
                                     $preferences = $PreferencesService.LoadPreferences()
                                 }
@@ -344,7 +344,7 @@ class PreferencesCommand : INavigationCommand {
                                 
                                 if ($null -ne $newValue) {
                                     $PreferencesService.SetPreference("git", "autoLoadFavoritesStatus", $newValue)
-                                    $confirmationMessage = "Updated auto-load settings"
+                                    $confirmationMessage = (& $GetLoc "Msg.AutoLoadUpdated" "Updated auto-load settings")
                                     $confirmationTimeout = 2
                                     $preferences = $PreferencesService.LoadPreferences()
                                 }
@@ -352,10 +352,10 @@ class PreferencesCommand : INavigationCommand {
                             }
                             elseif ($selectedItem.Id -eq "menuMode") {
                                 $menuOptions = @(
-                                    @{ DisplayText = "Full (All commands)"; Value = "Full" },
-                                    @{ DisplayText = "Minimal (Navigation only)"; Value = "Minimal" },
-                                    @{ DisplayText = "Custom (Select sections)"; Value = "Custom" },
-                                    @{ DisplayText = "Hidden (Hide menu)"; Value = "Hidden" }
+                                    @{ DisplayText = (& $GetLoc "Pref.MenuMode.Full" "Full (All commands)"); Value = "Full" },
+                                    @{ DisplayText = (& $GetLoc "Pref.MenuMode.Minimal" "Minimal (Navigation only)"); Value = "Minimal" },
+                                    @{ DisplayText = (& $GetLoc "Pref.MenuMode.Custom" "Custom (Select sections)"); Value = "Custom" },
+                                    @{ DisplayText = (& $GetLoc "Pref.MenuMode.Hidden" "Hidden (Hide menu)"); Value = "Hidden" }
                                 )
                                 
                                 $newValue = $OptionSelector.ShowSelection(
@@ -367,7 +367,7 @@ class PreferencesCommand : INavigationCommand {
                                 
                                 if ($null -ne $newValue) {
                                     $PreferencesService.SetPreference("display", "menuMode", $newValue)
-                                    $confirmationMessage = "Updated menu mode"
+                                    $confirmationMessage = (& $GetLoc "Msg.MenuModeUpdated" "Updated menu mode")
                                     $confirmationTimeout = 2
                                     $preferences = $PreferencesService.LoadPreferences()
                                 }
@@ -394,7 +394,7 @@ class PreferencesCommand : INavigationCommand {
                                 $preferences.display.menuSections.$secKey = $newVal
                                 $PreferencesService.SavePreferences($preferences)
                                 
-                                $confirmationMessage = "Toggled $secKey"
+                                $confirmationMessage = (& $GetLoc "Msg.SectionToggled" "Toggled {0}") -f $secKey
                                 $confirmationTimeout = 1
                                 # Reload to ensure consistency
                                 $preferences = $PreferencesService.LoadPreferences()
