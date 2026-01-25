@@ -99,6 +99,10 @@ class RenderOrchestrator {
         # Header (3) + Menu (menuLines)
         $this.CursorStartLine = 3 + $menuLines
         
+        # Calculate correct PageSize based on NEW CursorStartLine
+        # This prevents scrolling artifacts when switching between Menu Modes
+        $state.UpdateWindowSize($this.CursorStartLine)
+        
         # Explicitly enforce start position to match partial updates
         $this.Console.SetCursorPosition(0, $this.CursorStartLine)
         
