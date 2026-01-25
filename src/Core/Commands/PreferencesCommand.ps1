@@ -314,7 +314,14 @@ class PreferencesCommand : INavigationCommand {
              $newVal = -not $item.RawValue
              $preferences.display.menuSections.$sec = $newVal
              $PrefsService.SavePreferences($preferences)
-             $msg = (& $GetLoc "Msg.SectionToggled") -f $sec
+             
+             $statusKey = if ($newVal) { "Pref.Value.Show" } else { "Pref.Value.Hide" }
+             $statusText = & $GetLoc $statusKey "???"
+             
+             # Use DisplayText if available to be localized, else section key
+             $displayName = if ($item.DisplayText) { $item.DisplayText } else { $sec }
+             
+             $msg = (& $GetLoc "Msg.SectionToggled") -f $displayName, $statusText
              $updated = $true
              $timeout = 1
         }

@@ -47,7 +47,7 @@
     "Msg.DelimiterUpdated": "Updated delimiter",
     "Msg.AutoLoadUpdated": "Updated auto-load settings",
     "Msg.MenuModeUpdated": "Updated menu mode",
-    "Msg.SectionToggled": "Toggled {0}",
+    "Msg.SectionToggled": "{0}: {1}",
     "Prompt.SelectLanguage": "Select Language",
     
     "Lang.en": "English",

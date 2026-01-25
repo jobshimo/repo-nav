@@ -47,7 +47,7 @@
     "Msg.DelimiterUpdated": "Delimitador actualizado",
     "Msg.AutoLoadUpdated": "Ajustes de carga automática actualizados",
     "Msg.MenuModeUpdated": "Modo de menú actualizado",
-    "Msg.SectionToggled": "Alternado {0}",
+    "Msg.SectionToggled": "{0}: {1}",
     "Prompt.SelectLanguage": "Seleccionar Idioma",
     
     "Lang.en": "Inglés",
