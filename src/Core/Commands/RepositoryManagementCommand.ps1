@@ -84,10 +84,16 @@ class RepositoryManagementCommand : INavigationCommand {
 
     hidden [void] InvokeRepositoryClone($context, [RepositoryManagementView]$view) {
         $repoManager = $context.RepoManager
-        $basePath = $context.BasePath
+        # Important: Clone into the current path where the user is navigating, not always BasePath
+        $state = $context.State
+        $targetPath = $state.GetCurrentPath()
+        if (-not $targetPath) {
+             # Fallback to base path if current path isn't set (e.g. root)
+             $targetPath = $context.BasePath
+        }
 
-        # 1. View: Get Input
-        $details = $view.GetCloneDetails()
+        # 1. View: Get Input - Pass target path to view for display
+        $details = $view.GetCloneDetails($targetPath)
         if ($null -eq $details) { return }
 
         $url = $details.Url
@@ -99,8 +105,8 @@ class RepositoryManagementCommand : INavigationCommand {
         try {
             [Console]::CursorVisible = $true
             
-            # Call Service method
-            $result = $repoManager.CloneRepository($url, $name, $basePath)
+            # Call Service method - Use $targetPath instead of $basePath
+            $result = $repoManager.CloneRepository($url, $name, $targetPath)
             
             # 3. View: Show Result
             $view.ShowCloneResult($result.Success, $result.Message)

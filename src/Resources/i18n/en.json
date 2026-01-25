@@ -96,6 +96,8 @@
     
     "Repo.Clone.Title": "CLONE REPOSITORY",
     "Repo.Clone.Prompt": "Enter repository URL",
+    "Repo.CloneTarget": "Cloning into:",
+    "Repo.Clone.NamePrompt": "Folder name",
     "Repo.Clone.Success": "Repository cloned successfully!",
     "Repo.Delete.Title": "DELETE REPOSITORY",
     "Repo.Delete.Confirm": "Are you sure you want to delete {0}?",

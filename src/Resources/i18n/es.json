@@ -157,6 +157,9 @@
     "Error.FolderExists": "Error: La carpeta '{0}' ya existe.",
     
     "Repo.CloneTitle": "CLONAR REPOSITORIO",
+    "Repo.Clone.Prompt": "Introduce URL del repositorio",
+    "Repo.CloneTarget": "Clonando en:",
+    "Repo.Clone.NamePrompt": "Nombre de la carpeta",
     "Repo.CloningInto": "Clonando en '{0}'...",
     "Repo.CloneSuccess": "¡Repositorio clonado correctamente!",
     "Repo.CloneFail": "Fallo al clonar repositorio.",
