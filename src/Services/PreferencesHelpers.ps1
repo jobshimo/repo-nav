@@ -35,13 +35,19 @@ function Show-PreferencesMenu {
     try {
         $Console.HideCursor()
         
+        # Initial Clear and Header (Static)
+        $Console.ClearScreen()
+        $Renderer.RenderHeader($(Get-Loc "Pref.Title" "USER PREFERENCES"))
+        Write-Host ""
+        
+        # Save cursor position to avoid full screen clearing
+        $listStartTop = $Console.GetCursorTop()
+        
         while ($running) {
-            # Clear and render preferences menu
-            $Console.ClearScreen()
-            $Renderer.RenderHeader($(Get-Loc "Pref.Title" "USER PREFERENCES"))
-            Write-Host ""
-            
-            # Define preference items
+            # Reset cursor to start of list
+            $Console.SetCursorPosition(0, $listStartTop)
+
+            # Define preference items (re-evaluate each time as values change)
             $preferenceItems = @()
 
             # 0: Language
@@ -119,15 +125,18 @@ function Show-PreferencesMenu {
             
             Write-Host ""
             
-            # Show confirmation message if exists
+            # Show confirmation message OR placeholder to maintain layout stability
             if ($confirmationMessage -ne "" -and $confirmationTimeout -gt 0) {
-                $Renderer.RenderSuccess($confirmationMessage)
-                Write-Host ""
+                $Renderer.RenderSuccess($confirmationMessage.PadRight(60))
                 $confirmationTimeout--
                 if ($confirmationTimeout -eq 0) {
                     $confirmationMessage = ""
                 }
+            } else {
+                # Print blank line to overwrite any previous message and keep footer stable
+                Write-Host (" " * 60)
             }
+            Write-Host ""
             
             Write-Host "  Use Arrows to navigate | Enter to change/select | Q to go back" -ForegroundColor ([Constants]::ColorHint)
             

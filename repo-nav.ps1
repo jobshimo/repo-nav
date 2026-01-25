@@ -89,7 +89,21 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\ColorSelector.ps1"
 . "$srcPath\UI\OptionSelector.ps1"
 
-# Core (depend on everything)
+# Commands (Interfaces and Implementations)
+. "$srcPath\Core\Commands\INavigationCommand.ps1"
+. "$srcPath\Core\Commands\ExitCommand.ps1"
+. "$srcPath\Core\Commands\NavigationCommand.ps1"
+. "$srcPath\Core\Commands\RepositoryCommand.ps1"
+. "$srcPath\Core\Commands\GitCommand.ps1"
+. "$srcPath\Core\Commands\FavoriteCommand.ps1"
+. "$srcPath\Core\Commands\AliasCommand.ps1"
+. "$srcPath\Core\Commands\NpmCommand.ps1"
+. "$srcPath\Core\Commands\RepositoryManagementCommand.ps1"
+. "$srcPath\Core\Commands\PreferencesCommand.ps1"
+
+# Core Components
+. "$srcPath\Core\CommandFactory.ps1"
+. "$srcPath\Core\InputHandler.ps1"
 . "$srcPath\Core\RepositoryManager.ps1"
 . "$srcPath\Core\NavigationLoop.ps1"
 #endregion
@@ -149,6 +163,7 @@ function Start-RepositoryNavigator {
             ColorSelector       = $colorSelector
             OptionSelector      = $optionSelector
             LocalizationService = $localizationService
+            PreferencesService  = $preferencesService
             BasePath            = $BasePath
         }
 

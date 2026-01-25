@@ -82,16 +82,22 @@ class OptionSelector {
         try {
             $this.Console.HideCursor()
             
-            while ($running) {
-                # Clear and render
-                $this.Console.ClearScreen()
-                $this.Renderer.RenderHeader($title)
+            # Clear screen once and render header
+            $this.Console.ClearScreen()
+            $this.Renderer.RenderHeader($title)
+            $this.Console.NewLine()
+            
+            if (-not [string]::IsNullOrWhiteSpace($description)) {
+                $this.Console.WriteLineColored("  $description", [Constants]::ColorWarning)
                 $this.Console.NewLine()
-                
-                if (-not [string]::IsNullOrWhiteSpace($description)) {
-                    $this.Console.WriteLineColored("  $description", [Constants]::ColorWarning)
-                    $this.Console.NewLine()
-                }
+            }
+            
+            # Store the starting position of the list to avoid full screen clears
+            $listStartTop = $this.Console.GetCursorTop()
+            
+            while ($running) {
+                # Reset cursor to the start of the list
+                $this.Console.SetCursorPosition(0, $listStartTop)
 
                 # Display options
                 for ($i = 0; $i -lt $options.Count; $i++) {
