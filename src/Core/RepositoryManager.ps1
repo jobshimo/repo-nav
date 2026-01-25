@@ -32,6 +32,9 @@ class RepositoryManager {
     # Cache for loaded repositories
     [System.Collections.ArrayList] $Repositories
     
+    # Global cache for git status by repository path (persists across navigation)
+    [hashtable] $GitStatusCache
+    
     # Constructor with dependency injection
     RepositoryManager(
         [GitService]$gitService,
@@ -52,6 +55,7 @@ class RepositoryManager {
         $this.ParallelGitLoader = $parallelGitLoader
         $this.RepoOperationsService = $repoOperationsService
         $this.Repositories = [System.Collections.ArrayList]::new()
+        $this.GitStatusCache = @{}
     }
     
     # Clone a new repository (delegates to RepositoryOperationsService)
@@ -138,7 +142,12 @@ class RepositoryManager {
                 $this.NpmService.UpdateRepositoryModel($repo)
             }
             
-            if ($oldRepos.ContainsKey($repo.Name) -and $oldRepos[$repo.Name].HasGitStatusLoaded()) {
+            # Check git status cache first (persists across navigation)
+            if ($this.GitStatusCache.ContainsKey($repo.FullPath)) {
+                $repo.SetGitStatus($this.GitStatusCache[$repo.FullPath])
+            }
+            # Then check old repos from current list
+            elseif ($oldRepos.ContainsKey($repo.Name) -and $oldRepos[$repo.Name].HasGitStatusLoaded()) {
                 $repo.SetGitStatus($oldRepos[$repo.Name].GitStatus)
             }
             
@@ -181,10 +190,18 @@ class RepositoryManager {
         return $null
     }
     
-    # Load git status for a specific repository
+    # Load git status for a specific repository (and cache it)
     [void] LoadGitStatus([RepositoryModel]$repository) {
+        # Skip containers - they don't have git status
+        if ($repository.IsContainer) {
+            return
+        }
+        
         $gitStatus = $this.GitService.GetGitStatus($repository)
         $repository.SetGitStatus($gitStatus)
+        
+        # Cache the git status by full path
+        $this.GitStatusCache[$repository.FullPath] = $gitStatus
     }
     
     # Load git status for all repositories
@@ -194,27 +211,36 @@ class RepositoryManager {
         }
     }
     
-    # Load git status only for repositories that don't have it
+    # Load git status only for repositories that don't have it (excludes containers)
     # Accepts optional progress callback: { param($current, $total) }
     [void] LoadMissingGitStatus([scriptblock]$progressCallback = $null) {
-        $missingRepos = $this.Repositories | Where-Object { -not $_.HasGitStatusLoaded() }
+        $missingRepos = $this.Repositories | Where-Object { -not $_.IsContainer -and -not $_.HasGitStatusLoaded() }
         $this.LoadGitStatusForRepos($missingRepos, $progressCallback)
     }
     
     # Load git status for specified repositories (delegates to ParallelGitLoader)
     [void] LoadGitStatusForRepos([array]$repos, [scriptblock]$progressCallback = $null) {
-        $total = @($repos).Count
+        # Filter out containers
+        $reposToLoad = @($repos | Where-Object { -not $_.IsContainer })
+        $total = $reposToLoad.Count
         
         if ($total -eq 0) { return }
         
         # Delegate to ParallelGitLoader
-        $this.ParallelGitLoader.LoadGitStatusParallel($repos, $progressCallback)
+        $this.ParallelGitLoader.LoadGitStatusParallel($reposToLoad, $progressCallback)
+        
+        # Cache the loaded git status for all repos
+        foreach ($repo in $reposToLoad) {
+            if ($repo.HasGitStatusLoaded()) {
+                $this.GitStatusCache[$repo.FullPath] = $repo.GitStatus
+            }
+        }
     }
     
     [int] GetLoadedGitStatusCount() {
         $count = 0
         foreach ($repo in $this.Repositories) {
-            if ($repo.HasGitStatusLoaded()) {
+            if (-not $repo.IsContainer -and $repo.HasGitStatusLoaded()) {
                 $count++
             }
         }
