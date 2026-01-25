@@ -107,6 +107,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Core\Commands\NpmCommand.ps1"
 . "$srcPath\Core\Commands\RepositoryManagementCommand.ps1"
 . "$srcPath\Core\Commands\PreferencesCommand.ps1"
+. "$srcPath\Core\Commands\CreateFolderCommand.ps1"
 
 # Core Components
 . "$srcPath\Core\CommandFactory.ps1"

@@ -42,6 +42,9 @@ class CommandFactory {
         
         # Preferences command
         $this.commands.Add([PreferencesCommand]::new())
+        
+        # Folder commands
+        $this.commands.Add([CreateFolderCommand]::new())
     }
     
     <#

@@ -69,7 +69,7 @@
     "UI.Group.Nav": "Navegación",
     "UI.Group.Repo": "Repositorio",
     "UI.Group.Modules": "Módulos",
-    "UI.Group.Other": "Otros",
+    "UI.Group.Tools": "Herramientas",
     
     "Cmd.Desc.Alias": "Alias: Set (E) / Del(R)",
     "Cmd.Desc.Exit": "Salir: Q/Esc",
@@ -78,8 +78,9 @@
     "Cmd.Desc.Nav": "\u2190/\u2191/\u2193 | Enter",
     "Cmd.Desc.Npm": "Npm: Instalar (I) / Borrar (X)",
     "Cmd.Desc.Pref": "Preferencias: U",
-    "Cmd.Desc.Repo": "Abrir repositorio (Enter)",
+    "Cmd.Desc.Repo": "Abrir (Enter)",
     "Cmd.Desc.RepoMgmt": "Clonar (C) / Borrar (Supr)",
+    "Cmd.Desc.CreateFolder": "Crear Carpeta (N)",
 
     "Nav.BackHint": "\u2190 volver",
     "Nav.Container": "Carpeta",

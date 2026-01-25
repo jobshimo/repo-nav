@@ -69,7 +69,7 @@
     "UI.Group.Nav": "Navigation",
     "UI.Group.Repo": "Repository",
     "UI.Group.Modules": "Modules",
-    "UI.Group.Other": "Other",
+    "UI.Group.Tools": "Tools",
     
     "Cmd.Desc.Alias": "Set alias (E) or Remove alias (R)",
     "Cmd.Desc.Exit": "Exit: Q/Esc",
@@ -78,8 +78,9 @@
     "Cmd.Desc.Nav": "\u2190/\u2191/\u2193 | Enter",
     "Cmd.Desc.Npm": "Npm: Install (I) / Remove (X)",
     "Cmd.Desc.Pref": "Prefs: U",
-    "Cmd.Desc.Repo": "Open repository (Enter)",
+    "Cmd.Desc.Repo": "Open (Enter)",
     "Cmd.Desc.RepoMgmt": "Clone (C) / Delete (Del)",
+    "Cmd.Desc.CreateFolder": "Create Folder (N)",
 
     "Nav.BackHint": "\u2190 back",
     "Nav.Container": "Folder",

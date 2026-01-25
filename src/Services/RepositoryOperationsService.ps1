@@ -147,6 +147,51 @@ class RepositoryOperationsService {
     
     <#
     .SYNOPSIS
+        Creates a new folder
+    #>
+    [hashtable] CreateFolder([string]$name, [string]$parentPath) {
+        # Validate name (no spaces)
+        if ($name -match '\s') {
+            return @{
+                Success = $false
+                Message = "Folder name cannot contain spaces."
+            }
+        }
+        
+        # Validate parent path
+        if (-not (Test-Path $parentPath)) {
+            return @{
+                Success = $false
+                Message = "Parent path does not exist."
+            }
+        }
+        
+        $newPath = Join-Path $parentPath $name
+        
+        if (Test-Path $newPath) {
+             return @{
+                Success = $false
+                Message = "Folder '$name' already exists."
+            }
+        }
+        
+        try {
+            New-Item -Path $newPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+            return @{
+                Success = $true
+                Message = "Folder created successfully."
+            }
+        }
+        catch {
+             return @{
+                Success = $false
+                Message = "Error creating folder: $_"
+            }
+        }
+    }
+
+    <#
+    .SYNOPSIS
         Validates if a repository can be safely deleted
         
     .PARAMETER repository

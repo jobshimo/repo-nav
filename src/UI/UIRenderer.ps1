@@ -117,6 +117,7 @@ class UIRenderer {
         $showModules = $true
         $showRepo    = $true
         $showGit     = $true
+        $showTools   = $true
         
         if ($mode -eq 'Custom') {
             $preferences = $this.PreferencesService.LoadPreferences()
@@ -127,6 +128,7 @@ class UIRenderer {
                 $showModules = if ($sections.PSObject.Properties.Name -contains 'modules') { $sections.modules } else { $true }
                 $showRepo    = if ($sections.PSObject.Properties.Name -contains 'repository') { $sections.repository } else { $true }
                 $showGit     = if ($sections.PSObject.Properties.Name -contains 'git') { $sections.git } else { $true }
+                $showTools   = if ($sections.PSObject.Properties.Name -contains 'tools') { $sections.tools } else { $true }
             }
         }
         
@@ -153,6 +155,10 @@ class UIRenderer {
             $linesRendered += $this.RenderSectionGitStatus($labelWidth)
         }
         
+        if ($showTools) {
+             $linesRendered += $this.RenderSectionTools($labelWidth)
+        }
+        
         $this.Console.NewLine()
         $linesRendered++
         
@@ -164,10 +170,10 @@ class UIRenderer {
         $grpNav = $this.GetLoc("UI.Group.Nav", "Navigation")
         $cmdNav = $this.GetLoc("Cmd.Desc.Nav", "Arrows | Enter=open")
         $cmdExit = $this.GetLoc("Cmd.Desc.Exit", "Q=quit")
-        $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
+        # Prefs moved to Tools
         
         $lblNav = "${grpNav}:".PadRight($labelWidth)
-        $this.Console.WriteLineColored("  $lblNav $cmdNav | $cmdExit | $cmdPref", [Constants]::ColorMenuText)
+        $this.Console.WriteLineColored("  $lblNav $cmdNav | $cmdExit", [Constants]::ColorMenuText)
         return 1
     }
     
@@ -203,6 +209,17 @@ class UIRenderer {
         $cmdGit = $this.GetLoc("Cmd.Desc.Git", "L=load current | G=load all")
         $lblGit = "Git Status:".PadRight($labelWidth)
         $this.Console.WriteLineColored("  $lblGit $cmdGit", [Constants]::ColorMenuText)
+        return 1
+    }
+    
+    # Helper: Render Tools Section
+    hidden [int] RenderSectionTools([int]$labelWidth) {
+        $grpTool = $this.GetLoc("UI.Group.Tools", "Tools")
+        $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
+        $cmdFolder = $this.GetLoc("Cmd.Desc.CreateFolder", "N=New Folder")
+        
+        $lblTool = "${grpTool}:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblTool $cmdFolder | $cmdPref", [Constants]::ColorMenuText)
         return 1
     }
 
