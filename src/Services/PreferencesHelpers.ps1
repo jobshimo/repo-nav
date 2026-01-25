@@ -60,43 +60,43 @@ function Show-PreferencesMenu {
 
             # 0: Language
             $preferenceItems += @{
-                Id = "language"
-                Name = $(Get-Loc "Pref.Language" "Language")
+                Id           = "language"
+                Name         = $(Get-Loc "Pref.Language" "Language")
                 CurrentValue = $LocalizationService.GetCurrentLanguage()
             }
 
             # 1: Favorites On Top
             $preferenceItems += @{
-                Id = "favoritesOnTop"
-                Name = $(Get-Loc "Pref.FavoritesPos" "Favorites Position")
+                Id           = "favoritesOnTop"
+                Name         = $(Get-Loc "Pref.FavoritesPos" "Favorites Position")
                 CurrentValue = if ($preferences.display.favoritesOnTop) { $(Get-Loc "Pref.Value.Top" "Top of list") } else { $(Get-Loc "Pref.Value.Original" "Original position") }
             }
 
             # 2: Background
             $preferenceItems += @{
-                Id = "selectedBackground"
-                Name = $(Get-Loc "Pref.SelectedBg" "Selected Item Background")
+                Id           = "selectedBackground"
+                Name         = $(Get-Loc "Pref.SelectedBg" "Selected Item Background")
                 CurrentValue = $preferences.display.selectedBackground
             }
 
             # 3: Delimiter
             $preferenceItems += @{
-                Id = "selectedDelimiter"
-                Name = $(Get-Loc "Pref.SelectedDelim" "Selected Item Delimiter")
+                Id           = "selectedDelimiter"
+                Name         = $(Get-Loc "Pref.SelectedDelim" "Selected Item Delimiter")
                 CurrentValue = $preferences.display.selectedDelimiter
             }
 
             # 4: Auto Git
             $preferenceItems += @{
-                Id = "autoLoadGit"
-                Name = $(Get-Loc "Pref.AutoLoadGit" "Auto-load Git Status (Favorites)")
+                Id           = "autoLoadGit"
+                Name         = $(Get-Loc "Pref.AutoLoadGit" "Auto-load Git Status (Favorites)")
                 CurrentValue = if ($preferences.git.autoLoadFavoritesStatus) { $(Get-Loc "Pref.Value.Enabled" "Enabled") } else { $(Get-Loc "Pref.Value.Disabled" "Disabled") }
             }
             
             # 5: Menu Mode
             $preferenceItems += @{
-                Id = "menuMode"
-                Name = $(Get-Loc "Pref.MenuMode" "Menu Display")
+                Id           = "menuMode"
+                Name         = $(Get-Loc "Pref.MenuMode" "Menu Display")
                 CurrentValue = if ($preferences.display.menuMode) { $preferences.display.menuMode } else { "Full" }
             }
             
@@ -115,10 +115,12 @@ function Show-PreferencesMenu {
                     
                     if ($bgVal -ne 'None' -and ($bgVal -as [System.ConsoleColor])) {
                         Write-Host $bgDisplay -ForegroundColor $bgVal
-                    } else {
+                    }
+                    else {
                         Write-Host $bgDisplay -ForegroundColor $color
                     }
-                } else {
+                }
+                else {
                     Write-Host $item.CurrentValue -ForegroundColor $color
                 }
             }
@@ -140,7 +142,8 @@ function Show-PreferencesMenu {
                 if ($confirmationTimeout -eq 0) {
                     $confirmationMessage = ""
                 }
-            } else {
+            }
+            else {
                 # Print blank line to overwrite any previous message and keep footer stable
                 Write-Host (" " * 60)
             }
@@ -155,7 +158,8 @@ function Show-PreferencesMenu {
                 ([Constants]::KEY_UP_ARROW) {
                     if ($selectedOption -gt 0) {
                         $selectedOption--
-                    } else {
+                    }
+                    else {
                         $selectedOption = $preferenceItems.Count
                     }
                 }
@@ -163,7 +167,8 @@ function Show-PreferencesMenu {
                 ([Constants]::KEY_DOWN_ARROW) {
                     if ($selectedOption -lt $preferenceItems.Count) {
                         $selectedOption++
-                    } else {
+                    }
+                    else {
                         $selectedOption = 0
                     }
                 }
@@ -171,7 +176,8 @@ function Show-PreferencesMenu {
                 ([Constants]::KEY_ENTER) {
                     if ($selectedOption -eq $preferenceItems.Count) {
                         $running = $false
-                    } else {
+                    }
+                    else {
                         # Logic based on selected item ID
                         $selectedItem = $preferenceItems[$selectedOption]
                         
@@ -229,7 +235,8 @@ function Show-PreferencesMenu {
                                 # Translate 'None' or the color name
                                 if ($bg -eq 'None') {
                                     $displayText = Get-Loc "Color.None" "No background"
-                                } else {
+                                }
+                                else {
                                     $displayText = Get-Loc "Color.$bg" $bg
                                 }
                                 $bgOptions += @{ DisplayText = $displayText; Value = $bg }
@@ -274,7 +281,7 @@ function Show-PreferencesMenu {
                             $fullRedrawNeeded = $true
                         }
                         elseif ($selectedItem.Id -eq "autoLoadGit") {
-                             $autoLoadOptions = @(
+                            $autoLoadOptions = @(
                                 @{ DisplayText = $(Get-Loc "Pref.Value.Enabled" "Enabled"); Value = $true },
                                 @{ DisplayText = $(Get-Loc "Pref.Value.Disabled" "Disabled"); Value = $false }
                             )
