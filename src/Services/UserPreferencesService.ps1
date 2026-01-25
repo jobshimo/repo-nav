@@ -71,7 +71,14 @@ class UserPreferencesService {
                 favoritesOnTop = $true
                 selectedBackground = "DarkGray"
                 selectedDelimiter = "None"
-                menuMode = "Full" # Full | Minimal | Hidden
+                menuMode = "Full" # Full | Minimal | Hidden | Custom
+                menuSections = [PSCustomObject]@{
+                    navigation = $true
+                    alias = $true
+                    modules = $true
+                    repository = $true
+                    git = $true
+                }
             }
             git = [PSCustomObject]@{
                 autoLoadFavoritesStatus = $false
@@ -119,6 +126,26 @@ class UserPreferencesService {
             $preferences.display | Add-Member -NotePropertyName 'menuMode' -NotePropertyValue "Full" -Force
         }
         
+        if (-not ($preferences.display.PSObject.Properties.Name -contains 'menuSections')) {
+            $menuSections = [PSCustomObject]@{
+                navigation = $true
+                alias = $true
+                modules = $true
+                repository = $true
+                git = $true
+            }
+            $preferences.display | Add-Member -NotePropertyName 'menuSections' -NotePropertyValue $menuSections -Force
+        }
+        else {
+            # Normalize menuSections
+            $sections = $preferences.display.menuSections
+            if (-not ($sections.PSObject.Properties.Name -contains 'navigation')) { $sections | Add-Member -NotePropertyName 'navigation' -NotePropertyValue $true -Force }
+            if (-not ($sections.PSObject.Properties.Name -contains 'alias')) { $sections | Add-Member -NotePropertyName 'alias' -NotePropertyValue $true -Force }
+            if (-not ($sections.PSObject.Properties.Name -contains 'modules')) { $sections | Add-Member -NotePropertyName 'modules' -NotePropertyValue $true -Force }
+            if (-not ($sections.PSObject.Properties.Name -contains 'repository')) { $sections | Add-Member -NotePropertyName 'repository' -NotePropertyValue $true -Force }
+            if (-not ($sections.PSObject.Properties.Name -contains 'git')) { $sections | Add-Member -NotePropertyName 'git' -NotePropertyValue $true -Force }
+        }
+
         if (-not ($preferences.PSObject.Properties.Name -contains 'git')) {
             $preferences | Add-Member -NotePropertyName 'git' -NotePropertyValue ([PSCustomObject]@{}) -Force
         }

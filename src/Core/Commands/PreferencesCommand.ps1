@@ -122,6 +122,35 @@ class PreferencesCommand : INavigationCommand {
                     Name         = (& $GetLoc "Pref.MenuMode" "Menu Display")
                     CurrentValue = if ($preferences.display.menuMode) { $preferences.display.menuMode } else { "Full" }
                 }
+
+                # 6..N: Custom Menu Sections (Dynamic)
+                if ($preferences.display.menuMode -eq 'Custom' -and $preferences.display.PSObject.Properties.Name -contains 'menuSections') {
+                     $sections = $preferences.display.menuSections
+                     
+                     # Define sections to show
+                     $sectionKeys = @("navigation", "alias", "modules", "repository", "git")
+                     $sectionLabels = @{
+                        "navigation" = (& $GetLoc "UI.Group.Nav" "Navigation");
+                        "alias"      = "Alias";
+                        "modules"    = (& $GetLoc "UI.Group.Modules" "Modules");
+                        "repository" = (& $GetLoc "UI.Group.Repo" "Repository");
+                        "git"        = "Git Status"
+                     }
+
+                     foreach ($secKey in $sectionKeys) {
+                         $isEnabled = if ($sections.PSObject.Properties.Name -contains $secKey) { $sections.$secKey } else { $true }
+                         $valDisplay = if ($isEnabled) { "[x] $(& $GetLoc "Pref.Value.Show" "Show")" } else { "[ ] $(& $GetLoc "Pref.Value.Show" "Show")" }
+                         
+                         $preferenceItems += @{
+                             Id           = "section_$secKey"
+                             Name         = "  - $($sectionLabels[$secKey])" # Indented
+                             CurrentValue = $valDisplay
+                             IsSectionToggle = $true
+                             SectionKey = $secKey
+                             RawValue = $isEnabled
+                         }
+                     }
+                }
                 
                 # Display preference items
                 for ($i = 0; $i -lt $preferenceItems.Count; $i++) {
@@ -321,6 +350,7 @@ class PreferencesCommand : INavigationCommand {
                                 $menuOptions = @(
                                     @{ DisplayText = "Full (All commands)"; Value = "Full" },
                                     @{ DisplayText = "Minimal (Navigation only)"; Value = "Minimal" },
+                                    @{ DisplayText = "Custom (Select sections)"; Value = "Custom" },
                                     @{ DisplayText = "Hidden (Hide menu)"; Value = "Hidden" }
                                 )
                                 
@@ -337,6 +367,33 @@ class PreferencesCommand : INavigationCommand {
                                     $confirmationTimeout = 2
                                     $preferences = $PreferencesService.LoadPreferences()
                                 }
+                                $fullRedrawNeeded = $true
+                            }
+                            elseif ($selectedItem.IsSectionToggle) {
+                                # Toggle the boolean value
+                                $secKey = $selectedItem.SectionKey
+                                $newVal = -not $selectedItem.RawValue
+                                
+                                # Access nested object carefully
+                                if (-not ($preferences.display.PSObject.Properties.Name -contains 'menuSections')) {
+                                    # Use normalized preferences if sections missing (shouldn't save, but in memory)
+                                    # Actually, we need to persist change.
+                                    # Ideally we should use SetPreference but it supports only 2 levels (section, key).
+                                    # We might need a generic way or update entire object manually.
+                                    # $state.MarkForFullRedraw() # Removed to avoid error: Variable is not assigned
+                                }
+                                
+                                # The PreferencesService.SetPreference is simple: SetPreference(section, key, value)
+                                # But we need to set display.menuSections.navigation
+                                # Let's update the memory object and save the whole thing.
+                                
+                                $preferences.display.menuSections.$secKey = $newVal
+                                $PreferencesService.SavePreferences($preferences)
+                                
+                                $confirmationMessage = "Toggled $secKey"
+                                $confirmationTimeout = 1
+                                # Reload to ensure consistency
+                                $preferences = $PreferencesService.LoadPreferences()
                                 $fullRedrawNeeded = $true
                             }
                         }

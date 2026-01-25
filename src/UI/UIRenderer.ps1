@@ -78,17 +78,16 @@ class UIRenderer {
         $linesRendered = 1 # Initial empty line
         
         if ($mode -eq 'Hidden') {
-             # Render nothing (just the empty line above)
              return $linesRendered
         }
         
-        # Minimal Mode: Only Nav and Exit
-        $grpNav = $this.GetLoc("UI.Group.Nav", "Navigation")
-        $cmdNav = $this.GetLoc("Cmd.Desc.Nav", "Arrows | Enter=open")
-        $cmdExit = $this.GetLoc("Cmd.Desc.Exit", "Q=quit")
-        $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
-        
+        # Minimal Mode: Only Nav and Exit (compact)
         if ($mode -eq 'Minimal') {
+             $grpNav = $this.GetLoc("UI.Group.Nav", "Navigation")
+             $cmdNav = $this.GetLoc("Cmd.Desc.Nav", "Arrows | Enter=open")
+             $cmdExit = $this.GetLoc("Cmd.Desc.Exit", "Q=quit")
+             $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
+             
              $this.Console.WriteLineColored("  $cmdNav | $cmdExit | $cmdPref", [Constants]::ColorMenuText)
              $linesRendered++
              $this.Console.NewLine()
@@ -96,40 +95,47 @@ class UIRenderer {
              return $linesRendered
         }
         
-        # Full Mode (Default)
-        $labelWidth = 13 # Width for the label including colon to ensure alignment
-
-        # 1. Navigation
-        $lblNav = "${grpNav}:".PadRight($labelWidth)
-        $this.Console.WriteLineColored("  $lblNav $cmdNav | $cmdExit | $cmdPref", [Constants]::ColorMenuText)
-        $linesRendered++
-
-        # 2. Alias
-        $cmdAlias = $this.GetLoc("Cmd.Desc.Alias", "E=set | R=remove")
-        $lblAlias = "Alias:".PadRight($labelWidth)
-        $this.Console.WriteLineColored("  $lblAlias $cmdAlias", [Constants]::ColorMenuText)
-        $linesRendered++
-
-        # 3. Modules
-        $grpMod = $this.GetLoc("UI.Group.Modules", "Modules")
-        $cmdNpm = $this.GetLoc("Cmd.Desc.Npm", "I=install | X=remove")
-        $lblMod = "${grpMod}:".PadRight($labelWidth)
-        $this.Console.WriteLineColored("  $lblMod $cmdNpm", [Constants]::ColorMenuText)
-        $linesRendered++
-
-        # 4. Repository
-        $grpRepo = $this.GetLoc("UI.Group.Repo", "Repository")
-        $cmdClone = $this.GetLoc("Cmd.Desc.RepoMgmt", "C=clone | Del=delete")
-        $cmdFav = $this.GetLoc("Cmd.Desc.Favorite", "Space=favorite")
-        $lblRepo = "${grpRepo}:".PadRight($labelWidth)
-        $this.Console.WriteLineColored("  $lblRepo $cmdClone | $cmdFav", [Constants]::ColorMenuText)
-        $linesRendered++
-
-        # 5. Git Status
-        $cmdGit = $this.GetLoc("Cmd.Desc.Git", "L=load current | G=load all")
-        $lblGit = "Git Status:".PadRight($labelWidth)
-        $this.Console.WriteLineColored("  $lblGit $cmdGit", [Constants]::ColorMenuText)
-        $linesRendered++
+        # Determine visibility based on mode
+        $showNav     = $true
+        $showAlias   = $true
+        $showModules = $true
+        $showRepo    = $true
+        $showGit     = $true
+        
+        if ($mode -eq 'Custom') {
+            $preferences = $this.PreferencesService.LoadPreferences()
+            if ($preferences.display.PSObject.Properties.Name -contains 'menuSections') {
+                $sections = $preferences.display.menuSections
+                $showNav     = if ($sections.PSObject.Properties.Name -contains 'navigation') { $sections.navigation } else { $true }
+                $showAlias   = if ($sections.PSObject.Properties.Name -contains 'alias') { $sections.alias } else { $true }
+                $showModules = if ($sections.PSObject.Properties.Name -contains 'modules') { $sections.modules } else { $true }
+                $showRepo    = if ($sections.PSObject.Properties.Name -contains 'repository') { $sections.repository } else { $true }
+                $showGit     = if ($sections.PSObject.Properties.Name -contains 'git') { $sections.git } else { $true }
+            }
+        }
+        
+        # Common constants
+        $labelWidth = 13 
+        
+        if ($showNav) {
+            $linesRendered += $this.RenderSectionNavigation($labelWidth)
+        }
+        
+        if ($showAlias) {
+            $linesRendered += $this.RenderSectionAlias($labelWidth)
+        }
+        
+        if ($showModules) {
+            $linesRendered += $this.RenderSectionModules($labelWidth)
+        }
+        
+        if ($showRepo) {
+            $linesRendered += $this.RenderSectionRepository($labelWidth)
+        }
+        
+        if ($showGit) {
+            $linesRendered += $this.RenderSectionGitStatus($labelWidth)
+        }
         
         $this.Console.NewLine()
         $linesRendered++
@@ -137,6 +143,53 @@ class UIRenderer {
         return $linesRendered
     }
     
+    # Helper: Render Navigation Section
+    hidden [int] RenderSectionNavigation([int]$labelWidth) {
+        $grpNav = $this.GetLoc("UI.Group.Nav", "Navigation")
+        $cmdNav = $this.GetLoc("Cmd.Desc.Nav", "Arrows | Enter=open")
+        $cmdExit = $this.GetLoc("Cmd.Desc.Exit", "Q=quit")
+        $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
+        
+        $lblNav = "${grpNav}:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblNav $cmdNav | $cmdExit | $cmdPref", [Constants]::ColorMenuText)
+        return 1
+    }
+    
+    # Helper: Render Alias Section
+    hidden [int] RenderSectionAlias([int]$labelWidth) {
+        $cmdAlias = $this.GetLoc("Cmd.Desc.Alias", "E=set | R=remove")
+        $lblAlias = "Alias:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblAlias $cmdAlias", [Constants]::ColorMenuText)
+        return 1
+    }
+    
+    # Helper: Render Modules Section
+    hidden [int] RenderSectionModules([int]$labelWidth) {
+        $grpMod = $this.GetLoc("UI.Group.Modules", "Modules")
+        $cmdNpm = $this.GetLoc("Cmd.Desc.Npm", "I=install | X=remove")
+        $lblMod = "${grpMod}:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblMod $cmdNpm", [Constants]::ColorMenuText)
+        return 1
+    }
+    
+    # Helper: Render Repository Section
+    hidden [int] RenderSectionRepository([int]$labelWidth) {
+        $grpRepo = $this.GetLoc("UI.Group.Repo", "Repository")
+        $cmdClone = $this.GetLoc("Cmd.Desc.RepoMgmt", "C=clone | Del=delete")
+        $cmdFav = $this.GetLoc("Cmd.Desc.Favorite", "Space=favorite")
+        $lblRepo = "${grpRepo}:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblRepo $cmdClone | $cmdFav", [Constants]::ColorMenuText)
+        return 1
+    }
+    
+    # Helper: Render Git Status Section
+    hidden [int] RenderSectionGitStatus([int]$labelWidth) {
+        $cmdGit = $this.GetLoc("Cmd.Desc.Git", "L=load current | G=load all")
+        $lblGit = "Git Status:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblGit $cmdGit", [Constants]::ColorMenuText)
+        return 1
+    }
+
     # Get git status display info
     [hashtable] GetGitStatusDisplay([GitStatusModel]$gitStatus) {
         if (-not $gitStatus -or -not $gitStatus.IsGitRepo) {

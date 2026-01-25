@@ -34,6 +34,8 @@
     "Pref.Value.Original": "Original position",
     "Pref.Value.Enabled": "Enabled",
     "Pref.Value.Disabled": "Disabled",
+    "Pref.Value.Show": "Show",
+    "Pref.Value.Hide": "Hide",
     "Prompt.SelectLanguage": "Select Language",
     
     "UI.Status": "Status",
