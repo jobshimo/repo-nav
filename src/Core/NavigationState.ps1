@@ -438,11 +438,20 @@ class NavigationState {
     
     <#
     .SYNOPSIS
-        Gets the count of repositories with loaded git status
+        Gets the count of repositories with loaded git status (excludes containers)
     #>
     [int] GetLoadedCount() {
-        $loaded = $this.Repositories | Where-Object { $_.HasGitStatusLoaded() }
+        $loaded = $this.Repositories | Where-Object { -not $_.IsContainer -and $_.HasGitStatusLoaded() }
         return ($loaded | Measure-Object | Select-Object -ExpandProperty Count)
+    }
+    
+    <#
+    .SYNOPSIS
+        Gets the count of actual repositories (excludes containers)
+    #>
+    [int] GetRepoCount() {
+        $repos = $this.Repositories | Where-Object { -not $_.IsContainer }
+        return ($repos | Measure-Object | Select-Object -ExpandProperty Count)
     }
     
     #endregion
@@ -531,6 +540,30 @@ class NavigationState {
         # Get relative path from base
         $relativePath = $this.CurrentPath.Substring($this.BasePath.Length).TrimStart('\', '/')
         return $relativePath
+    }
+    
+    <#
+    .SYNOPSIS
+        Gets the parent path from the navigation stack (if inside a container)
+    #>
+    [string] GetParentPath() {
+        if ($this.NavigationStack.Count -eq 0) {
+            return $null
+        }
+        $parentEntry = $this.NavigationStack.Peek()
+        return $parentEntry.Path
+    }
+    
+    <#
+    .SYNOPSIS
+        Checks if currently inside a container (not at base level)
+    #>
+    [bool] IsInsideContainer() {
+        # Safety check for null values
+        if ([string]::IsNullOrEmpty($this.CurrentPath) -or [string]::IsNullOrEmpty($this.BasePath)) {
+            return $false
+        }
+        return $this.CurrentPath -ne $this.BasePath
     }
     
     <#
