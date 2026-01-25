@@ -108,11 +108,15 @@ class SearchView {
             # Initial full render
             $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
             
+            # Get label for cursor position calculation
+            $searchLabel = $this.GetLoc("Search.Label", "Search")
+            
             while ($running) {
                 # Manage cursor visibility based on focus mode
                 if ($focusMode -eq "input") {
-                    # Position cursor at end of search input (line 4, after "  > Search: " + text)
-                    $cursorX = 13 + $searchText.Length  # "  > Search: " = 13 chars
+                    # Position cursor at end of search input
+                    # Format: "  > " (4 chars) + label + ": " (2 chars) + text
+                    $cursorX = 4 + $searchLabel.Length + 2 + $searchText.Length
                     $this.Console.SetCursorPosition($cursorX, 3)
                     $this.Console.ShowCursor()
                 } else {
@@ -160,8 +164,10 @@ class SearchView {
                 # Handle navigation
                 if ($keyCode -eq [Constants]::KEY_DOWN_ARROW) {
                     if ($focusMode -eq "input" -and $filteredRepos.Count -gt 0) {
-                        # Move from input to list
+                        # Move from input to list - select first item
                         $focusMode = "list"
+                        $selectedIndex = 0
+                        $viewportStart = 0
                         $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
                     } elseif ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
                         $prevIndex = $selectedIndex

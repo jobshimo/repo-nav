@@ -31,9 +31,11 @@ class SearchCommand : INavigationCommand {
         $console = $context.Console
         $renderer = $context.Renderer
         $locService = $context.LocalizationService
+        $repoManager = $context.RepoManager
+        $basePath = $context.BasePath
         
-        # Get all repositories from current view (respects container navigation)
-        $allRepos = $state.GetRepositories()
+        # Get ALL repositories recursively (not just current folder)
+        $allRepos = $repoManager.GetAllRepositoriesRecursive($basePath)
         
         if ($null -eq $allRepos -or $allRepos.Count -eq 0) {
             return
@@ -41,9 +43,10 @@ class SearchCommand : INavigationCommand {
         
         # Get currently selected repository
         $currentIndex = $state.GetCurrentIndex()
+        $currentRepos = $state.GetRepositories()
         $currentRepo = $null
-        if ($currentIndex -lt $allRepos.Count) {
-            $currentRepo = $allRepos[$currentIndex]
+        if ($currentIndex -lt $currentRepos.Count) {
+            $currentRepo = $currentRepos[$currentIndex]
         }
         
         # Create and show search view
@@ -52,9 +55,36 @@ class SearchCommand : INavigationCommand {
         
         # Process result
         if (-not $result.Cancelled -and $null -ne $result.SelectedRepo) {
-            # Update navigation state with selected repository
-            if ($result.SelectedIndex -ge 0) {
-                $state.SetCurrentIndex($result.SelectedIndex)
+            $selectedRepo = $result.SelectedRepo
+            
+            # Check if selected repo is in current view
+            $currentViewRepos = $state.GetRepositories()
+            $indexInCurrentView = -1
+            for ($i = 0; $i -lt $currentViewRepos.Count; $i++) {
+                if ($currentViewRepos[$i].FullPath -eq $selectedRepo.FullPath) {
+                    $indexInCurrentView = $i
+                    break
+                }
+            }
+            
+            if ($indexInCurrentView -ge 0) {
+                # Repo is in current view - just select it
+                $state.SetCurrentIndex($indexInCurrentView)
+            } else {
+                # Repo is in a different folder - navigate to its parent
+                $parentPath = Split-Path $selectedRepo.FullPath -Parent
+                $repoManager.LoadRepositories($parentPath)
+                $state.SetRepositories($repoManager.GetRepositories())
+                $state.SetCurrentPath($parentPath)
+                
+                # Find and select the repo in the new view
+                $newRepos = $state.GetRepositories()
+                for ($i = 0; $i -lt $newRepos.Count; $i++) {
+                    if ($newRepos[$i].FullPath -eq $selectedRepo.FullPath) {
+                        $state.SetCurrentIndex($i)
+                        break
+                    }
+                }
             }
         }
         

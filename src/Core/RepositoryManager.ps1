@@ -187,6 +187,44 @@ class RepositoryManager {
         return $this.Repositories.ToArray()
     }
     
+    # Get all repositories recursively from base path (for search)
+    # Returns only actual repositories, not container folders
+    [array] GetAllRepositoriesRecursive([string]$basePath) {
+        $allRepos = [System.Collections.ArrayList]::new()
+        $aliases = $this.AliasManager.GetAllAliases()
+        
+        # Recursively scan for git repositories
+        $this.ScanRepositoriesRecursive($basePath, $allRepos, $aliases)
+        
+        return $allRepos.ToArray()
+    }
+    
+    # Helper method for recursive repository scanning
+    hidden [void] ScanRepositoriesRecursive([string]$path, [System.Collections.ArrayList]$results, [hashtable]$aliases) {
+        $directories = Get-ChildItem -Directory -Path $path -ErrorAction SilentlyContinue |
+                       Where-Object { $_.Name -notin @('envs', 'classes', 'repo-nav', 'node_modules', '.git') }
+        
+        foreach ($dir in $directories) {
+            $isGitRepo = Test-Path (Join-Path $dir.FullName ".git")
+            
+            if ($isGitRepo) {
+                # This is a repository - add it
+                $repo = [RepositoryModel]::new($dir)
+                
+                if ($aliases.ContainsKey($repo.Name)) {
+                    $repo.SetAlias($aliases[$repo.Name])
+                }
+                
+                $this.FavoriteService.UpdateRepositoryModel($repo)
+                
+                [void]$results.Add($repo)
+            } else {
+                # Not a git repo - check if it's a container with repos inside
+                $this.ScanRepositoriesRecursive($dir.FullName, $results, $aliases)
+            }
+        }
+    }
+
     # Get repository by name
     [RepositoryModel] GetRepository([string]$name) {
         foreach ($repo in $this.Repositories) {
