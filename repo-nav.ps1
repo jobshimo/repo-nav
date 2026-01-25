@@ -140,14 +140,20 @@ function Start-RepositoryNavigator {
         $colorSelector = [ColorSelector]::new($renderer, $consoleHelper)
         $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
         
+        # Create Application Context (Composition Root)
+        # Bundles all services and dependencies into a single object
+        $appContext = [PSCustomObject]@{
+            RepoManager         = $repoManager
+            Renderer            = $renderer
+            Console             = $consoleHelper
+            ColorSelector       = $colorSelector
+            OptionSelector      = $optionSelector
+            LocalizationService = $localizationService
+            BasePath            = $BasePath
+        }
+
         # Start navigation loop
-        Start-NavigationLoop -RepoManager $repoManager `
-                            -Renderer $renderer `
-                            -Console $consoleHelper `
-                            -ColorSelector $colorSelector `
-                            -OptionSelector $optionSelector `
-                            -LocalizationService $localizationService `
-                            -BasePath $BasePath
+        Start-NavigationLoop -Context $appContext
     }
     catch {
         Write-Host ""

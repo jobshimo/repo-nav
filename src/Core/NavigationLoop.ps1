@@ -10,26 +10,17 @@
 function Start-NavigationLoop {
     param(
         [Parameter(Mandatory = $true)]
-        $RepoManager,
-        
-        [Parameter(Mandatory = $true)]
-        $Renderer,
-        
-        [Parameter(Mandatory = $true)]
-        $Console,
-        
-        [Parameter(Mandatory = $true)]
-        $ColorSelector,
-        
-        [Parameter(Mandatory = $true)]
-        $OptionSelector,
-        
-        [Parameter(Mandatory = $true)]
-        $LocalizationService,
-
-        [Parameter(Mandatory = $true)]
-        [string]$BasePath
+        [PSCustomObject]$Context
     )
+    
+    # Unpack context for local usage
+    $RepoManager = $Context.RepoManager
+    $Renderer = $Context.Renderer
+    $Console = $Context.Console
+    $ColorSelector = $Context.ColorSelector
+    $OptionSelector = $Context.OptionSelector
+    $LocalizationService = $Context.LocalizationService
+    $BasePath = $Context.BasePath
     
     # Load repositories
     $RepoManager.LoadRepositories($BasePath)
