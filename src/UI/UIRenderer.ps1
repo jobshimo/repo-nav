@@ -434,9 +434,15 @@ class UIRenderer {
         $lblBranch = $this.GetLoc("UI.Branch", "Branch")
         $lblNoGit = $this.GetLoc("UI.NoGit", "Not a git repository")
         $lblNotLoaded = $this.GetLoc("UI.NotLoaded", "Not loaded")
+        $lblContainer = $this.GetLoc("UI.Container", "Folder (contains repos)")
 
         # Line 3: Git status details
-        if (-not $repo.HasGitStatusLoaded()) {
+        # If it's a container, show that it's a folder, not a repo
+        if ($repo.IsContainer) {
+            $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
+            $this.Console.WriteLineColored($lblContainer, [Constants]::ColorHighlight)
+        }
+        elseif (-not $repo.HasGitStatusLoaded()) {
             $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
             $this.Console.WriteColored("${lblNotLoaded} ", [Constants]::ColorHint)
             $this.Console.WriteLineColored(("(" + $this.GetLoc("Cmd.Desc.Git", "press L to load current or G for all") + ")"), [Constants]::ColorWarning)

@@ -59,6 +59,7 @@
     "UI.Behind": "Detrás",
     "UI.Ahead": "Delante",
     "UI.NoGit": "No git repo",
+    "UI.Container": "Carpeta (Enter para explorar)",
     "UI.Loading": "cargando...",
     "UI.NotLoaded": "No cargado",
     "UI.Commands": "COMANDOS",
