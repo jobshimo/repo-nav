@@ -45,6 +45,66 @@ class RepositoryManager {
         $this.Repositories = [System.Collections.ArrayList]::new()
     }
     
+    # Clone a new repository
+    # Returns a result object { Success: bool, Message: string }
+    [hashtable] CloneRepository([string]$url, [string]$customName, [string]$basePath) {
+        if (-not $this.GitService.IsValidGitUrl($url)) {
+            return @{ Success = $false; Message = "Invalid Git URL" }
+        }
+
+        # Determine folder name
+        $repoName = if (-not [string]::IsNullOrWhiteSpace($customName)) { 
+            $customName 
+        } else { 
+            $this.GitService.GetRepoNameFromUrl($url) 
+        }
+        
+        if ([string]::IsNullOrWhiteSpace($repoName)) {
+             return @{ Success = $false; Message = "Could not determine repository name" }
+        }
+
+        $targetPath = Join-Path $basePath $repoName
+        
+        if (Test-Path $targetPath) {
+            return @{ Success = $false; Message = "Folder '$repoName' already exists" }
+        }
+        
+        $success = $this.GitService.CloneRepository($url, $targetPath)
+        
+        if ($success) {
+            return @{ Success = $true; Message = "Repository cloned successfully" }
+        } else {
+            return @{ Success = $false; Message = "Git clone failed" }
+        }
+    }
+
+    # Delete a repository
+    # Returns a result object { Success: bool, Message: string }
+    [hashtable] DeleteRepository([RepositoryModel]$repository) {
+        if (-not (Test-Path $repository.FullPath)) {
+             return @{ Success = $false; Message = "Repository path does not exist" }
+        }
+
+        try {
+            Remove-Item -Path $repository.FullPath -Recurse -Force -ErrorAction Stop
+            
+            # Remove alias if exists
+            if ($repository.HasAlias) {
+                $this.RemoveAlias($repository)
+            }
+            
+            # Remove from local list if it exists there (though LoadRepositories usually refreshes everything)
+            if ($this.Repositories.Contains($repository)) {
+                $this.Repositories.Remove($repository)
+            }
+            
+            return @{ Success = $true; Message = "Repository deleted successfully" }
+        }
+        catch {
+             return @{ Success = $false; Message = "Error deleting repository: $_" }
+        }
+    }
+
     # Load all repositories from base path
     [void] LoadRepositories([string]$basePath) {
         $oldRepos = @{}

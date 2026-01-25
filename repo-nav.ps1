@@ -86,6 +86,10 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\ColorSelector.ps1"
 . "$srcPath\UI\OptionSelector.ps1"
 
+# Views (depend on UI components)
+. "$srcPath\UI\Views\RepositoryManagementView.ps1"
+. "$srcPath\UI\Views\AliasView.ps1"
+
 # Commands (Interfaces and Implementations)
 . "$srcPath\Core\Commands\INavigationCommand.ps1"
 . "$srcPath\Core\Commands\ExitCommand.ps1"
