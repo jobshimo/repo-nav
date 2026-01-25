@@ -97,6 +97,23 @@ class NpmView {
         }
     }
 
+    [bool] ConfirmRemovePackageLock() {
+        $prompt = $this.GetLoc("Msg.Npm.RemoveLockPrompt", "Do you also want to remove package-lock.json?")
+
+        if ($this.OptionSelector) {
+            $yes = $this.GetLoc("Prompt.Yes", "Yes")
+            $no = $this.GetLoc("Prompt.No", "No")
+            $options = @(
+                @{ DisplayText = $yes; Value = $true },
+                @{ DisplayText = $no; Value = $false }
+            )
+            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $null)
+            return ($result -eq $true)
+        } else {
+            return $this.Console.ConfirmAction($prompt, $false)
+        }
+    }
+
     [void] ShowOperationCancelled() {
         Write-Host ($this.GetLoc("Msg.ActionCancelled", "Operation cancelled.")) -ForegroundColor ([Constants]::ColorWarning)
         Start-Sleep -Seconds 1
@@ -220,7 +237,7 @@ class NpmCommand : INavigationCommand {
         $lockPath = Join-Path $repo.FullPath "package-lock.json"
         
         if ($service.HasPackageLock($repo.FullPath)) {
-             if ($view.ConfirmRemoval("package-lock.json")) {
+             if ($view.ConfirmRemovePackageLock()) {
                  $removeLock = $true
              }
         }

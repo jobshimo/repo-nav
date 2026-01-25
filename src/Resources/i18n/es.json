@@ -103,7 +103,7 @@
     "Prompt.Continue": "¿Continuar?",
     "Msg.ActionCancelled": "Operación cancelada.",
 
-    "Msg.Npm.DeleteWarning": "Esto eliminará la carpeta node_modules.",
+    "Msg.Npm.DeleteWarning": "Esto eliminará: {0}",
     "Msg.Npm.RemoveLockPrompt": "¿Deseas eliminar también package-lock.json?",
     "Error.Npm.RemoveFailed": "Error eliminando node_modules.",
 

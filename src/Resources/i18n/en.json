@@ -101,7 +101,7 @@
 
     "Msg.ActionCancelled": "Operation cancelled.",
 
-    "Msg.Npm.DeleteWarning": "This will delete the node_modules folder.",
+    "Msg.Npm.DeleteWarning": "This will delete: {0}",
     "Msg.Npm.RemoveLockPrompt": "Do you also want to remove package-lock.json?",
     "Error.Npm.RemoveFailed": "Error removing node_modules.",
 

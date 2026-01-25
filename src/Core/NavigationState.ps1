@@ -10,8 +10,9 @@
     - Redraw flags for optimized rendering
     
     Following SOLID principles:
-    - SRP: Only manages navigation state
+    - SRP: Only manages navigation state (delegates window calculations to WindowSizeCalculator)
     - OCP: Can be extended with new state properties
+    - DIP: Depends on WindowSizeCalculator abstraction
     - Encapsulation: State changes through methods, not direct property access
     
 .NOTES
@@ -36,6 +37,9 @@ class NavigationState {
     [bool] $ViewportChanged  # New flag for scroll detection
     [int] $PreviousIndex
     
+    # Dependency for window calculations
+    hidden [WindowSizeCalculator] $WindowCalculator
+    
     # Constructor
     NavigationState([array]$repositories) {
         $this.Repositories = $repositories
@@ -50,32 +54,9 @@ class NavigationState {
         $this.ViewportStart = 0
         $this.ViewportChanged = $false
         
-        # Calculate dynamic page size safe for window height
-        # Header (~10) + Footer (4) = 14 reserved lines
-        try {
-            $windowHeight = $global:Host.UI.RawUI.WindowSize.Height
-            # Fix: Increase ReservedLines to 20 to force scrolling mode earlier.
-            # This ensures that we don't try to display 2 items when there is visually only space for 1.
-            $reservedLines = 20
-            $availableLines = $windowHeight - $reservedLines
-            
-            # If available space is tiny (e.g. 1 or 2 lines), use it.
-            # Do NOT clamp to 5 if it doesn't fit. 
-            # Minimum 1 to function.
-            if ($availableLines -lt 1) { 
-                $availableLines = 1 
-            }
-            
-            # Only clamp MAX size to prevent overwhelming long lists
-            if ($availableLines -gt 25) { 
-                $availableLines = 25 
-            }
-            
-            $this.PageSize = $availableLines
-        }
-        catch {
-             $this.PageSize = 15 # Fallback if host doesn't support WindowSize
-        }
+        # Create WindowSizeCalculator for size calculations
+        $this.WindowCalculator = [WindowSizeCalculator]::new()
+        $this.PageSize = $this.WindowCalculator.CalculateInitialPageSize()
     }
     
     #region Navigation Methods
@@ -391,39 +372,21 @@ class NavigationState {
     
     <#
     .SYNOPSIS
-        Check and update window size dynamically
+        Check and update window size dynamically (delegates to WindowSizeCalculator)
     #>
     [void] UpdateWindowSize([int]$headerHeight) {
-        try {
-            $height = $global:Host.UI.RawUI.WindowSize.Height
-            # Conservative calculation: Height - (Header + Footer + Gap + Safety)
-            # Footer(4) + Gap(1) + Safety(2) = 7
-            $reservedLines = $headerHeight + 7
-            $newPageSize = $height - $reservedLines
+        $newPageSize = $this.WindowCalculator.CalculatePageSize($headerHeight)
+        
+        if ($this.PageSize -ne $newPageSize) {
+            $this.PageSize = $newPageSize
+            $this.RequiresFullRedraw = $true
             
-            # Minimum functional size
-            if ($newPageSize -lt 1) { $newPageSize = 1 }
-            
-            # Maximum size
-            if ($newPageSize -gt 25) { $newPageSize = 25 }
-            
-            if ($this.PageSize -ne $newPageSize) {
-                # Ensure we don't spam redraws for tiny fluctuations if size is essentially same logic
-                $this.PageSize = $newPageSize
-                $this.RequiresFullRedraw = $true
-                
-                # Update Viewport to keep selected item visible with new PageSize
-                if ($this.SelectedIndex -lt $this.ViewportStart) {
-                     $this.ViewportStart = $this.SelectedIndex
-                } 
-                elseif ($this.SelectedIndex -ge ($this.ViewportStart + $this.PageSize)) {
-                     # Logic fix: Ensure we don't set negative start
-                     $newStart = $this.SelectedIndex - $this.PageSize + 1
-                     $this.ViewportStart = [Math]::Max(0, $newStart)
-                }
-            }
-        } catch { 
-            # Ignore errors getting window size
+            # Adjust viewport to keep selected item visible
+            $this.ViewportStart = $this.WindowCalculator.AdjustViewportForSelection(
+                $this.SelectedIndex, 
+                $this.ViewportStart, 
+                $this.PageSize
+            )
         }
     }
 
