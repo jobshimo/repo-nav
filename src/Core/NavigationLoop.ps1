@@ -73,8 +73,8 @@ function Start-NavigationLoop {
             BasePath            = $BasePath
         }
         
-        # Initial full render
-        $renderOrchestrator.RenderFull($state)
+        # Initial full render and layout calculation
+        $renderOrchestrator.Initialize($state)
         
         # Main input loop - Simplified using Command Pattern
         while (-not $state.ShouldExit()) {
