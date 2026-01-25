@@ -98,9 +98,7 @@
     "Alias.RemovedSuccess": "Alias removed successfully!",
     "Alias.RemoveFail": "Failed to remove alias.",
     "Alias.KeepColorTitle": "Keep current color?",
-    "Alias.CurrentColor": "Current color",
 
-    "Prompt.Continue": "Continue?",
     "Msg.ActionCancelled": "Operation cancelled.",
 
     "Msg.Npm.DeleteWarning": "This will delete the node_modules folder.",
