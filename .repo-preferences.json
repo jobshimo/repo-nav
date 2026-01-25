@@ -3,7 +3,7 @@
                     "favoritesOnTop":  false,
                     "selectedBackground":  "DarkBlue",
                     "selectedDelimiter":  "None",
-                    "menuMode":  "Full"
+                    "menuMode":  "Minimal"
                 },
     "git":  {
                 "autoLoadFavoritesStatus":  true

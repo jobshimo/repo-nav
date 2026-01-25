@@ -20,7 +20,7 @@
 
 class ProgressIndicator {
     # Dependencies
-    [object] $Console      # ConsoleHelper
+    [ConsoleHelper] $Console      # ConsoleHelper
     
     # State
     [int] $StartLine
@@ -28,7 +28,7 @@ class ProgressIndicator {
     [bool] $IsRunning
     
     # Constructor
-    ProgressIndicator([object]$console) {
+    ProgressIndicator([ConsoleHelper]$console) {
         $this.Console = $console
         $this.IsRunning = $false
     }
@@ -41,16 +41,16 @@ class ProgressIndicator {
     #>
     [void] ShowLoadingDots([string]$message, [scriptblock]$action) {
         # Save cursor position
-        $this.StartLine = [Console]::CursorTop
-        $this.StartColumn = [Console]::CursorLeft
+        $this.StartLine = $this.Console.GetCursorTop()
+        $this.StartColumn = $this.Console.GetCursorLeft()
         
         # Show message with animation (5 iterations, each 300ms)
         for ($i = 0; $i -lt 5; $i++) {
             $dots = "." * ($i % 4)
             $padding = " " * (3 - ($i % 4))
             
-            [Console]::SetCursorPosition($this.StartColumn, $this.StartLine)
-            Write-Host "$message$dots$padding" -NoNewline -ForegroundColor Cyan
+            $this.Console.SetCursorPosition($this.StartColumn, $this.StartLine)
+            $this.Console.WriteColored("$message$dots$padding", [ConsoleColor]::Cyan)
             
             Start-Sleep -Milliseconds 300
         }
@@ -59,10 +59,10 @@ class ProgressIndicator {
         & $action
         
         # Clear the loading message
-        [Console]::SetCursorPosition($this.StartColumn, $this.StartLine)
+        $this.Console.SetCursorPosition($this.StartColumn, $this.StartLine)
         $clearText = " " * ($message.Length + 10)
-        Write-Host $clearText -NoNewline
-        [Console]::SetCursorPosition($this.StartColumn, $this.StartLine)
+        $this.Console.Write($clearText)
+        $this.Console.SetCursorPosition($this.StartColumn, $this.StartLine)
     }
     
     #endregion
@@ -88,21 +88,21 @@ class ProgressIndicator {
         # Save position if first call
         if (-not $this.IsRunning) {
             $this.IsRunning = $true
-            $this.StartLine = [Console]::CursorTop
-            $this.StartColumn = [Console]::CursorLeft
+            $this.StartLine = $this.Console.GetCursorTop()
+            $this.StartColumn = $this.Console.GetCursorLeft()
         }
         
         # Render progress bar
-        [Console]::SetCursorPosition($this.StartColumn, $this.StartLine)
-        Write-Host "$message [" -NoNewline -ForegroundColor Cyan
-        Write-Host $filledBar -NoNewline -ForegroundColor Green
-        Write-Host $emptyBar -NoNewline -ForegroundColor DarkGray
-        Write-Host "] " -NoNewline -ForegroundColor Cyan
-        Write-Host "$percentage% " -NoNewline -ForegroundColor Yellow
-        Write-Host "($current/$total)" -NoNewline -ForegroundColor DarkGray
+        $this.Console.SetCursorPosition($this.StartColumn, $this.StartLine)
+        $this.Console.WriteColored("$message [", [ConsoleColor]::Cyan)
+        $this.Console.WriteColored($filledBar, [ConsoleColor]::Green)
+        $this.Console.WriteColored($emptyBar, [ConsoleColor]::DarkGray)
+        $this.Console.WriteColored("] ", [ConsoleColor]::Cyan)
+        $this.Console.WriteColored("$percentage% ", [ConsoleColor]::Yellow)
+        $this.Console.WriteColored("($current/$total)", [ConsoleColor]::DarkGray)
         
         # Pad to avoid leftover characters
-        Write-Host (" " * 10) -NoNewline
+        $this.Console.Write(" " * 10)
     }
     
     <#
@@ -115,10 +115,10 @@ class ProgressIndicator {
         $this.IsRunning = $false
         
         # Clear the line
-        [Console]::SetCursorPosition($this.StartColumn, $this.StartLine)
+        $this.Console.SetCursorPosition($this.StartColumn, $this.StartLine)
         $clearText = " " * 80
-        Write-Host $clearText -NoNewline
-        [Console]::SetCursorPosition($this.StartColumn, $this.StartLine)
+        $this.Console.Write($clearText)
+        $this.Console.SetCursorPosition($this.StartColumn, $this.StartLine)
     }
     
     #endregion
