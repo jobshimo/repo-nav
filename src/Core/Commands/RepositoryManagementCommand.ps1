@@ -113,22 +113,36 @@ class RepositoryManagementCommand : INavigationCommand {
     hidden [void] InvokeRepositoryDelete($context, [RepositoryModel]$repository, [RepositoryManagementView]$view) {
         $repoManager = $context.RepoManager
         $console = $context.Console
+        $forceDelete = $false
         
         # Show cursor for user input BEFORE clearing screen
         try { [Console]::CursorVisible = $true } catch {}
         
         try {
-            # 1. View: Confirm
+            # Ensure git status is loaded
+            if (-not $repository.HasGitStatusLoaded()) {
+                $repoManager.LoadGitStatus($repository)
+            }
+            
+            # Step 1: Check if repo needs attention (uncommitted changes, unpushed commits)
+            if ($repository.GitStatus -and $repository.GitStatus.NeedsAttention()) {
+                # Show warning and ask for confirmation
+                $continueAnyway = $view.ConfirmGitStatusWarning($repository)
+                if (-not $continueAnyway) { return }
+                $forceDelete = $true
+            }
+            
+            # Step 2: Confirm deletion by typing repo name
             $confirmed = $view.ConfirmDelete($repository)
             if (-not $confirmed) { return }
             
-            # 2. View: Show Progress
+            # Step 3: Show Progress
             $view.ShowDeletingMessage()
             
-            # 3. Service: Perform Action
-            $result = $repoManager.DeleteRepository($repository)
+            # Step 4: Service: Perform Action (with force if needed)
+            $result = $repoManager.DeleteRepository($repository, $forceDelete)
             
-            # 4. View: Show Result
+            # Step 5: Show Result
             $view.ShowDeleteResult($result.Success, $result.Message)
         }
         finally {

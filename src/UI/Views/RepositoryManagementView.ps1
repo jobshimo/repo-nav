@@ -78,7 +78,60 @@ class RepositoryManagementView {
         Start-Sleep -Seconds 2
     }
 
-    # Confirm repository deletion
+    # Show git status warning and ask for confirmation (Yes/No)
+    # Returns bool (true = continue with delete, false = cancel)
+    [bool] ConfirmGitStatusWarning([RepositoryModel]$repository) {
+        $this.Console.ClearForWorkflow()
+        
+        $header = $this.GetLoc("Repo.DeleteTitle", "DELETE REPOSITORY")
+        $this.Renderer.RenderWorkflowHeader($header)
+        
+        # Repository Details
+        Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        Write-Host $repository.Name -ForegroundColor ([Constants]::ColorValue)
+        Write-Host "Path:       " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        Write-Host $repository.FullPath -ForegroundColor ([Constants]::ColorValue)
+        Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
+        Write-Host ""
+        
+        # Git Status Warning
+        Write-Host "WARNING: " -NoNewline -ForegroundColor Red
+        $gitWarning = $this.GetLoc("Repo.GitStatusWarning", "This repository has uncommitted changes or unpushed commits!")
+        Write-Host $gitWarning -ForegroundColor Yellow
+        Write-Host ""
+        
+        # Show git status details if available
+        if ($repository.GitStatus) {
+            $status = $repository.GitStatus
+            if ($status.HasUncommittedChanges) {
+                Write-Host "  - " -NoNewline -ForegroundColor Red
+                Write-Host $this.GetLoc("Repo.HasUncommittedChanges", "Has uncommitted changes") -ForegroundColor Yellow
+            }
+            if ($status.Ahead -gt 0) {
+                Write-Host "  - " -NoNewline -ForegroundColor Red
+                $aheadMsg = $this.GetLoc("Repo.HasUnpushedCommits", "Has {0} unpushed commit(s)") -f $status.Ahead
+                Write-Host $aheadMsg -ForegroundColor Yellow
+            }
+            Write-Host ""
+        }
+        
+        $confirmMsg = $this.GetLoc("Prompt.ContinueAnyway", "Do you want to continue anyway? (Y/N)")
+        Write-Host $confirmMsg -NoNewline -ForegroundColor Yellow
+        Write-Host " : " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        
+        $response = Read-Host
+        
+        if ($response -eq "Y" -or $response -eq "y" -or $response -eq "S" -or $response -eq "s") {
+            return $true
+        } else {
+            $msg = $this.GetLoc("Prompt.Cancelled", "Operation cancelled.")
+            Write-Host $msg -ForegroundColor ([Constants]::ColorWarning)
+            Start-Sleep -Seconds 1
+            return $false
+        }
+    }
+
+    # Confirm repository deletion by typing the repository name
     # Returns bool (true = delete, false = cancel)
     [bool] ConfirmDelete([RepositoryModel]$repository) {
         $this.Console.ClearForWorkflow()
@@ -96,18 +149,21 @@ class RepositoryManagementView {
         
         # Warning
         $warningMsg = $this.GetLoc("Repo.DeleteWarning", "WARNING: This will permanently delete the folder and all contents!")
-        $confirmMsg = $this.GetLoc("Prompt.DeleteConfirm", "Type 'DELETE' to confirm")
-        
         Write-Host $warningMsg -ForegroundColor Red
         Write-Host ""
+        
+        # Ask to type repository name
+        $confirmMsg = $this.GetLoc("Prompt.TypeRepoName", "Type the repository name to confirm")
         Write-Host "$confirmMsg : " -NoNewline -ForegroundColor Red
+        Write-Host $repository.Name -ForegroundColor Cyan
+        Write-Host "> " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
         
         $confirmation = Read-Host
         
-        if ($confirmation -eq "DELETE") {
+        if ($confirmation -eq $repository.Name) {
             return $true
         } else {
-            $msg = $this.GetLoc("Prompt.Cancelled", "Operation cancelled.")
+            $msg = $this.GetLoc("Prompt.NameMismatch", "Name does not match. Operation cancelled.")
             Write-Host $msg -ForegroundColor ([Constants]::ColorWarning)
             Start-Sleep -Seconds 1
             return $false

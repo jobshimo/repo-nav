@@ -65,14 +65,20 @@ class RepositoryManager {
     }
 
     # Delete a repository (delegates to RepositoryOperationsService)
-    # Returns a result object { Success: bool, Message: string }
+    # Returns a result object { Success: bool, Message: string, RequiresForce: bool }
     [hashtable] DeleteRepository([RepositoryModel]$repository) {
+        return $this.DeleteRepository($repository, $false)
+    }
+    
+    # Delete repository with optional force flag
+    # Returns a result object { Success: bool, Message: string, RequiresForce: bool }
+    [hashtable] DeleteRepository([RepositoryModel]$repository, [bool]$force) {
         # Ensure git status is loaded for safety check
         if (-not $repository.HasGitStatusLoaded()) {
             $this.LoadGitStatus($repository)
         }
         
-        $result = $this.RepoOperationsService.DeleteRepository($repository, $false)
+        $result = $this.RepoOperationsService.DeleteRepository($repository, $force)
         
         if ($result.Success) {
             # Remove alias if exists

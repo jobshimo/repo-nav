@@ -159,6 +159,12 @@
     
     "Repo.DeleteTitle": "ELIMINAR REPOSITORIO",
     "Repo.DeleteWarning": "ADVERTENCIA: ¡Esto borrará permanentemente la carpeta y su contenido!",
+    "Repo.GitStatusWarning": "¡Este repositorio tiene cambios sin confirmar o commits sin subir!",
+    "Repo.HasUncommittedChanges": "Tiene cambios sin confirmar",
+    "Repo.HasUnpushedCommits": "Tiene {0} commit(s) sin subir",
+    "Prompt.ContinueAnyway": "¿Deseas continuar de todas formas? (S/N)",
+    "Prompt.TypeRepoName": "Escribe el nombre del repositorio para confirmar",
+    "Prompt.NameMismatch": "El nombre no coincide. Operación cancelada.",
     "Prompt.DeleteConfirm": "Escribe 'DELETE' para confirmar",
     "Repo.Deleting": "Eliminando...",
     "Repo.DeleteSuccess": "Repositorio eliminado correctamente.",

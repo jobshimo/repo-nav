@@ -157,6 +157,12 @@
     
     "Repo.DeleteTitle": "DELETE REPOSITORY",
     "Repo.DeleteWarning": "WARNING: This will permanently delete the folder and all contents!",
+    "Repo.GitStatusWarning": "This repository has uncommitted changes or unpushed commits!",
+    "Repo.HasUncommittedChanges": "Has uncommitted changes",
+    "Repo.HasUnpushedCommits": "Has {0} unpushed commit(s)",
+    "Prompt.ContinueAnyway": "Do you want to continue anyway? (Y/N)",
+    "Prompt.TypeRepoName": "Type the repository name to confirm",
+    "Prompt.NameMismatch": "Name does not match. Operation cancelled.",
     "Prompt.DeleteConfirm": "Type 'DELETE' to confirm",
     "Repo.Deleting": "Deleting...",
     "Repo.DeleteSuccess": "Repository deleted successfully.",
