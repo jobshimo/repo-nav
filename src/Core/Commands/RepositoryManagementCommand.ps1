@@ -137,43 +137,48 @@ class RepositoryManagementCommand : INavigationCommand {
         try {
             # Special handling for Folder Containers (non-git folders)
             if ($repository.IsContainer) {
-                # Attempt to delete folder (checks for emptiness)
+                # First check if folder is empty
+                $isEmpty = $repoManager.IsFolderEmpty($repository.FullPath)
+                
+                if (-not $isEmpty) {
+                    # Folder has content - show error message inline
+                    $currentTop = [Console]::CursorTop
+                    
+                    try {
+                        # Hide cursor during this operation
+                        [Console]::CursorVisible = $false
+                        
+                        # Move up 2 lines (Separator line + Status line)
+                        if ($currentTop -ge 2) {
+                            [Console]::CursorTop = $currentTop - 2
+                            # Move to the right side (col 38 right after "Status: Folder (Enter / → to browse)")
+                            [Console]::CursorLeft = 38
+                            
+                            Write-Host " <- " -NoNewline -ForegroundColor Red
+                            Write-Host "Cannot delete: Folder is not empty" -NoNewline -ForegroundColor Red
+                        }
+                    }
+                    catch {
+                        # Silently fail - message just won't show
+                    }
+                    # Return false = no refresh needed, don't redraw
+                    return $false
+                }
+                
+                # Folder is empty - ask for confirmation using OptionSelector
+                $optionSelector = $context.OptionSelector
+                $confirmed = $optionSelector.SelectYesNo("Delete empty folder '$($repository.Name)'?")
+                
+                if (-not $confirmed) {
+                    # User cancelled
+                    return $true
+                }
+                
+                # Proceed to delete
                 $result = $repoManager.DeleteFolder($repository)
                 
                 if (-not $result.Success) {
-                    if ($result.IsNotEmpty) {
-                        # Display specific status message as requested
-                        # Use cursor manipulation to show error next to "Status: ..." line
-                        # Footer structure: Sep / Info / Status / Sep / (Cursor Here)
-                        $currentTop = [Console]::CursorTop
-                        $currentLeft = [Console]::CursorLeft
-                        
-                        try {
-                            # Hide cursor during this operation
-                            [Console]::CursorVisible = $false
-                            
-                            # Move up 2 lines (Separator line + Status line)
-                            if ($currentTop -ge 2) {
-                                [Console]::CursorTop = $currentTop - 2
-                                # Move to the right side (col 38 right after "Status: Folder (Enter / → to browse)")
-                                [Console]::CursorLeft = 38
-                                
-                                Write-Host " <- " -NoNewline -ForegroundColor Red
-                                Write-Host $result.Message -NoNewline -ForegroundColor Red
-                            }
-                            
-                            # No sleep - let user continue navigating immediately
-                            # Message will be cleaned on next redraw when user moves to another item
-                        }
-                        catch {
-                            # Silently fail - message just won't show
-                        }
-                        # Return false = no refresh needed, don't redraw
-                        return $false
-                    } else {
-                        # Standard error
-                        $view.ShowDeleteResult($false, $result.Message)
-                    }
+                    $view.ShowDeleteResult($false, $result.Message)
                     return $true
                 }
                 

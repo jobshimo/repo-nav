@@ -365,4 +365,9 @@ class RepositoryManager {
         
         return $result
     }
+    
+    # Check if folder is empty (delegates to RepositoryOperationsService)
+    [bool] IsFolderEmpty([string]$folderPath) {
+        return $this.RepoOperationsService.IsFolderEmpty($folderPath)
+    }
 }

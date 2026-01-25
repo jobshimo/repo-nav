@@ -173,4 +173,29 @@ class OptionSelector {
         
         return $result
     }
+    
+    <#
+    .SYNOPSIS
+        Show a simple Yes/No confirmation dialog
+    
+    .PARAMETER question
+        The question to ask
+    
+    .RETURNS
+        $true if Yes selected, $false if No or cancelled
+    #>
+    [bool] SelectYesNo([string]$question) {
+        $options = @(
+            @{ DisplayText = "Yes"; Value = $true },
+            @{ DisplayText = "No"; Value = $false }
+        )
+        
+        $result = $this.ShowSelection($question, $options, $false, "Cancel", $false, "")
+        
+        if ($null -eq $result) {
+            return $false
+        }
+        
+        return $result
+    }
 }

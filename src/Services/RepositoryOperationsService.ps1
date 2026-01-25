@@ -283,22 +283,10 @@ class RepositoryOperationsService {
                 Message = "Path does not exist"
             }
         }
-
-        # Check if folder is empty
-        # We look for any item. If we find one, it's not empty.
-        $hasItems = Get-ChildItem -Path $folder.FullPath -Force -ErrorAction SilentlyContinue | Select-Object -First 1
-        
-        if ($hasItems) {
-            return @{
-                Success = $false
-                Message = "Cannot delete: Folder is not empty"
-                IsNotEmpty = $true
-            }
-        }
         
         # Delete empty folder
         try {
-            Remove-Item -Path $folder.FullPath -Force -Recurse -ErrorAction Stop
+            Remove-Item -Path $folder.FullPath -Force -ErrorAction Stop
             
             return @{
                 Success = $true
@@ -312,5 +300,24 @@ class RepositoryOperationsService {
                 Message = "Error deleting folder: $_"
             }
         }
+    }
+    
+    <#
+    .SYNOPSIS
+        Checks if a folder is empty (no files, no subfolders)
+        
+    .PARAMETER folderPath
+        The path to check
+        
+    .RETURNS
+        $true if empty, $false if has content
+    #>
+    [bool] IsFolderEmpty([string]$folderPath) {
+        if (-not (Test-Path $folderPath)) {
+            return $false
+        }
+        
+        $hasItems = Get-ChildItem -Path $folderPath -Force -ErrorAction SilentlyContinue | Select-Object -First 1
+        return ($null -eq $hasItems)
     }
 }
