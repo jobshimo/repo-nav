@@ -104,7 +104,6 @@
     "Alias.RemovedSuccess": "¡Alias eliminado con éxito!",
     "Alias.RemoveFail": "Error al eliminar el alias.",
     "Alias.KeepColorTitle": "¿Mantener color actual?",
-    "Alias.CurrentColor": "Color actual",
     
     "Prompt.Continue": "¿Continuar?",
     "Msg.ActionCancelled": "Operación cancelada.",
@@ -139,8 +138,9 @@
     "Prompt.No": "NO",
     "Prompt.DeleteConfirmInput": "ELIMINAR",
 
-    "Prompt.Continue": "¿Continuar?",
     "Prompt.Cancelled": "Operación cancelada.",
+    "Prompt.Warning": "ADVERTENCIA",
+    "Prompt.NavigationHint": "Usa flechas para navegar | Enter para seleccionar | Q/Esc para cancelar",
     
     "Alias.NewPrompt": "Nuevo alias (Enter = mantener '{0}'): ",
     "Alias.EnterPrompt": "Introduce alias (no espacios): ",
@@ -158,11 +158,13 @@
     "Repo.CloneFail": "Fallo al clonar repositorio.",
     
     "Repo.DeleteTitle": "ELIMINAR REPOSITORIO",
+    "Repo.RepositoryLabel": "Repositorio",
+    "Repo.PathLabel": "Ruta",
     "Repo.DeleteWarning": "ADVERTENCIA: ¡Esto borrará permanentemente la carpeta y su contenido!",
     "Repo.GitStatusWarning": "¡Este repositorio tiene cambios sin confirmar o commits sin subir!",
     "Repo.HasUncommittedChanges": "Tiene cambios sin confirmar",
     "Repo.HasUnpushedCommits": "Tiene {0} commit(s) sin subir",
-    "Prompt.ContinueAnyway": "¿Deseas continuar de todas formas? (S/N)",
+    "Prompt.ContinueAnyway": "¿Deseas continuar de todas formas?",
     "Prompt.TypeRepoName": "Escribe el nombre del repositorio para confirmar",
     "Prompt.NameMismatch": "El nombre no coincide. Operación cancelada.",
     "Prompt.DeleteConfirm": "Escribe 'DELETE' para confirmar",

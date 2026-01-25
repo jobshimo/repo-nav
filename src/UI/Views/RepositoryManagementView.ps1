@@ -2,11 +2,13 @@ class RepositoryManagementView {
     [ConsoleHelper] $Console
     [LocalizationService] $LocalizationService
     [UIRenderer] $Renderer
+    [OptionSelector] $OptionSelector
 
-    RepositoryManagementView([ConsoleHelper]$console, [LocalizationService]$localizationService, [UIRenderer]$renderer) {
+    RepositoryManagementView([ConsoleHelper]$console, [LocalizationService]$localizationService, [UIRenderer]$renderer, [OptionSelector]$optionSelector) {
         $this.Console = $console
         $this.LocalizationService = $localizationService
         $this.Renderer = $renderer
+        $this.OptionSelector = $optionSelector
     }
 
     # Helper method for localization
@@ -87,20 +89,23 @@ class RepositoryManagementView {
         $this.Renderer.RenderWorkflowHeader($header)
         
         # Repository Details
-        Write-Host "Repository: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        $repoLabel = $this.GetLoc("Repo.RepositoryLabel", "Repository")
+        $pathLabel = $this.GetLoc("Repo.PathLabel", "Path")
+        Write-Host "${repoLabel}: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
         Write-Host $repository.Name -ForegroundColor ([Constants]::ColorValue)
-        Write-Host "Path:       " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        Write-Host "${pathLabel}:       " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
         Write-Host $repository.FullPath -ForegroundColor ([Constants]::ColorValue)
         Write-Host "=======================================================" -ForegroundColor ([Constants]::ColorSeparator)
         Write-Host ""
         
-        # Git Status Warning
-        Write-Host "WARNING: " -NoNewline -ForegroundColor Red
+        # Git Status Warning - WARNING in red
+        $warningLabel = $this.GetLoc("Prompt.Warning", "WARNING")
+        Write-Host "${warningLabel}: " -NoNewline -ForegroundColor Red
         $gitWarning = $this.GetLoc("Repo.GitStatusWarning", "This repository has uncommitted changes or unpushed commits!")
         Write-Host $gitWarning -ForegroundColor Yellow
         Write-Host ""
         
-        # Show git status details if available
+        # Show git status details with colors
         if ($repository.GitStatus) {
             $status = $repository.GitStatus
             if ($status.HasUncommittedChanges) {
@@ -115,13 +120,65 @@ class RepositoryManagementView {
             Write-Host ""
         }
         
-        $confirmMsg = $this.GetLoc("Prompt.ContinueAnyway", "Do you want to continue anyway? (Y/N)")
-        Write-Host $confirmMsg -NoNewline -ForegroundColor Yellow
-        Write-Host " : " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        # Options: No first (default for safety), Yes second
+        $noText = $this.GetLoc("Prompt.No", "No")
+        $yesText = $this.GetLoc("Prompt.Yes", "Yes")
+        $options = @(
+            @{ DisplayText = $noText; Value = $false },
+            @{ DisplayText = $yesText; Value = $true }
+        )
         
-        $response = Read-Host
+        $confirmMsg = $this.GetLoc("Prompt.ContinueAnyway", "Do you want to continue anyway?")
+        Write-Host $confirmMsg -ForegroundColor ([Constants]::ColorPrompt)
+        Write-Host ""
         
-        if ($response -eq "Y" -or $response -eq "y" -or $response -eq "S" -or $response -eq "s") {
+        # Use inline selection loop (similar to OptionSelector but preserving the rendered content above)
+        $selectedIndex = 0  # Default to "No" (index 0)
+        $running = $true
+        $result = $null
+        
+        try {
+            $this.Console.HideCursor()
+            $listStartTop = $this.Console.GetCursorTop()
+            
+            while ($running) {
+                $this.Console.SetCursorPosition(0, $listStartTop)
+                
+                for ($i = 0; $i -lt $options.Count; $i++) {
+                    $option = $options[$i]
+                    $prefix = if ($i -eq $selectedIndex) { ">" } else { " " }
+                    $color = if ($i -eq $selectedIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+                    $displayLine = "  $prefix $($option.DisplayText)"
+                    $this.Console.WriteLineColored($displayLine, $color)
+                }
+                
+                $this.Console.NewLine()
+                $hintText = $this.GetLoc("Prompt.NavigationHint", "Use Arrows to navigate | Enter to select | Q/Esc to cancel")
+                $this.Console.WriteLineColored("  $hintText", [Constants]::ColorHint)
+                
+                $key = $this.Console.ReadKey()
+                
+                switch ($key.VirtualKeyCode) {
+                    ([Constants]::KEY_UP_ARROW) {
+                        $selectedIndex = if ($selectedIndex -gt 0) { $selectedIndex - 1 } else { $options.Count - 1 }
+                    }
+                    ([Constants]::KEY_DOWN_ARROW) {
+                        $selectedIndex = if ($selectedIndex -lt ($options.Count - 1)) { $selectedIndex + 1 } else { 0 }
+                    }
+                    ([Constants]::KEY_ENTER) {
+                        $result = $options[$selectedIndex].Value
+                        $running = $false
+                    }
+                    ([Constants]::KEY_Q) { $running = $false }
+                    ([Constants]::KEY_ESC) { $running = $false }
+                }
+            }
+        }
+        finally {
+            $this.Console.HideCursor()
+        }
+        
+        if ($result -eq $true) {
             return $true
         } else {
             $msg = $this.GetLoc("Prompt.Cancelled", "Operation cancelled.")

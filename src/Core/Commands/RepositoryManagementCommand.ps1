@@ -17,7 +17,7 @@ class RepositoryManagementCommand : INavigationCommand {
         $key = $keyPress.VirtualKeyCode
         
         # Create View
-        $view = [RepositoryManagementView]::new($context.Console, $context.LocalizationService, $context.Renderer)
+        $view = [RepositoryManagementView]::new($context.Console, $context.LocalizationService, $context.Renderer, $context.OptionSelector)
         
         # Stop the navigation loop to allow interactive input
         $state.Stop()
