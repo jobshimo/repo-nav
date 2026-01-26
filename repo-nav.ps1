@@ -54,169 +54,29 @@ param(
 $scriptRoot = $PSScriptRoot
 $srcPath = Join-Path $scriptRoot "src"
 
-# Import in dependency order
-# Config
-. "$srcPath\Config\Constants.ps1"
-. "$srcPath\Config\ColorPalette.ps1"
+# 1. Load Dependency Loader
+try {
+    . "$srcPath\Core\DependencyLoader.ps1"
+}
+catch {
+    Write-Error "Failed to load DependencyLoader: $_"
+    exit 1
+}
 
-# Initialize Constants with configuration
+# 2. Load all application dependencies
+# This script is dot-sourced, so it runs in the current (script) scope.
+# Note that DependencyLoader will inherit variables from this scope, but calculate
+# its own paths based on PSScriptRoot relative to itself.
+# We don't need to pass params if it self-calculates, or we could pass $srcPath.
+# The previous version used [DependencyLoader]::Load, now we use simple dot-sourcing.
+. "$srcPath\Core\DependencyLoader.ps1"
+
+# 3. Initialize Constants (Requires loaded classes)
 [Constants]::Initialize($scriptRoot)
-
-# Models (no dependencies)
-. "$srcPath\Models\GitStatusModel.ps1"
-. "$srcPath\Models\AliasInfo.ps1"
-. "$srcPath\Models\RepositoryModel.ps1"
-
-# Services - WindowSizeCalculator needed by NavigationState
-. "$srcPath\Services\WindowSizeCalculator.ps1"
-
-# Core - Navigation State (Accessed by UI and Services)
-. "$srcPath\Core\NavigationState.ps1"
-
-# Services (depend on models)
-. "$srcPath\Services\ConfigurationService.ps1"
-. "$srcPath\Services\UserPreferencesService.ps1"
-. "$srcPath\Services\LocalizationService.ps1"
-. "$srcPath\Services\AliasManager.ps1"
-. "$srcPath\Services\GitService.ps1"
-. "$srcPath\Services\NpmService.ps1"
-. "$srcPath\Services\ParallelGitLoader.ps1"
-. "$srcPath\Services\RepositoryOperationsService.ps1"
-. "$srcPath\Services\FavoriteService.ps1"
-. "$srcPath\Services\SearchService.ps1"
-. "$srcPath\Services\RenderOrchestrator.ps1"
-
-# UI (depend on models and config)
-. "$srcPath\UI\ConsoleHelper.ps1"
-. "$srcPath\UI\ProgressIndicator.ps1"
-. "$srcPath\UI\MenuRenderer.ps1"
-. "$srcPath\UI\RepositoryListRenderer.ps1"
-. "$srcPath\UI\StatusRenderer.ps1"
-. "$srcPath\UI\HeaderRenderer.ps1"
-. "$srcPath\UI\FeedbackRenderer.ps1"
-. "$srcPath\UI\ColorRenderer.ps1"
-. "$srcPath\UI\UIRenderer.ps1"
-. "$srcPath\UI\ColorSelector.ps1"
-. "$srcPath\UI\OptionSelector.ps1"
-
-# RepositoryManager (Depends on Services AND UI Components like ProgressIndicator)
-. "$srcPath\Core\RepositoryManager.ps1"
-
-# Views (depend on UI components)
-. "$srcPath\UI\Views\RepositoryManagementView.ps1"
-. "$srcPath\UI\Views\AliasView.ps1"
-. "$srcPath\UI\Views\SearchView.ps1"
-
-# Core Context (Depends on RepositoryManager and UI)
-. "$srcPath\Core\CommandContext.ps1"
-
-# Commands (Interfaces and Implementations)
-. "$srcPath\Core\Commands\INavigationCommand.ps1"
-. "$srcPath\Core\Commands\ExitCommand.ps1"
-. "$srcPath\Core\Commands\NavigationCommand.ps1"
-. "$srcPath\Core\Commands\RepositoryCommand.ps1"
-. "$srcPath\Core\Commands\GitCommand.ps1"
-. "$srcPath\Core\Commands\FavoriteCommand.ps1"
-. "$srcPath\Core\Commands\AliasCommand.ps1"
-. "$srcPath\Core\Commands\NpmCommand.ps1"
-. "$srcPath\Core\Commands\RepositoryManagementCommand.ps1"
-. "$srcPath\Core\Commands\PreferencesCommand.ps1"
-. "$srcPath\Core\Commands\CreateFolderCommand.ps1"
-. "$srcPath\Core\Commands\SearchCommand.ps1"
-
-# Core Components
-. "$srcPath\Core\CommandFactory.ps1"
-. "$srcPath\Core\InputHandler.ps1"
-. "$srcPath\Core\NavigationLoop.ps1"
 #endregion
 
 #region Main Entry Point
-function Start-RepositoryNavigator {
-    <#
-    .SYNOPSIS
-        Main entry point - creates all dependencies and starts the navigator
-    .DESCRIPTION
-        This function implements the Composition Root pattern:
-        - Creates all service instances
-        - Wires up dependencies
-        - Starts the navigation loop
-    #>
-    
-    param(
-        [string]$BasePath = (Split-Path -Parent $PSScriptRoot)
-    )
-    
-    try {
-        # Create service layer (no dependencies)
-        $gitService = [GitService]::new()
-        $npmService = [NpmService]::new()
-        $configService = [ConfigurationService]::new()
-        $preferencesService = [UserPreferencesService]::new()
-        
-        # Initialize Localization
-        $localizationService = [LocalizationService]::new()
-        $language = $preferencesService.GetPreference("general", "language")
-        $localizationService.SetLanguage($language)
-
-        # Create managers (depend on services)
-        $aliasManager = [AliasManager]::new($configService)
-        $favoriteService = [FavoriteService]::new($configService)
-        $parallelGitLoader = [ParallelGitLoader]::new()
-        $repoOperationsService = [RepositoryOperationsService]::new($gitService)
-        
-        # Create repository coordinator (Facade pattern)
-        $repoManager = [RepositoryManager]::new(
-            $gitService,
-            $npmService,
-            $aliasManager,
-            $configService,
-            $preferencesService,
-            $favoriteService,
-            $parallelGitLoader,
-            $repoOperationsService
-        )
-        
-        # Create UI layer
-        $consoleHelper = [ConsoleHelper]::new()
-        $menuRenderer = [MenuRenderer]::new($consoleHelper, $preferencesService, $localizationService)
-        $repoListRenderer = [RepositoryListRenderer]::new($consoleHelper, $preferencesService)
-        $statusRenderer = [StatusRenderer]::new($consoleHelper, $localizationService)
-        $headerRenderer = [HeaderRenderer]::new($consoleHelper, $localizationService)
-        $feedbackRenderer = [FeedbackRenderer]::new($consoleHelper, $localizationService)
-        $colorRenderer = [ColorRenderer]::new($consoleHelper, $preferencesService, $localizationService)
-        
-        $renderer = [UIRenderer]::new($consoleHelper, $preferencesService, $localizationService, $menuRenderer, $repoListRenderer, $statusRenderer, $headerRenderer, $feedbackRenderer, $colorRenderer)
-        $colorSelector = [ColorSelector]::new($renderer, $consoleHelper)
-        $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
-        
-        # Create Application Context (Composition Root)
-        # Bundles all services and dependencies into a single object
-        $appContext = [PSCustomObject]@{
-            RepoManager         = $repoManager
-            Renderer            = $renderer
-            Console             = $consoleHelper
-            ColorSelector       = $colorSelector
-            OptionSelector      = $optionSelector
-            LocalizationService = $localizationService
-            PreferencesService  = $preferencesService
-            BasePath            = $BasePath
-        }
-
-        # Start navigation loop
-        Start-NavigationLoop -Context $appContext
-    }
-    catch {
-        Write-Host ""
-        Write-Host "Error starting repository navigator:" -ForegroundColor Red
-        Write-Host $_.Exception.Message -ForegroundColor Red
-        Write-Host ""
-        Write-Host "Stack trace:" -ForegroundColor DarkGray
-        Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
-        Write-Host ""
-        Write-Host "Press any key to exit..." -ForegroundColor Gray
-        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    }
-}
+# Start-RepositoryNavigator function is replaced by Bootstrapper class
 #endregion
 
 #region Execute
@@ -227,7 +87,7 @@ if ($MyInvocation.InvocationName -ne '.') {
         $BasePath = [Constants]::ReposBasePath
     }
     
-    # Start the navigator
-    Start-RepositoryNavigator -BasePath $BasePath
+    # Start the navigator via Bootstrapper
+    [Bootstrapper]::Start($BasePath)
 }
 #endregion
