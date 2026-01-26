@@ -75,6 +75,7 @@
     "UI.Changes": "Changes",
     "UI.Behind": "Behind",
     "UI.Ahead": "Ahead",
+    "UI.Current": "current",
     "UI.NoGit": "No git repo",
     "UI.Container": "Folder (Enter / \u2192 to browse)",
     "UI.Loading": "loading...",

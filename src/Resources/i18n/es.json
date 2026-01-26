@@ -62,7 +62,6 @@
     "Msg.AliasSepUpdated": "Separador del alias actualizado.",
     "Msg.AliasWrapUpdated": "Estilo del alias actualizado.",
     
-    "Color.None": "Sin fondo",
     
     "Lang.en": "Inglés",
     "Lang.es": "Español",
@@ -72,6 +71,7 @@
     "UI.Changes": "Cambios",
     "UI.Behind": "Detrás",
     "UI.Ahead": "Delante",
+    "UI.Current": "actual",
     "UI.NoGit": "No git repo",
     "UI.Container": "Carpeta (Enter / \u2192 para explorar)",
     "UI.Loading": "cargando...",

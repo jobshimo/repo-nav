@@ -56,7 +56,14 @@ class GitFlowCommand : INavigationCommand {
             $selector = [FilteredListSelector]::new($context.Console, $context.Renderer)
             
             # Persistent loop for the menu
-            while ($true) {
+            $loop = $true
+            # Persist last selected index to restore position
+            $lastIndex = 0
+            # Status from previous action
+            $statusMessage = $null
+            $statusColor = [ConsoleColor]::Gray
+            
+            while ($loop) {
                 $branches = $gitService.GetBranches($repo.FullPath)
                 if ($branches.Count -eq 0) {
                     $context.Console.WriteError("No branches found") 
@@ -75,50 +82,48 @@ class GitFlowCommand : INavigationCommand {
                 $currentBranch = $gitService.GetCurrentBranch($repo.FullPath)
                 $currentMarker = "({0})" -f $this.GetLoc($context, "UI.Current", "current")
                 
-                # The selector now returns a hashtable: @{ Type=...; Value=... }
-                $selection = $selector.ShowSelection($selectBaseTitle, $branches, $selectBasePrompt, $headerOptions, $currentBranch, $currentMarker)
+                # The selector now returns a hashtable: @{ Type=...; Value=...; Index=... }
+                $selection = $selector.ShowSelection($selectBaseTitle, $branches, $selectBasePrompt, $headerOptions, $currentBranch, $currentMarker, $lastIndex, $statusMessage, $statusColor)
+                
+                # Clear status after showing it once
+                $statusMessage = $null
+                $statusColor = [ConsoleColor]::Gray
                 
                 if ($null -eq $selection) { break } # Cancelled (Esc)
                 
-                if ($selection.Type -eq "Header") {
-                    # Top option selected: flow1, flow2, flow3
-                    # Currently no functionality, just loop back.
-                    continue
-                }
-                
                 if ($selection.Type -eq "Item") {
-                    $targetBranch = $selection.Value
+                    $selectedBranch = $selection.Value
+                    $lastIndex = $selection.Index # Restore this index next time
                     
-                    $currentBranch = $gitService.GetCurrentBranch($repo.FullPath)
-                    if ($targetBranch -eq $currentBranch) {
-                        # Already on this branch
-                        continue
+                    if ($selectedBranch -eq $currentBranch) {
+                        # No op if already on that branch
+                        continue 
                     }
                     
-                    # Check for uncommitted changes
-                    if ($gitService.HasUncommittedChanges($repo.FullPath)) {
-                         $context.Console.NewLine()
-                         $context.Console.WriteLineColored("  Cannot checkout '$targetBranch': You have uncommitted changes.", [Constants]::ColorError)
-                         $context.Console.WriteLineColored("  Please commit or stash your changes first.", [Constants]::ColorHint)
-                         Start-Sleep -Seconds 2
-                         continue
-                    }
+                    # Logic to switch branch (Checkout)
+                    # Check for uncommitted changes first
+                    $hasChanges = $gitService.HasUncommittedChanges($repo.FullPath)
                     
-                    # Attempt checkout
-                    $context.Console.NewLine()
-                    $context.Console.WriteColored("  Checking out '$targetBranch'...", [Constants]::ColorHint)
-                    
-                    if ($gitService.Checkout($repo.FullPath, $targetBranch)) {
-                         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
-                         Start-Sleep -Milliseconds 500
-                         
-                         # Loop continues, showing the menu again (with likely updated current branch if we visualized it)
+                    if ($hasChanges) {
+                        $statusMessage = "Error: Cannot checkout '$selectedBranch'. You have uncommitted changes."
+                        $statusColor = [Constants]::ColorError
+                        # Loop continues, showing error in footer
                     } else {
-                         $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
-                         Start-Sleep -Seconds 2
+                        $checkoutResult = $gitService.Checkout($repo.FullPath, $selectedBranch)
+                        if ($checkoutResult.Success) {
+                            $statusMessage = "Checked out '$selectedBranch' successfully."
+                            $statusColor = [Constants]::ColorSuccess
+                        } else {
+                             $statusMessage = "Error checking out '$selectedBranch': $($checkoutResult.Output)"
+                             $statusColor = [Constants]::ColorError
+                        }
                     }
-                    
-                    continue
+                }
+                elseif ($selection.Type -eq "Header") {
+                    # Future flow logic...
+                    # For now just update status
+                    $statusMessage = "Selected Flow: $($selection.Value) (Not implemented)"
+                    $statusColor = [Constants]::ColorWarning
                 }
             }
             
