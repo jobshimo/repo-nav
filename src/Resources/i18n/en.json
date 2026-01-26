@@ -87,6 +87,10 @@
     "UI.Group.Repo": "Repository",
     "UI.Group.Modules": "Modules",
     "UI.Group.Tools": "Tools",
+    "UI.Label.Item": "Item",
+    "UI.Label.Filtered": "Filtered",
+    "UI.Label.Of": "of",
+    "UI.Label.Items": "items",
     
     "Cmd.Desc.Alias": "Set alias (E) or Remove alias (R)",
     "Cmd.Desc.Exit": "Exit: Q/Esc",
@@ -209,6 +213,9 @@
     "Search.NoResults": "No repositories found",
     "Search.Hint.Input": "Type to filter | ↓/Tab=Go to list | Esc=Close",
     "Search.Hint.List": "↑↓=Navigate | Enter=Open | ↑(top)/Tab=Back to search | Esc=Close",
+    "Search.Hint.FilteredList": "↑↓=Navigate | Enter=Select | ↑(top)/Tab=Back to search | Esc=Cancel",
+    "Search.NoItems": "No items found",
+    "Search.TypeToFilter": "Type to filter...",
     "Cmd.Desc.Search": "Search (S)",
     "Cmd.Desc.GitFlow": "Flow (B)",
     

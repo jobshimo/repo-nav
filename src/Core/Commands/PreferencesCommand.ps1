@@ -102,7 +102,7 @@ class PreferencesCommand : INavigationCommand {
                     # 4. Feedback / Footer Layer
                     # Footer is always at Start + PageSize
                     $footerLine = $listStartTop + $pageSize
-                    $this.RenderFooter($Console, $confirmationMessage, $confirmationTimeout, $footerLine)
+                    $this.RenderFooter($Console, $confirmationMessage, $confirmationTimeout, $footerLine, $GetLoc)
                     
                     if ($confirmationTimeout -gt 0) { $confirmationTimeout-- } else { $confirmationMessage = "" }
                     
@@ -252,10 +252,10 @@ class PreferencesCommand : INavigationCommand {
                 $sectionKeys = @("navigation", "alias", "modules", "repository", "git", "tools")
                 $sectionLabels = @{
                 "navigation" = (& $GetLoc "UI.Group.Nav" "Navigation");
-                "alias"      = "Alias";
+                "alias"      = (& $GetLoc "Pref.Group.Alias" "Alias");
                 "modules"    = (& $GetLoc "UI.Group.Modules" "Modules");
                 "repository" = (& $GetLoc "UI.Group.Repo" "Repository");
-                "git"        = "Git Status";
+                "git"        = (& $GetLoc "Pref.Group.Git" "Git Status");
                 "tools"      = (& $GetLoc "UI.Group.Tools" "Tools")
                 }
 
@@ -311,7 +311,7 @@ class PreferencesCommand : INavigationCommand {
         }
     }
 
-    hidden [void] RenderFooter([ConsoleHelper]$Console, [string]$msg, [int]$timeout, [int]$footerStart) {
+    hidden [void] RenderFooter([ConsoleHelper]$Console, [string]$msg, [int]$timeout, [int]$footerStart, $GetLoc) {
         # Feedback / Status Line
         $Console.SetCursorPosition(0, $footerStart)
         $Console.ClearCurrentLine()
@@ -328,7 +328,8 @@ class PreferencesCommand : INavigationCommand {
             $Console.WriteColored("  $msg", [ConsoleColor]::Green)
         } else {
             # Help Text (User requested format)
-            $Console.WriteColored("  Use Arrows to navigate | Enter to change/select | Q/Left to go back", [Constants]::ColorHint)
+            $hint = & $GetLoc "Pref.Hint" "Use Arrows to navigate | Enter to change/select | Q/Left to go back"
+            $Console.WriteColored("  $hint", [Constants]::ColorHint)
         }
     }
 

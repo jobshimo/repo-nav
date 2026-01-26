@@ -306,6 +306,11 @@ class SearchView {
         
         # Results count (2 lines)
         $resultCount = $filteredRepos.Count
+        # "Search.ResultCount" is "{0} of {1} repositories" in en.json
+        # But we added UI.Label.Repositories? No.
+        # Check if Search.ResultCount is okay. It is "{0} of {1} repositories" in en.json.
+        # In es.json it is "{0} de {1} repositorios".
+        # This seems fine as a full sentence/phrase.
         $countText = $this.GetLoc("Search.ResultCount", "{0} of {1} repositories") -f $resultCount, $totalCount
         $this.Console.WriteLineColored("  $countText", [Constants]::ColorHint)
         $this.Console.NewLine()
@@ -444,10 +449,14 @@ class SearchView {
         # Position info
         if ($filteredCount -gt 0) {
             $currentPos = $selectedIndex + 1
-            $this.Console.WriteColored("  Item: ", [Constants]::ColorLabel)
+            $lblItem = $this.GetLoc("UI.Label.Item", "Item")
+            $lblFiltered = $this.GetLoc("UI.Label.Filtered", "Filtered")
+            $lblOf = $this.GetLoc("UI.Label.Of", "of")
+            
+            $this.Console.WriteColored("  $lblItem`: ", [Constants]::ColorLabel)
             $this.Console.WriteColored("$currentPos/$filteredCount", [Constants]::ColorValue)
-            $this.Console.WriteColored(" | Filtered: ", [Constants]::ColorLabel)
-            $this.Console.WriteLineColored("$filteredCount of $totalCount", [Constants]::ColorHint)
+            $this.Console.WriteColored(" | $lblFiltered`: ", [Constants]::ColorLabel)
+            $this.Console.WriteLineColored("$filteredCount $lblOf $totalCount", [Constants]::ColorHint)
         } else {
             $noResults = $this.GetLoc("Search.NoResults", "No repositories found")
             $this.Console.WriteLineColored("  $noResults", [Constants]::ColorWarning)

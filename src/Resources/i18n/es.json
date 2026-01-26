@@ -83,6 +83,10 @@
     "UI.Group.Repo": "Repositorio",
     "UI.Group.Modules": "Módulos",
     "UI.Group.Tools": "Herramientas",
+    "UI.Label.Item": "Elemento",
+    "UI.Label.Filtered": "Filtrado",
+    "UI.Label.Of": "de",
+    "UI.Label.Items": "elementos",
     
     "Cmd.Desc.Alias": "Alias: Set (E) / Del(R)",
     "Cmd.Desc.Exit": "Salir: Q/Esc",
@@ -205,6 +209,9 @@
     "Search.NoResults": "No se encontraron repositorios",
     "Search.Hint.Input": "Escribe para filtrar | ↓/Tab=Ir a lista | Esc=Cerrar",
     "Search.Hint.List": "↑↓=Navegar | Enter=Abrir | ↑(arriba)/Tab=Volver a buscar | Esc=Cerrar",
+    "Search.Hint.FilteredList": "↑↓=Navegar | Enter=Seleccionar | ↑(arriba)/Tab=Volver a buscar | Esc=Cancelar",
+    "Search.NoItems": "No se encontraron elementos",
+    "Search.TypeToFilter": "Escribe para filtrar...",
     "Cmd.Desc.Search": "Buscar (S)",
     "Cmd.Desc.GitFlow": "Flujo (B)",
     

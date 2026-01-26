@@ -294,12 +294,17 @@ class FilteredListSelector {
         $this.Console.SetCursorPosition(0, $footerStartLine + 1)
         if ($filteredCount -gt 0) {
             $currentPos = $selectedIndex + 1
-            $this.Console.WriteColored("  Item: ", [Constants]::ColorLabel)
+            $lblItem = $this.Renderer.GetLoc("UI.Label.Item", "Item")
+            $lblFiltered = $this.Renderer.GetLoc("UI.Label.Filtered", "Filtered")
+            $lblOf = $this.Renderer.GetLoc("UI.Label.Of", "of")
+            
+            $this.Console.WriteColored("  $lblItem`: ", [Constants]::ColorLabel)
             $this.Console.WriteColored("$currentPos/$filteredCount", [Constants]::ColorValue)
-            $this.Console.WriteColored(" | Filtered: ", [Constants]::ColorLabel)
-            $this.Console.WriteColored("$filteredCount of $totalCount", [Constants]::ColorHint)
+            $this.Console.WriteColored(" | $lblFiltered`: ", [Constants]::ColorLabel)
+            $this.Console.WriteColored("$filteredCount $lblOf $totalCount", [Constants]::ColorHint)
         } else {
-             $this.Console.WriteColored("  No items found", [Constants]::ColorWarning)
+             $noItems = $this.Renderer.GetLoc("Search.NoItems", "No items found")
+             $this.Console.WriteColored("  $noItems", [Constants]::ColorWarning)
         }
         
         # 3. Message / Hints
@@ -307,7 +312,8 @@ class FilteredListSelector {
         if (-not [string]::IsNullOrEmpty($statusMessage)) {
              $this.Console.WriteColored("  $statusMessage", $statusColor)
         } else {
-             $this.Console.WriteColored("  " + "$([char]0x2191)$([char]0x2193)=Navigate | Enter=Open | $([char]0x2191)(top)/Tab=Back to search | Esc=Close", [Constants]::ColorHint)
+             $hint = $this.Renderer.GetLoc("Search.Hint.FilteredList", "$([char]0x2191)$([char]0x2193)=Navigate | Enter=Select | Esc=Cancel")
+             $this.Console.WriteColored("  $hint", [Constants]::ColorHint)
         }
         
         # 4. Final Separator
@@ -349,14 +355,18 @@ class FilteredListSelector {
         $this.Console.WriteColored("$prompt`: ", [Constants]::ColorLabel)
         
         if ([string]::IsNullOrEmpty($searchText)) {
-            $this.Console.WriteLineColored("Type to filter...", [Constants]::ColorHint)
+            $placeholder = $this.Renderer.GetLoc("Search.TypeToFilter", "Type to filter...")
+            $this.Console.WriteLineColored($placeholder, [Constants]::ColorHint)
         } else {
             $this.Console.WriteLineColored($searchText, [Constants]::ColorValue)
         }
         
         # Count
         if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
-        $countText = "{0} of {1} items" -f $items.Count, $totalCount
+        $lblOf = $this.Renderer.GetLoc("UI.Label.Of", "of")
+        $lblItems = $this.Renderer.GetLoc("UI.Label.Items", "items")
+        # "{0} of {1} items"
+        $countText = "{0} $lblOf {1} $lblItems" -f $items.Count, $totalCount
         $this.Console.WriteLineColored("  $countText", [Constants]::ColorHint)
         
         # Separator (Before List)
