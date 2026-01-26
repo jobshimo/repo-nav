@@ -269,14 +269,20 @@ class FilteredListSelector {
         $this.Console.SetCursorPosition(0, $footerStartLine)
         
         if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
-        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        # Manually write separator without newline to prevent scrolling
+        $sep = "=" * [Constants]::UIWidth
+        $this.Console.WriteColored($sep, [Constants]::ColorSeparator)
+        
+        # Calculate next line position manually since we avoided newline
+        $msgLine = $footerStartLine + 1
+        $this.Console.SetCursorPosition(0, $msgLine)
         
         if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
         
         if (-not [string]::IsNullOrEmpty($statusMessage)) {
              $this.Console.WriteColored("  $statusMessage", $statusColor)
         } else {
-             $this.Console.WriteLineColored("  Enter to select | Esc to cancel", [Constants]::ColorHint)
+             $this.Console.WriteColored("  Enter to select | Esc to cancel", [Constants]::ColorHint)
         }
     }
 
@@ -358,7 +364,7 @@ class FilteredListSelector {
                 if ($null -ne $currentItem -and $item -eq $currentItem) {
                     $this.Console.WriteColored(" $currentMarker", [Constants]::ColorHint)
                 }
-                $this.Console.NewLine()
+                # Removed NewLine() to prevent scrolling when at the bottom of the buffer
             }
         }
         
