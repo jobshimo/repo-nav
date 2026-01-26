@@ -27,19 +27,17 @@ class FilteredListSelector {
     
     hidden [int] CalculatePageSize([int]$headerOptionCount) {
         # Reserved: 
-        # Header(3) 
+        # Header($this.HeaderLines) 
         # HeaderOptions (1 line horizontal if > 0)
         # Input (1)
         # Count (1)
         # Separator (1)
-        # Footer Separator (1)
-        # Footer Msg (1)
-        # Padding/Safety (1)
+        # Footer: Sep(1) + Info(1) + Hints(1) + Sep(1) = 4
         
         $optsHeight = if ($headerOptionCount -gt 0) { 1 } else { 0 }
         
-        # 3 + opts + 1(Input) + 1(Count) + 1(Sep) + 1(FooterSep) + 1(FooterMsg) = 8 + opts
-        $reservedLines = 3 + $optsHeight + 1 + 1 + 1 + 1 + 1
+        $footerLines = 4
+        $reservedLines = $this.HeaderLines + $optsHeight + 1 + 1 + 1 + $footerLines
         
         $windowHeight = $this.WindowCalculator.GetWindowHeight()
         $available = $windowHeight - $reservedLines
@@ -58,6 +56,11 @@ class FilteredListSelector {
         if ($null -eq $items -or $items.Count -eq 0) {
             return $null
         }
+        
+        # Check Header Preference
+        $preferences = $this.Renderer.PreferencesService.LoadPreferences()
+        $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+        $this.HeaderLines = if ($showHeaders) { 3 } else { 0 }
         
         # Unpack options with defaults
         $prompt = if ($options.ContainsKey('Prompt')) { $options['Prompt'] } else { "Filter" }
@@ -95,12 +98,19 @@ class FilteredListSelector {
             # Initial Render - Clear screen once
             $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $true, $currentItem, $currentMarker, $statusMessage, $statusColor)
             
+            # ... Input handling loop omitted for brevity in diff, assumed mostly same logic but with updated Render calls ... 
+            # NOTE: We need to replace the whole method to ensure variable scope and logic flow is correct, 
+            # but for replace_file_content we must match existing content. 
+            # Since the logic inside the loop uses RenderFull and RenderList, we need to make sure those methods
+            # are updated to match the new signatures if we changed them.
+            # I will only replace the top part and helper methods, and assumes the loop logic calls methods that I update below.
+            
             while ($running) {
                 if ($focusMode -eq "input") {
                     # Calculate cursor X: indent (4 for "  > ") + prompt + ": " (2) + text
                     $cursorX = 4 + $prompt.Length + 2 + $searchText.Length
                     # Calculate cursor Y: 
-                    # Header(3) + HeaderOptions(1 if any)
+                    # Header($this.HeaderLines) + HeaderOptions(1 if any)
                     $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
                     $cursorY = $this.HeaderLines + $hLines
                     
@@ -114,6 +124,7 @@ class FilteredListSelector {
                 $keyCode = $key.VirtualKeyCode
                 $keyChar = $key.Character
                 
+                # ... Event loop logic ...
                 # Esc
                 if ($keyCode -eq [Constants]::KEY_ESCAPE -or $keyCode -eq [Constants]::KEY_ESC) {
                     if ($focusMode -eq "list" -or $focusMode -eq "header") {
@@ -203,7 +214,8 @@ class FilteredListSelector {
                             $selectedIndex = 0
                             $viewportStart = 0
                         }
-                        $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                        # Pass total items count to RenderList
+                        $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
                     }
                     continue
                 }
@@ -216,7 +228,8 @@ class FilteredListSelector {
                             if ($selectedIndex -lt $viewportStart) {
                                 $viewportStart = $selectedIndex
                             }
-                            $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                            # Pass total items count to RenderList
+                            $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
                         } else {
                             # Go to Input
                             $focusMode = "input"
@@ -265,25 +278,41 @@ class FilteredListSelector {
         return $result
     }
     
-    hidden [void] RenderFooter([string]$statusMessage, [ConsoleColor]$statusColor, [int]$footerStartLine, [bool]$clearScreen) {
-        $this.Console.SetCursorPosition(0, $footerStartLine)
+    hidden [void] RenderFooter([int]$selectedIndex, [int]$filteredCount, [int]$totalCount, [string]$statusMessage, [ConsoleColor]$statusColor, [int]$footerStartLine, [bool]$clearScreen) {
+        # Footer area: 4 lines
+        for ($i = 0; $i -lt 4; $i++) {
+            $this.Console.SetCursorPosition(0, $footerStartLine + $i)
+            if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
+        }
         
-        if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
-        # Manually write separator without newline to prevent scrolling
+        # 1. Separator
+        $this.Console.SetCursorPosition(0, $footerStartLine)
         $sep = "=" * [Constants]::UIWidth
         $this.Console.WriteColored($sep, [Constants]::ColorSeparator)
         
-        # Calculate next line position manually since we avoided newline
-        $msgLine = $footerStartLine + 1
-        $this.Console.SetCursorPosition(0, $msgLine)
+        # 2. Counts
+        $this.Console.SetCursorPosition(0, $footerStartLine + 1)
+        if ($filteredCount -gt 0) {
+            $currentPos = $selectedIndex + 1
+            $this.Console.WriteColored("  Item: ", [Constants]::ColorLabel)
+            $this.Console.WriteColored("$currentPos/$filteredCount", [Constants]::ColorValue)
+            $this.Console.WriteColored(" | Filtered: ", [Constants]::ColorLabel)
+            $this.Console.WriteColored("$filteredCount of $totalCount", [Constants]::ColorHint)
+        } else {
+             $this.Console.WriteColored("  No items found", [Constants]::ColorWarning)
+        }
         
-        if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
-        
+        # 3. Message / Hints
+        $this.Console.SetCursorPosition(0, $footerStartLine + 2)
         if (-not [string]::IsNullOrEmpty($statusMessage)) {
              $this.Console.WriteColored("  $statusMessage", $statusColor)
         } else {
-             $this.Console.WriteColored("  Enter to select | Esc to cancel", [Constants]::ColorHint)
+             $this.Console.WriteColored("  " + "\u2191\u2193=Navigate | Enter=Open | \u2191(top)/Tab=Back to search | Esc=Close", [Constants]::ColorHint)
         }
+        
+        # 4. Final Separator
+        $this.Console.SetCursorPosition(0, $footerStartLine + 3)
+        $this.Console.WriteColored($sep, [Constants]::ColorSeparator)
     }
 
     hidden [void] RenderFull([string]$title, [string]$searchText, [array]$items, [int]$selectedIndex, [int]$headerIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$totalCount, [string]$prompt, [string[]]$headerOptions, [bool]$clearScreen, [string]$currentItem, [string]$currentMarker, [string]$statusMessage, [ConsoleColor]$statusColor) {
@@ -330,20 +359,20 @@ class FilteredListSelector {
         $countText = "{0} of {1} items" -f $items.Count, $totalCount
         $this.Console.WriteLineColored("  $countText", [Constants]::ColorHint)
         
-        # Separator
+        # Separator (Before List)
         if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
         $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)
         
         # Render List and Footer
-        $this.RenderList($items, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+        $this.RenderList($items, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $totalCount, $currentItem, $currentMarker, $statusMessage, $statusColor)
     }
     
-    hidden [void] RenderList([array]$items, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$headerOptionCount, [string]$currentItem, [string]$currentMarker, [string]$statusMessage, [ConsoleColor]$statusColor) {
+    hidden [void] RenderList([array]$items, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$headerOptionCount, [int]$totalCount, [string]$currentItem, [string]$currentMarker, [string]$statusMessage, [ConsoleColor]$statusColor) {
         $hLines = if ($headerOptionCount -gt 0) { 1 } else { 0 }
         
         # Consistent Layout Calc:
-        # Header(3) + Opts(hLines) + Input(1) + Count(1) + Sep(1) = StartLine
-        $startLine = 3 + $hLines + 1 + 1 + 1
+        # Header($this.HeaderLines) + Opts(hLines) + Input(1) + Count(1) + Sep(1) = StartLine
+        $startLine = $this.HeaderLines + $hLines + 1 + 1 + 1
         
         # Draw items
         for ($i = 0; $i -lt $pageSize; $i++) {
@@ -364,12 +393,11 @@ class FilteredListSelector {
                 if ($null -ne $currentItem -and $item -eq $currentItem) {
                     $this.Console.WriteColored(" $currentMarker", [Constants]::ColorHint)
                 }
-                # Removed NewLine() to prevent scrolling when at the bottom of the buffer
             }
         }
         
         # Explicitly redraw footer every time the list updates to ensure it's not overwritten/ghosted
         $footerStart = $startLine + $pageSize
-        $this.RenderFooter($statusMessage, $statusColor, $footerStart, $false)
+        $this.RenderFooter($selectedIndex, $items.Count, $totalCount, $statusMessage, $statusColor, $footerStart, $false)
     }
 }
