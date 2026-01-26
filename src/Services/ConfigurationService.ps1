@@ -14,16 +14,43 @@
 #>
 
 class ConfigurationService {
-    [string] $ConfigFilePath
+    [string] $ConfigFilePath      # Aliases
+    [string] $EnvironmentConfigPath # .repo-config.json
     
     # Constructor
     ConfigurationService() {
         $this.ConfigFilePath = [Constants]::GetAliasFilePath()
+        $this.EnvironmentConfigPath = Join-Path ([Constants]::ScriptRoot) ".repo-config.json"
     }
     
     # Constructor with custom path (for testing)
     ConfigurationService([string]$customPath) {
         $this.ConfigFilePath = $customPath
+        # For testing, we assume env config is in same dir or mocked
+        $this.EnvironmentConfigPath = Join-Path (Split-Path $customPath) ".repo-config.json"
+    }
+
+    # Load environment configuration (.repo-config.json)
+    [PSCustomObject] LoadEnvironmentConfig() {
+        $examplePath = Join-Path ([Constants]::ScriptRoot) ".repo-config.example.json"
+        
+        if (-not (Test-Path $this.EnvironmentConfigPath)) {
+            if (Test-Path $examplePath) {
+                Write-Host "No se encontro el archivo de configuracion .repo-config.json" -ForegroundColor Yellow
+                Copy-Item $examplePath $this.EnvironmentConfigPath
+                Write-Host "Archivo .repo-config.json creado desde ejemplo." -ForegroundColor Green
+            } else {
+                throw "No se encontro el archivo de configuracion. Debe existir .repo-config.json o .repo-config.example.json"
+            }
+        }
+
+        try {
+            $content = Get-Content $this.EnvironmentConfigPath -Raw -ErrorAction Stop
+            return ConvertFrom-Json $content -ErrorAction Stop
+        }
+        catch {
+            throw "Error al cargar la configuracion desde $($this.EnvironmentConfigPath) : $_"
+        }
     }
     
     # Load configuration from file

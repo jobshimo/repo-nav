@@ -16,7 +16,10 @@ function Start-NavigationLoop {
     # Unpack context for local usage
     $RepoManager = $Context.RepoManager
     $Renderer = $Context.Renderer
+    $RepoManager = $Context.RepoManager
+    $Renderer = $Context.Renderer
     $Console = $Context.Console
+    $Logger = $Context.Logger
     $ColorSelector = $Context.ColorSelector
     $OptionSelector = $Context.OptionSelector
     $LocalizationService = $Context.LocalizationService
@@ -105,6 +108,11 @@ function Start-NavigationLoop {
             $Console.ClearScreen()
             $Renderer.RenderWarning("Navigation cancelled.")
         }
+    }
+    catch {
+        $Console.ShowCursor() # Ensure cursor is visible on error
+        $Logger.LogError($_)
+        throw # Re-throw to be caught by the main script error handler if needed, or just let it crash after logging
     }
     finally {
         $Console.ShowCursor()

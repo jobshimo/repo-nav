@@ -85,6 +85,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Services\FavoriteService.ps1"
 . "$srcPath\Services\SearchService.ps1"
 . "$srcPath\Services\RenderOrchestrator.ps1"
+. "$srcPath\Services\LoggerService.ps1"
 
 # UI (depend on models and config)
 # UI (depend on models and config)
@@ -129,6 +130,9 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Core\Engine\CommandFactory.ps1"
 . "$srcPath\Core\Engine\InputHandler.ps1"
 . "$srcPath\Core\Engine\NavigationLoop.ps1"
+
+# App Builder (Manual DI Container)
+. "$srcPath\App\AppBuilder.ps1"
 #endregion
 
 #region Main Entry Point
@@ -148,53 +152,9 @@ function Start-RepositoryNavigator {
     )
     
     try {
-        # Create service layer (no dependencies)
-        $gitService = [GitService]::new()
-        $npmService = [NpmService]::new()
-        $configService = [ConfigurationService]::new()
-        $preferencesService = [UserPreferencesService]::new()
-        
-        # Initialize Localization
-        $localizationService = [LocalizationService]::new()
-        $language = $preferencesService.GetPreference("general", "language")
-        $localizationService.SetLanguage($language)
-
-        # Create managers (depend on services)
-        $aliasManager = [AliasManager]::new($configService)
-        $favoriteService = [FavoriteService]::new($configService)
-        $parallelGitLoader = [ParallelGitLoader]::new()
-        $repoOperationsService = [RepositoryOperationsService]::new($gitService)
-        
-        # Create repository coordinator (Facade pattern)
-        $repoManager = [RepositoryManager]::new(
-            $gitService,
-            $npmService,
-            $aliasManager,
-            $configService,
-            $preferencesService,
-            $favoriteService,
-            $parallelGitLoader,
-            $repoOperationsService
-        )
-        
-        # Create UI layer
-        $consoleHelper = [ConsoleHelper]::new()
-        $renderer = [UIRenderer]::new($consoleHelper, $preferencesService, $localizationService)
-        $colorSelector = [ColorSelector]::new($renderer, $consoleHelper)
-        $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
-        
-        # Create Application Context (Composition Root)
-        # Bundles all services and dependencies into a single object
-        $appContext = [PSCustomObject]@{
-            RepoManager         = $repoManager
-            Renderer            = $renderer
-            Console             = $consoleHelper
-            ColorSelector       = $colorSelector
-            OptionSelector      = $optionSelector
-            LocalizationService = $localizationService
-            PreferencesService  = $preferencesService
-            BasePath            = $BasePath
-        }
+        # Build Application Context using Manual DI Container
+        # This keeps the entry point clean and allows for easier testing/swapping in the future
+        $appContext = [AppBuilder]::Build($BasePath)
 
         # Start navigation loop
         Start-NavigationLoop -Context $appContext

@@ -135,39 +135,9 @@ class Constants {
     static [string] $ColorCounterPartial = "Yellow"
     static [string] $ColorCounterEmpty = "Red"
     
-    # Initialize configuration from file
+    # Initialize constants (ScriptRoot)
     static [void] Initialize([string]$scriptRoot) {
         [Constants]::ScriptRoot = $scriptRoot
-        
-        $configPath = Join-Path $scriptRoot ".repo-config.json"
-        $exampleConfigPath = Join-Path $scriptRoot ".repo-config.example.json"
-        
-        # Check if config file exists, if not, create from example
-        if (-not (Test-Path $configPath)) {
-            if (Test-Path $exampleConfigPath) {
-                Write-Host "No se encontro el archivo de configuracion .repo-config.json" -ForegroundColor Yellow
-                Write-Host "Por favor, copia .repo-config.example.json a .repo-config.json y configura tus rutas" -ForegroundColor Cyan
-                Write-Host ""
-                Copy-Item $exampleConfigPath $configPath
-                Write-Host "Archivo .repo-config.json creado. Editando..." -ForegroundColor Green
-                Start-Process notepad $configPath
-                Write-Host ""
-                Write-Host "Presiona Enter despues de guardar el archivo de configuracion..." -ForegroundColor Yellow
-                Read-Host
-            } else {
-                throw "No se encontro el archivo de configuracion. Debe existir .repo-config.json o .repo-config.example.json"
-            }
-        }
-        
-        # Load configuration
-        try {
-            $config = Get-Content $configPath -Raw | ConvertFrom-Json
-            [Constants]::ReposBasePath = $config.reposBasePath
-            [Constants]::UserName = $config.userName
-        }
-        catch {
-            throw "Error al cargar la configuracion desde $configPath : $_"
-        }
     }
     
     # Methods to get derived values
