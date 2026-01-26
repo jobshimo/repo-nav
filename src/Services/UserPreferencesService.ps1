@@ -71,6 +71,9 @@ class UserPreferencesService {
                 favoritesOnTop = $true
                 selectedBackground = "DarkGray"
                 selectedDelimiter = "None"
+                aliasPosition = "After" # After | Before
+                aliasSeparator = " - "  # " - " | " : " | " | " | "None"
+                aliasWrapper = "None"   # None | Parens | Brackets | Braces
                 menuMode = "Full" # Full | Minimal | Hidden | Custom
                 menuSections = [PSCustomObject]@{
                     navigation = $true
@@ -123,6 +126,16 @@ class UserPreferencesService {
             $preferences.display | Add-Member -NotePropertyName 'selectedDelimiter' -NotePropertyValue "None" -Force
         }
         
+        if (-not ($preferences.display.PSObject.Properties.Name -contains 'aliasPosition')) {
+            $preferences.display | Add-Member -NotePropertyName 'aliasPosition' -NotePropertyValue "After" -Force
+        }
+        if (-not ($preferences.display.PSObject.Properties.Name -contains 'aliasSeparator')) {
+            $preferences.display | Add-Member -NotePropertyName 'aliasSeparator' -NotePropertyValue " - " -Force
+        }
+        if (-not ($preferences.display.PSObject.Properties.Name -contains 'aliasWrapper')) {
+            $preferences.display | Add-Member -NotePropertyName 'aliasWrapper' -NotePropertyValue "None" -Force
+        }
+
         if (-not ($preferences.display.PSObject.Properties.Name -contains 'menuMode')) {
             $preferences.display | Add-Member -NotePropertyName 'menuMode' -NotePropertyValue "Full" -Force
         }

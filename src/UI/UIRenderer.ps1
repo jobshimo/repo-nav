@@ -260,6 +260,8 @@ class UIRenderer {
     
     # Render a single repository list item
     [void] RenderRepositoryItem([RepositoryModel]$repo, [bool]$isSelected) {
+        $preferences = $this.PreferencesService.LoadPreferences()
+
         # Get user-configured background color and delimiter
         $backgroundColor = $null
         $selectedTextColor = [Constants]::ColorSelected
@@ -267,7 +269,6 @@ class UIRenderer {
         $rightDelimiter = ''
         
         if ($isSelected) {
-            $preferences = $this.PreferencesService.LoadPreferences()
             $bgColor = $preferences.display.selectedBackground
             
             if ($bgColor -ne 'None') {
@@ -320,6 +321,44 @@ class UIRenderer {
             $this.Console.WriteColored("$($gitDisplay.Symbol) ", $gitDisplay.Color)
         }
         
+        # Alias Configuration
+        $aliasPosition = if ($preferences.display.PSObject.Properties.Name -contains 'aliasPosition') { $preferences.display.aliasPosition } else { "After" }
+        $aliasSeparator = if ($preferences.display.PSObject.Properties.Name -contains 'aliasSeparator') { $preferences.display.aliasSeparator } else { " - " }
+        $aliasWrapper = if ($preferences.display.PSObject.Properties.Name -contains 'aliasWrapper') { $preferences.display.aliasWrapper } else { "None" }
+
+        # Prepare Alias Content
+        $shouldRenderAlias = $repo.HasAlias -and $repo.AliasInfo -and (-not $repo.IsContainer)
+        $aliasTextToRender = ""
+        
+        if ($shouldRenderAlias) {
+            $rawAlias = $repo.AliasInfo.Alias
+            $aliasTextToRender = switch ($aliasWrapper) {
+                "Parens"   { "($rawAlias)" }
+                "Brackets" { "[$rawAlias]" }
+                "Braces"   { "{$rawAlias}" }
+                Default    { $rawAlias }
+            }
+        }
+
+        # Define Rendering Blocks for reused logic
+        $RenderAliasBlock = {
+             if ($shouldRenderAlias) {
+                 $this.Console.WriteColored($aliasTextToRender, $repo.AliasInfo.Color)
+             }
+        }
+        
+        $RenderSeparatorBlock = {
+            if ($shouldRenderAlias -and $aliasSeparator -ne "None") {
+                 $this.Console.WriteColored($aliasSeparator, $repo.AliasInfo.Color)
+            }
+        }
+
+        # Render BEFORE: Name
+        if ($aliasPosition -eq "Before" -and (-not $repo.IsContainer)) {
+             & $RenderAliasBlock
+             & $RenderSeparatorBlock
+        }
+
         # Render left delimiter
         if ($leftDelimiter -ne '') {
             if ($backgroundColor) {
@@ -345,18 +384,14 @@ class UIRenderer {
             }
         }
         
-        # For containers, show count of items inside (could be repos or more folders)
+        # Render AFTER: Contained Count or Alias
         if ($repo.IsContainer) {
             $countText = " ($($repo.ContainedRepoCount))"
             $this.Console.WriteColored($countText, [Constants]::ColorInfo)
         }
-        # Render alias if exists (always without background) - only for non-containers
-        elseif ($repo.HasAlias -and $repo.AliasInfo) {
-            $aliasText = " - $($repo.AliasInfo.Alias)"
-            $this.Console.WriteColored($aliasText, $repo.AliasInfo.Color)
-        } else {
-             # Do nothing or just ensure no residual text (handled by ClearCurrentLine)
-             # Write-Host "" -NoNewline 
+        elseif ($aliasPosition -eq "After") {
+            & $RenderSeparatorBlock
+            & $RenderAliasBlock
         }
         # Explicitly NO newline at the end. Caller handles positioning.
     }

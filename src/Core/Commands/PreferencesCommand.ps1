@@ -148,6 +148,18 @@ class PreferencesCommand : INavigationCommand {
         # 3: Delimiter
         $items += @{ Id = "selectedDelimiter"; Name = (& $GetLoc "Pref.SelectedDelim" "Selected Item Delimiter"); CurrentValue = $preferences.display.selectedDelimiter }
 
+        # 3.1: Alias Position
+        $posVal = if ($preferences.display.aliasPosition) { $preferences.display.aliasPosition } else { "After" }
+        $items += @{ Id = "aliasPosition"; Name = "Alias Position"; CurrentValue = $posVal }
+        
+        # 3.2: Alias Separator
+        $sepVal = if ($preferences.display.aliasSeparator) { $preferences.display.aliasSeparator } else { " - " }
+        $items += @{ Id = "aliasSeparator"; Name = "Alias Separator"; CurrentValue = $sepVal }
+        
+        # 3.3: Alias Wrapper
+        $wrapVal = if ($preferences.display.aliasWrapper) { $preferences.display.aliasWrapper } else { "None" }
+        $items += @{ Id = "aliasWrapper"; Name = "Alias Style"; CurrentValue = $wrapVal }
+
         # 4: Auto Git
         $mode = $preferences.git.autoLoadGitStatusMode
         if (-not $mode) { $mode = "None" }
@@ -284,6 +296,49 @@ class PreferencesCommand : INavigationCommand {
              if ($newVal) {
                  $PrefsService.SetPreference("display", "selectedDelimiter", $newVal)
                  $msg = (& $GetLoc "Msg.DelimiterUpdated")
+                 $updated = $true
+                 $timeout = 2
+             }
+        }
+        elseif ($item.Id -eq "aliasPosition") {
+             $opts = @(
+                 @{ DisplayText = "After Name"; Value = "After" },
+                 @{ DisplayText = "Before Name"; Value = "Before" }
+             )
+             $newVal = $OptionSelector.ShowSelection("Select Alias Position", $opts, $preferences.display.aliasPosition, "Cancel")
+             if ($newVal) {
+                 $PrefsService.SetPreference("display", "aliasPosition", $newVal)
+                 $msg = "Alias position updated"
+                 $updated = $true
+                 $timeout = 2
+             }
+        }
+        elseif ($item.Id -eq "aliasSeparator") {
+             $opts = @(
+                 @{ DisplayText = "Hyphen ( - )"; Value = " - " },
+                 @{ DisplayText = "Colon ( : )"; Value = " : " },
+                 @{ DisplayText = "Pipe ( | )"; Value = " | " },
+                 @{ DisplayText = "None"; Value = "None" }
+             )
+             $newVal = $OptionSelector.ShowSelection("Select Alias Separator", $opts, $preferences.display.aliasSeparator, "Cancel")
+             if ($newVal) {
+                 $PrefsService.SetPreference("display", "aliasSeparator", $newVal)
+                 $msg = "Alias separator updated"
+                 $updated = $true
+                 $timeout = 2
+             }
+        }
+        elseif ($item.Id -eq "aliasWrapper") {
+             $opts = @(
+                 @{ DisplayText = "None"; Value = "None" },
+                 @{ DisplayText = "Parentheses (alias)"; Value = "Parens" },
+                 @{ DisplayText = "Brackets [alias]"; Value = "Brackets" },
+                 @{ DisplayText = "Braces {alias}"; Value = "Braces" }
+             )
+             $newVal = $OptionSelector.ShowSelection("Select Alias Style", $opts, $preferences.display.aliasWrapper, "Cancel")
+             if ($newVal) {
+                 $PrefsService.SetPreference("display", "aliasWrapper", $newVal)
+                 $msg = "Alias style updated"
                  $updated = $true
                  $timeout = 2
              }
