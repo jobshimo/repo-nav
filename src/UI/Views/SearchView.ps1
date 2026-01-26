@@ -90,6 +90,14 @@ class SearchView {
         $running = $true
         $cancelled = $false
         
+        # Check Header Preference
+        $preferences = $this.Renderer.PreferencesService.LoadPreferences()
+        $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+        
+        # Adjust layout based on preference
+        $headerOffset = if ($showHeaders) { 3 } else { 0 }
+        $this.HeaderLines = $headerOffset
+        
         # Viewport state
         $viewportStart = 0
         $pageSize = $this.CalculatePageSize()
@@ -117,7 +125,8 @@ class SearchView {
                     # Position cursor at end of search input
                     # Format: "  > " (4 chars) + label + ": " (2 chars) + text
                     $cursorX = 4 + $searchLabel.Length + 2 + $searchText.Length
-                    $this.Console.SetCursorPosition($cursorX, 3)
+                    $cursorY = $this.HeaderLines # Input is immediately after header
+                    $this.Console.SetCursorPosition($cursorX, $cursorY)
                     $this.Console.ShowCursor()
                 } else {
                     $this.Console.HideCursor()
