@@ -68,16 +68,16 @@ class Bootstrapper {
             
             # 4. Application Context
             # We bundle everything needed by the NavigationLoop
-            $appContext = [PSCustomObject]@{
-                RepoManager         = $repoManager
-                Renderer            = $renderer
-                Console             = $consoleHelper
-                ColorSelector       = $colorSelector
-                OptionSelector      = $optionSelector
-                LocalizationService = $localizationService
-                PreferencesService  = $preferencesService
-                BasePath            = $BasePath
-            }
+            $appContext = [ApplicationContext]::new(
+                $repoManager,
+                $renderer,
+                $consoleHelper,
+                $colorSelector,
+                $optionSelector,
+                $localizationService,
+                $preferencesService,
+                $BasePath
+            )
 
             # 5. Start Application
             Start-NavigationLoop -Context $appContext

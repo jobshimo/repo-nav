@@ -105,6 +105,7 @@ if (Test-Path $uiViewsPath) {
 # 6. Core Level 2: Managers & Context
 . (Join-Path $srcPath "Core\RepositoryManager.ps1")
 . (Join-Path $srcPath "Core\CommandContext.ps1")
+. (Join-Path $srcPath "Core\ApplicationContext.ps1")
 
 # 7. Core Level 3: Commands
 . (Join-Path $srcPath "Core\Commands\INavigationCommand.ps1")
@@ -126,7 +127,7 @@ if (Test-Path $commandsPath) {
 # Any remaining files in Core that weren't explicitly loaded
 $corePath = Join-Path $srcPath "Core"
 $coreExcluded = @(
-    "NavigationState.ps1", "RepositoryManager.ps1", "CommandContext.ps1", 
+    "NavigationState.ps1", "RepositoryManager.ps1", "CommandContext.ps1", "ApplicationContext.ps1",
     "CommandFactory.ps1", "InputHandler.ps1", "NavigationLoop.ps1",
     "Bootstrapper.ps1", "DependencyLoader.ps1"
 )
