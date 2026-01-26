@@ -114,7 +114,9 @@ class GitFlowCommand : INavigationCommand {
                             $statusMessage = "Checked out '$selectedBranch' successfully."
                             $statusColor = [Constants]::ColorSuccess
                         } else {
-                             $statusMessage = "Error checking out '$selectedBranch': $($checkoutResult.Output)"
+                             # Clean up error message if possible
+                             $err = if ($checkoutResult.Output) { $checkoutResult.Output } else { "Unknown error" }
+                             $statusMessage = "Error: $err"
                              $statusColor = [Constants]::ColorError
                         }
                     }

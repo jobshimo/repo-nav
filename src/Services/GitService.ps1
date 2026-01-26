@@ -242,18 +242,24 @@ class GitService {
     }
 
     # Checkout a branch
-    [bool] Checkout([string]$repoPath, [string]$branchName) {
+    [object] Checkout([string]$repoPath, [string]$branchName) {
         if (-not $this.IsGitRepository($repoPath)) {
-            return $false
+            return @{ Success = $false; Output = "Not a git repository" }
         }
         
         Push-Location $repoPath
         try {
-            git checkout $branchName 2>&1 | Out-Null
-            return $LASTEXITCODE -eq 0
+            $output = git checkout $branchName 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            
+            # If success, output might be "Switched to branch..." which isn't an error.
+            # Convert array to string if needed
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
         }
         catch {
-            return $false
+             return @{ Success = $false; Output = $_.ToString() }
         }
         finally {
             Pop-Location
