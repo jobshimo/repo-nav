@@ -90,6 +90,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\ConsoleHelper.ps1"
 . "$srcPath\UI\ProgressIndicator.ps1"
 . "$srcPath\UI\MenuRenderer.ps1"
+. "$srcPath\UI\RepositoryListRenderer.ps1"
 . "$srcPath\UI\UIRenderer.ps1"
 . "$srcPath\UI\ColorSelector.ps1"
 . "$srcPath\UI\OptionSelector.ps1"
@@ -174,7 +175,8 @@ function Start-RepositoryNavigator {
         # Create UI layer
         $consoleHelper = [ConsoleHelper]::new()
         $menuRenderer = [MenuRenderer]::new($consoleHelper, $preferencesService, $localizationService)
-        $renderer = [UIRenderer]::new($consoleHelper, $preferencesService, $localizationService, $menuRenderer)
+        $repoListRenderer = [RepositoryListRenderer]::new($consoleHelper, $preferencesService)
+        $renderer = [UIRenderer]::new($consoleHelper, $preferencesService, $localizationService, $menuRenderer, $repoListRenderer)
         $colorSelector = [ColorSelector]::new($renderer, $consoleHelper)
         $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
         
