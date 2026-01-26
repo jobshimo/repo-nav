@@ -71,13 +71,36 @@ class SearchCommand : INavigationCommand {
                 # Repo is in current view - just select it
                 $state.SetCurrentIndex($indexInCurrentView)
             } else {
-                # Repo is in a different folder - navigate to its parent
-                $parentPath = Split-Path $selectedRepo.FullPath -Parent
-                $repoManager.LoadRepositories($parentPath)
-                $state.SetRepositories($repoManager.GetRepositories())
-                $state.SetCurrentPath($parentPath)
+                # Repo is in a different folder - need to navigate there properly
+                # Use EnterContainer to preserve back navigation
+                $targetPath = Split-Path $selectedRepo.FullPath -Parent
+                $currentPath = $state.GetCurrentPath()
                 
-                # Find and select the repo in the new view
+                # If current path is null or empty, use basePath
+                if ([string]::IsNullOrEmpty($currentPath)) {
+                    $currentPath = $basePath
+                }
+                
+                # Navigate step by step from current path to target path
+                # Build the path hierarchy from basePath to targetPath
+                $pathsToNavigate = [System.Collections.ArrayList]::new()
+                $tempPath = $targetPath
+                
+                # Collect all paths from target back to basePath (or current path)
+                while ($tempPath -ne $currentPath -and $tempPath -ne $basePath -and -not [string]::IsNullOrEmpty($tempPath)) {
+                    [void]$pathsToNavigate.Insert(0, $tempPath)
+                    $tempPath = Split-Path $tempPath -Parent
+                }
+                
+                # Navigate through each level using EnterContainer
+                foreach ($pathLevel in $pathsToNavigate) {
+                    $parentPath = Split-Path $pathLevel -Parent
+                    $repoManager.LoadContainerRepositories($pathLevel, $parentPath)
+                    $newRepos = $repoManager.GetRepositories()
+                    $state.EnterContainer($pathLevel, $newRepos)
+                }
+                
+                # Find and select the repo in the final view
                 $newRepos = $state.GetRepositories()
                 for ($i = 0; $i -lt $newRepos.Count; $i++) {
                     if ($newRepos[$i].FullPath -eq $selectedRepo.FullPath) {
