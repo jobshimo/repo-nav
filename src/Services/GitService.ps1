@@ -174,6 +174,25 @@ class GitService {
         }
     }
     
+    # Get HTTPS URL for repository (for browser)
+    [string] GetRepoUrl([string]$repoPath) {
+        $remote = $this.GetRemoteUrl($repoPath)
+        if ([string]::IsNullOrWhiteSpace($remote)) { return "" }
+        
+        # Convert SSH to HTTPS if needed
+        # git@github.com:User/Repo.git -> https://github.com/User/Repo
+        if ($remote -match '^git@github\.com:(.+)\.git$') {
+            return "https://github.com/$($matches[1])"
+        }
+        
+        # HTTPS .git cleanup
+        if ($remote -match '^(https://.+)\.git$') {
+            return $matches[1]
+        }
+        
+        return $remote
+    }
+    
     # Check if a directory contains Git repositories in its subdirectories
     # Returns the count of repositories found (0 if none)
     [int] CountContainedRepositories([string]$path) {
@@ -279,6 +298,75 @@ class GitService {
         Push-Location $repoPath
         try {
             $output = git merge $branchToMerge 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch {
+             return @{ Success = $false; Output = $_.ToString() }
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    # Fetch changes from remote
+    [object] Fetch([string]$repoPath) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @{ Success = $false; Output = "Not a git repository" }
+        }
+        
+        Push-Location $repoPath
+        try {
+            # Fetch with Prune to clean up deleted branches
+            $output = git fetch --prune 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch {
+             return @{ Success = $false; Output = $_.ToString() }
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    # Get remote branches
+    [string[]] GetRemoteBranches([string]$repoPath) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @()
+        }
+        
+        Push-Location $repoPath
+        try {
+            # List remote branches, removing 'origin/' prefix for cleaner display if desired?
+            # Or keep it to distinguish. Usually 'origin/main'.
+            # -r = remotes
+            $branches = git branch -r --format="%(refname:short)" 2>$null
+            if ($LASTEXITCODE -eq 0 -and $branches) {
+                # Filter out HEAD pointer (origin/HEAD -> origin/main)
+                return @($branches) | Where-Object { $_ -notmatch "HEAD ->" }
+            }
+            return @()
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    # Push a branch to remote
+    [object] Push([string]$repoPath, [string]$branchName) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @{ Success = $false; Output = "Not a git repository" }
+        }
+        
+        Push-Location $repoPath
+        try {
+            # Push -u origin branchName
+            $output = git push -u origin $branchName 2>&1
             $success = ($LASTEXITCODE -eq 0)
             $outStr = if ($output) { $output -join "`n" } else { "" }
             
