@@ -110,6 +110,15 @@ class ConsoleHelper {
         Write-Host (" " * $currentLength) -NoNewline
         $this.SetCursorPosition(0, $rawUI.CursorPosition.Y)
     }
+    # Get window height
+    [int] GetWindowHeight() {
+        try {
+            return $global:Host.UI.RawUI.WindowSize.Height
+        }
+        catch {
+            return 25 # Fallback default
+        }
+    }
     
     # Get window width
     [int] GetWindowWidth() {
