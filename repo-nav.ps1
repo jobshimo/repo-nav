@@ -54,7 +54,8 @@ param(
 $scriptRoot = $PSScriptRoot
 $srcPath = Join-Path $scriptRoot "src"
 
-# 1. Load Dependency Loader
+# 1. Load and Run Dependency Loader
+# This script is dot-sourced, so it runs in the current (script) scope.
 try {
     . "$srcPath\Core\DependencyLoader.ps1"
 }
@@ -62,14 +63,6 @@ catch {
     Write-Error "Failed to load DependencyLoader: $_"
     exit 1
 }
-
-# 2. Load all application dependencies
-# This script is dot-sourced, so it runs in the current (script) scope.
-# Note that DependencyLoader will inherit variables from this scope, but calculate
-# its own paths based on PSScriptRoot relative to itself.
-# We don't need to pass params if it self-calculates, or we could pass $srcPath.
-# The previous version used [DependencyLoader]::Load, now we use simple dot-sourcing.
-. "$srcPath\Core\DependencyLoader.ps1"
 
 # 3. Initialize Constants (Requires loaded classes)
 [Constants]::Initialize($scriptRoot)
