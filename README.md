@@ -6,14 +6,14 @@
 
 ## La Historia
 
-Este proyecto comenzó como un simple script de PowerShell para resolver un problema común: **identificar y navegar rápidamente entre múltiples repositorios Git**. La idea original era sencilla: una forma de asignar alias cortos con colores a los repositorios para reconocerlos instantáneamente en una lista larga.
+Comencé este proyecto como un simple script de PowerShell para resolver un problema común que tenía: **identificar y navegar rápidamente entre mis múltiples repositorios Git**. Mi idea original era sencilla: quería una forma de asignar alias cortos y coloridos a mis repositorios para reconocerlos instantáneamente.
 
-Lo que empezó como una utilidad de ~200 líneas ha evolucionado hasta convertirse en una aplicación completa mediante la aplicación de **principios de ingeniería de software** y una **mentalidad de ingeniero**. A pesar de las limitaciones de PowerShell como lenguaje (sin interfaces verdaderas, soporte limitado de POO, sintaxis de clases desafiante), hemos construido una arquitectura mantenible y extensible siguiendo los **principios SOLID**.
+Lo que empezó como una utilidad de ~200 líneas ha evolucionado hasta convertirse en una aplicación completa, fruto de aplicar mi **mentalidad de ingeniero** y **principios sólidos de ingeniería de software**. A pesar de las limitaciones de PowerShell (sin interfaces reales, POO limitada...), he construido una arquitectura mantenible y extensible siguiendo los **principios SOLID**.
 
-El resultado es lo que ves ahora: una **herramienta CLI de grado profesional** que demuestra cómo un diseño de software adecuado puede transformar incluso un script simple en una aplicación robusta.
+El resultado es lo que ves ahora: una **herramienta CLI de grado profesional** que demuestra cómo un buen diseño puede transformar un script en una aplicación robusta.
 
 **Nota Personal:**
-"La excelencia no es un acto, es un hábito. Este proyecto es una prueba de que no importa el lenguaje o la herramienta; si aplicas buenos principios de diseño y limpieza de código, puedes crear software de calidad empresarial. PowerShell puede ser mucho más que simples scripts de automatización."
+"La excelencia no es un acto, es un hábito. He creado este proyecto como prueba de que no importa el lenguaje; si aplicas buenos principios, puedes crear software de calidad empresarial. PowerShell puede ser mucho más que simples scripts."
 
 ---
 
@@ -242,7 +242,7 @@ Solo el código fuente y los archivos de ejemplo se rastrean en Git.
 
 ## Contribución
 
-Este es un proyecto personal, pero las sugerencias y pull requests son bienvenidas. El código base demuestra cómo construir aplicaciones PowerShell mantenibles — siéntete libre de aprender de él o adaptar los patrones para tus propios proyectos.
+Este es mi proyecto personal, pero las sugerencias y pull requests son bienvenidas. El código base demuestra cómo construyo aplicaciones PowerShell mantenibles — siéntete libre de aprender de él o adaptar mis patrones para tus propios proyectos.
 
 ---
 
