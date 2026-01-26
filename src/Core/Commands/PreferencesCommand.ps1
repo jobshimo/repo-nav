@@ -149,16 +149,31 @@ class PreferencesCommand : INavigationCommand {
         $items += @{ Id = "selectedDelimiter"; Name = (& $GetLoc "Pref.SelectedDelim" "Selected Item Delimiter"); CurrentValue = $preferences.display.selectedDelimiter }
 
         # 3.1: Alias Position
-        $posVal = if ($preferences.display.aliasPosition) { $preferences.display.aliasPosition } else { "After" }
-        $items += @{ Id = "aliasPosition"; Name = "Alias Position"; CurrentValue = $posVal }
+        $posValKey = if ($preferences.display.aliasPosition -eq "Before") { "Pref.Value.Before" } else { "Pref.Value.After" }
+        $posVal = & $GetLoc $posValKey $preferences.display.aliasPosition
+        $items += @{ Id = "aliasPosition"; Name = (& $GetLoc "Pref.AliasPosition" "Alias Position"); CurrentValue = $posVal }
         
         # 3.2: Alias Separator
-        $sepVal = if ($preferences.display.aliasSeparator) { $preferences.display.aliasSeparator } else { " - " }
-        $items += @{ Id = "aliasSeparator"; Name = "Alias Separator"; CurrentValue = $sepVal }
+        $sepMap = @{
+            " - " = "Pref.Value.SepHyphen"
+            " : " = "Pref.Value.SepColon"
+            " | " = "Pref.Value.SepPipe"
+            "None" = "Pref.Value.None"
+        }
+        $sepKey = if ($sepMap.ContainsKey($preferences.display.aliasSeparator)) { $sepMap[$preferences.display.aliasSeparator] } else { "Pref.Value.SepHyphen" }
+        $sepVal = & $GetLoc $sepKey $preferences.display.aliasSeparator
+        $items += @{ Id = "aliasSeparator"; Name = (& $GetLoc "Pref.AliasSeparator" "Alias Separator"); CurrentValue = $sepVal }
         
         # 3.3: Alias Wrapper
-        $wrapVal = if ($preferences.display.aliasWrapper) { $preferences.display.aliasWrapper } else { "None" }
-        $items += @{ Id = "aliasWrapper"; Name = "Alias Style"; CurrentValue = $wrapVal }
+        $wrapMap = @{
+            "None" = "Pref.Value.None"
+            "Parens" = "Pref.Value.WrapParens"
+            "Brackets" = "Pref.Value.WrapBrackets"
+            "Braces" = "Pref.Value.WrapBraces"
+        }
+        $wrapKey = if ($wrapMap.ContainsKey($preferences.display.aliasWrapper)) { $wrapMap[$preferences.display.aliasWrapper] } else { "Pref.Value.None" }
+        $wrapVal = & $GetLoc $wrapKey $preferences.display.aliasWrapper
+        $items += @{ Id = "aliasWrapper"; Name = (& $GetLoc "Pref.AliasWrapper" "Alias Style"); CurrentValue = $wrapVal }
 
         # 4: Auto Git
         $mode = $preferences.git.autoLoadGitStatusMode
@@ -302,43 +317,43 @@ class PreferencesCommand : INavigationCommand {
         }
         elseif ($item.Id -eq "aliasPosition") {
              $opts = @(
-                 @{ DisplayText = "After Name"; Value = "After" },
-                 @{ DisplayText = "Before Name"; Value = "Before" }
+                 @{ DisplayText = (& $GetLoc "Pref.Value.After" "After Name"); Value = "After" },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.Before" "Before Name"); Value = "Before" }
              )
-             $newVal = $OptionSelector.ShowSelection("Select Alias Position", $opts, $preferences.display.aliasPosition, "Cancel")
+             $newVal = $OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasPos" "Select Alias Position"), $opts, $preferences.display.aliasPosition, "Cancel")
              if ($newVal) {
                  $PrefsService.SetPreference("display", "aliasPosition", $newVal)
-                 $msg = "Alias position updated"
+                 $msg = (& $GetLoc "Msg.AliasPosUpdated" "Alias position updated")
                  $updated = $true
                  $timeout = 2
              }
         }
         elseif ($item.Id -eq "aliasSeparator") {
              $opts = @(
-                 @{ DisplayText = "Hyphen ( - )"; Value = " - " },
-                 @{ DisplayText = "Colon ( : )"; Value = " : " },
-                 @{ DisplayText = "Pipe ( | )"; Value = " | " },
-                 @{ DisplayText = "None"; Value = "None" }
+                 @{ DisplayText = (& $GetLoc "Pref.Value.SepHyphen" "Hyphen ( - )"); Value = " - " },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.SepColon" "Colon ( : )"); Value = " : " },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.SepPipe" "Pipe ( | )"); Value = " | " },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.None" "None"); Value = "None" }
              )
-             $newVal = $OptionSelector.ShowSelection("Select Alias Separator", $opts, $preferences.display.aliasSeparator, "Cancel")
+             $newVal = $OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasSep" "Select Alias Separator"), $opts, $preferences.display.aliasSeparator, "Cancel")
              if ($newVal) {
                  $PrefsService.SetPreference("display", "aliasSeparator", $newVal)
-                 $msg = "Alias separator updated"
+                 $msg = (& $GetLoc "Msg.AliasSepUpdated" "Alias separator updated")
                  $updated = $true
                  $timeout = 2
              }
         }
         elseif ($item.Id -eq "aliasWrapper") {
              $opts = @(
-                 @{ DisplayText = "None"; Value = "None" },
-                 @{ DisplayText = "Parentheses (alias)"; Value = "Parens" },
-                 @{ DisplayText = "Brackets [alias]"; Value = "Brackets" },
-                 @{ DisplayText = "Braces {alias}"; Value = "Braces" }
+                 @{ DisplayText = (& $GetLoc "Pref.Value.None" "None"); Value = "None" },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.WrapParens" "Parentheses (alias)"); Value = "Parens" },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.WrapBrackets" "Brackets [alias]"); Value = "Brackets" },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.WrapBraces" "Braces {alias]"); Value = "Braces" }
              )
-             $newVal = $OptionSelector.ShowSelection("Select Alias Style", $opts, $preferences.display.aliasWrapper, "Cancel")
+             $newVal = $OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasWrap" "Select Alias Style"), $opts, $preferences.display.aliasWrapper, "Cancel")
              if ($newVal) {
                  $PrefsService.SetPreference("display", "aliasWrapper", $newVal)
-                 $msg = "Alias style updated"
+                 $msg = (& $GetLoc "Msg.AliasWrapUpdated" "Alias style updated")
                  $updated = $true
                  $timeout = 2
              }
