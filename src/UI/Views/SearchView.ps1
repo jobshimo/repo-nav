@@ -55,7 +55,7 @@ class SearchView {
         $available = $windowHeight - $reservedLines
         
         # Bounds
-        if ($available -lt 3) { return 3 }
+        if ($available -lt 1) { return 1 }
         if ($available -gt 20) { return 20 }
         return $available
     }
