@@ -111,11 +111,14 @@ class PreferencesCommand : INavigationCommand {
                             # 6. Action Layer (Process Selection)
                             $selectedItem = $preferenceItems[$selectedOption]
                             $result = $this.HandleSelection($selectedItem, $preferences, $context, $GetLoc)
+                            
+                            # Always redraw after interaction because OptionSelector dirties the screen
+                            $fullRedrawNeeded = $true
+                            
                             if ($result.Updated) {
                                 $preferences = $PreferencesService.LoadPreferences()
                                 $confirmationMessage = $result.Message
                                 $confirmationTimeout = $result.Timeout
-                                $fullRedrawNeeded = $true
                             }
                         }
                     }

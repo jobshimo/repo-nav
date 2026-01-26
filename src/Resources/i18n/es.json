@@ -106,7 +106,6 @@
     "Alias.Removed": "Alias eliminado",
     
     "Repo.Clone.Title": "CLONAR REPOSITORIO",
-    "Repo.Clone.Prompt": "URL del repositorio",
     "Repo.Clone.Success": "¡Repositorio clonado con éxito!",
     "Repo.Delete.Title": "ELIMINAR REPOSITORIO",
     "Repo.Delete.Confirm": "¿Seguro que quieres borrar {0}?",
