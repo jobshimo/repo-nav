@@ -43,9 +43,14 @@ class UIRenderer {
     
     # Render header
     [void] RenderHeader([string]$title) {
-        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
-        $this.Console.WriteLineColored("    $title", [Constants]::ColorHeader)
-        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        $preferences = $this.PreferencesService.LoadPreferences()
+        $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+        
+        if ($showHeaders) {
+            $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+            $this.Console.WriteLineColored("    $title", [Constants]::ColorHeader)
+            $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+        }
     }
     
     # Render breadcrumb for hierarchical navigation

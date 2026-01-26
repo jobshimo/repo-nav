@@ -193,6 +193,11 @@ class PreferencesCommand : INavigationCommand {
         $langName = & $GetLoc "Lang.$currentLang" $currentLang
         $items += @{ Id = "language"; Name = (& $GetLoc "Pref.Language" "Language"); CurrentValue = $langName }
 
+        # 0.5: Show Headers
+        $headersVal = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+        $headerDisplay = if ($headersVal) { (& $GetLoc "Pref.Value.Show" "Show") } else { (& $GetLoc "Pref.Value.Hide" "Hide") }
+        $items += @{ Id = "showHeaders"; Name = (& $GetLoc "Pref.ShowHeaders" "Show Headers"); CurrentValue = $headerDisplay }
+
         # 1: Favorites On Top
         $favVal = if ($preferences.display.favoritesOnTop) { (& $GetLoc "Pref.Value.Top" "Top") } else { (& $GetLoc "Pref.Value.Original" "Original") }
         $items += @{ Id = "favoritesOnTop"; Name = (& $GetLoc "Pref.FavoritesPos" "Favorites Position"); CurrentValue = $favVal }
@@ -352,6 +357,14 @@ class PreferencesCommand : INavigationCommand {
                 $updated = $true
                 $timeout = 5
             }
+        }
+        elseif ($item.Id -eq "showHeaders") {
+            $current = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+            $newVal = -not $current
+            $PrefsService.SetPreference("display", "showHeaders", $newVal)
+            $msg = (& $GetLoc "Msg.HeaderPrefUpdated" "Header visibility updated")
+            $updated = $true
+            $timeout = 2
         }
         elseif ($item.Id -eq "favoritesOnTop") {
             $opts = @( @{ DisplayText = (& $GetLoc "Pref.Value.Top"); Value = $true }, @{ DisplayText = (& $GetLoc "Pref.Value.Original"); Value = $false } )

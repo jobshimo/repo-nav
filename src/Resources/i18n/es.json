@@ -24,6 +24,8 @@
     
     "Pref.Title": "PREFERENCIAS DE USUARIO",
     "Pref.Language": "Idioma",
+    "Pref.ShowHeaders": "Mostrar Cabeceras",
+    "Msg.HeaderPrefUpdated": "Visibilidad de cabeceras actualizada",
     "Pref.FavoritesPos": "Posición de Favoritos",
     "Pref.SelectedBg": "Fondo del Elemento Seleccionado",
     "Pref.SelectedDelim": "Delimitador de Selección",

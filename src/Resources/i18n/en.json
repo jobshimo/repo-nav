@@ -24,6 +24,8 @@
     
     "Pref.Title": "USER PREFERENCES",
     "Pref.Language": "Language",
+    "Pref.ShowHeaders": "Show Headers",
+    "Msg.HeaderPrefUpdated": "Header visibility updated",
     "Pref.FavoritesPos": "Favorites Position",
     "Pref.SelectedBg": "Selected Item Background",
     "Pref.SelectedDelim": "Selected Item Delimiter",
