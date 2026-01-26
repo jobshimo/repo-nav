@@ -21,14 +21,16 @@ class UIRenderer {
     [LocalizationService] $LocalizationService
     [MenuRenderer] $MenuRenderer
     [RepositoryListRenderer] $RepoListRenderer
+    [StatusRenderer] $StatusRenderer
     
     # Constructor with dependency injection
-    UIRenderer([ConsoleHelper]$console, [UserPreferencesService]$preferencesService, [LocalizationService]$localizationService, [MenuRenderer]$menuRenderer, [RepositoryListRenderer]$repoListRenderer) {
+    UIRenderer([ConsoleHelper]$console, [UserPreferencesService]$preferencesService, [LocalizationService]$localizationService, [MenuRenderer]$menuRenderer, [RepositoryListRenderer]$repoListRenderer, [StatusRenderer]$statusRenderer) {
         $this.Console = $console
         $this.PreferencesService = $preferencesService
         $this.LocalizationService = $localizationService
         $this.MenuRenderer = $menuRenderer
         $this.RepoListRenderer = $repoListRenderer
+        $this.StatusRenderer = $statusRenderer
     }
 
     # Helper for localization
@@ -178,79 +180,17 @@ class UIRenderer {
     
     # Clear the git status footer area (4 lines)
     [void] ClearGitStatusFooter([int]$startLine) {
-        for ($i = 0; $i -lt 4; $i++) {
-            $this.Console.SetCursorPosition(0, $startLine + $i)
-            $this.Console.ClearCurrentLine()
+        if ($null -ne $this.StatusRenderer) {
+            $this.StatusRenderer.ClearGitStatusFooter($startLine)
         }
-        $this.Console.SetCursorPosition(0, $startLine)
     }
     
     # Render git status footer
     # Now receives additional counts: totalItems (all), totalRepos (only non-containers), loadedRepos (git status loaded)
     [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalItems, [int]$totalRepos, [int]$loadedRepos, [int]$currentIndex) {
-        # Line 1: Separator
-        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
-        
-        # Line 2: Counters
-        $currentPos = $currentIndex + 1
-        $this.Console.WriteColored("Item: ", [Constants]::ColorLabel)
-        $this.Console.WriteColored("$currentPos/$totalItems", [Constants]::ColorValue)
-        
-        # Show repos count only if different from total items (means there are containers)
-        if ($totalRepos -ne $totalItems) {
-            $this.Console.WriteColored(" | Repos: ", [Constants]::ColorLabel)
-            $this.Console.WriteColored("$totalRepos", [Constants]::ColorValue)
+        if ($null -ne $this.StatusRenderer) {
+            $this.StatusRenderer.RenderGitStatusFooter($repo, $totalItems, $totalRepos, $loadedRepos, $currentIndex)
         }
-        
-        $this.Console.WriteColored(" | Git Info: ", [Constants]::ColorLabel)
-        
-        $counterColor = if ($loadedRepos -eq $totalRepos) { [Constants]::ColorCounterComplete } 
-                       elseif ($loadedRepos -eq 0) { [Constants]::ColorCounterEmpty } 
-                       else { [Constants]::ColorCounterPartial }
-        $this.Console.WriteLineColored("$loadedRepos/$totalRepos", $counterColor)
-        
-        $lblStatus = $this.GetLoc("UI.Status", "Status")
-        $lblBranch = $this.GetLoc("UI.Branch", "Branch")
-        $lblNoGit = $this.GetLoc("UI.NoGit", "Not a git repository")
-        $lblNotLoaded = $this.GetLoc("UI.NotLoaded", "Not loaded")
-        $lblContainer = $this.GetLoc("UI.Container", "Folder (contains repos)")
-
-        # Handle empty/null repo case (empty folder)
-        if ($null -eq $repo) {
-            $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
-            $this.Console.WriteLineColored("Folder is empty", [Constants]::ColorHint)
-            return
-        }
-
-        # Line 3: Git status details
-        # If it's a container, show that it's a folder, not a repo
-        if ($repo.IsContainer) {
-            $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
-            $this.Console.WriteLineColored($lblContainer, [Constants]::ColorHighlight)
-        }
-        elseif (-not $repo.HasGitStatusLoaded()) {
-            $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
-            $this.Console.WriteColored("${lblNotLoaded} ", [Constants]::ColorHint)
-            $this.Console.WriteLineColored(("(" + $this.GetLoc("Cmd.Desc.Git", "press L to load current or G for all") + ")"), [Constants]::ColorWarning)
-        } else {
-            $gitStatus = $repo.GitStatus
-            
-            if (-not $gitStatus.IsGitRepo) {
-                $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
-                $this.Console.WriteLineColored($lblNoGit, [Constants]::ColorHint)
-            } else {
-                $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
-                $this.Console.WriteColored("${lblBranch}: ", [Constants]::ColorHighlight)
-                $this.Console.WriteColored($gitStatus.CurrentBranch, [Constants]::ColorValue)
-                $this.Console.WriteColored(" | ", [Constants]::ColorLabel)
-                
-                $gitDisplay = $this.GetGitStatusDisplay($gitStatus)
-                $this.Console.WriteLineColored("$($gitDisplay.Symbol) $($gitDisplay.Description)", $gitDisplay.Color)
-            }
-        }
-        
-        # Line 4: Separator
-        $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
     }
     
     # Render error message
