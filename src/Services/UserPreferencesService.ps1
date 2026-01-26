@@ -78,6 +78,7 @@ class UserPreferencesService {
                     modules = $true
                     repository = $true
                     git = $true
+                    tools = $true
                 }
             }
             git = [PSCustomObject]@{
@@ -133,6 +134,7 @@ class UserPreferencesService {
                 modules = $true
                 repository = $true
                 git = $true
+                tools = $true
             }
             $preferences.display | Add-Member -NotePropertyName 'menuSections' -NotePropertyValue $menuSections -Force
         }
@@ -144,6 +146,7 @@ class UserPreferencesService {
             if (-not ($sections.PSObject.Properties.Name -contains 'modules')) { $sections | Add-Member -NotePropertyName 'modules' -NotePropertyValue $true -Force }
             if (-not ($sections.PSObject.Properties.Name -contains 'repository')) { $sections | Add-Member -NotePropertyName 'repository' -NotePropertyValue $true -Force }
             if (-not ($sections.PSObject.Properties.Name -contains 'git')) { $sections | Add-Member -NotePropertyName 'git' -NotePropertyValue $true -Force }
+            if (-not ($sections.PSObject.Properties.Name -contains 'tools')) { $sections | Add-Member -NotePropertyName 'tools' -NotePropertyValue $true -Force }
         }
 
         if (-not ($preferences.PSObject.Properties.Name -contains 'git')) {

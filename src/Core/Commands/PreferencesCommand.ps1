@@ -162,13 +162,14 @@ class PreferencesCommand : INavigationCommand {
         # 6..N: Custom Menu Sections
         if ($preferences.display.menuMode -eq 'Custom' -and $preferences.display.PSObject.Properties.Name -contains 'menuSections') {
                 $sections = $preferences.display.menuSections
-                $sectionKeys = @("navigation", "alias", "modules", "repository", "git")
+                $sectionKeys = @("navigation", "alias", "modules", "repository", "git", "tools")
                 $sectionLabels = @{
                 "navigation" = (& $GetLoc "UI.Group.Nav" "Navigation");
                 "alias"      = "Alias";
                 "modules"    = (& $GetLoc "UI.Group.Modules" "Modules");
                 "repository" = (& $GetLoc "UI.Group.Repo" "Repository");
-                "git"        = "Git Status"
+                "git"        = "Git Status";
+                "tools"      = (& $GetLoc "UI.Group.Tools" "Tools")
                 }
 
                 foreach ($secKey in $sectionKeys) {
