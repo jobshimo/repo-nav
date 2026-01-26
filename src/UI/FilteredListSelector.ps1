@@ -18,6 +18,9 @@ class FilteredListSelector {
     [int] $SearchInputLines = 3
     [int] $FooterLines = 4
     
+    # State persistence for header navigation
+    [int] $LastHeaderIndex = 0
+
     FilteredListSelector([ConsoleHelper]$console, [object]$renderer) {
         $this.Console = $console
         $this.Renderer = $renderer
@@ -25,7 +28,8 @@ class FilteredListSelector {
     }
     
     hidden [int] CalculatePageSize([int]$headerOptionCount) {
-        $reservedLines = $this.HeaderLines + $this.SearchInputLines + $this.FooterLines + 2 + $headerOptionCount
+        # Reserved: Header(3) + HeaderOptions(N) + Spacing(1) + Input(3) + Footer(4) + Padding(2)
+        $reservedLines = $this.HeaderLines + $this.SearchInputLines + $this.FooterLines + 2 + $headerOptionCount + 1
         $windowHeight = $this.WindowCalculator.GetWindowHeight()
         $available = $windowHeight - $reservedLines
         
@@ -46,10 +50,11 @@ class FilteredListSelector {
         $searchText = ""
         $filteredItems = $items
         $selectedIndex = 0
-        $headerIndex = 0
+        
+        # Restore last header index or default to 0
+        $headerIndex = if ($this.LastHeaderIndex -lt $headerOptions.Count) { $this.LastHeaderIndex } else { 0 }
         
         # Focus modes: "header", "input", "list"
-        # Default to input, unless we want to start at header? Keep input for now.
         $focusMode = "input" 
         
         $running = $true
@@ -67,8 +72,8 @@ class FilteredListSelector {
                  if ($focusMode -eq "input") {
                     # Calculate cursor X: indent (2) + prompt + ": " (2) + text
                     $cursorX = 2 + $prompt.Length + 2 + $searchText.Length
-                    # Calculate cursor Y: HeaderLines + HeaderOptions
-                    $cursorY = $this.HeaderLines + $headerOptions.Count
+                    # Calculate cursor Y: HeaderLines + HeaderOptions + Spacing(1)
+                    $cursorY = $this.HeaderLines + $headerOptions.Count + 1
                     
                     $this.Console.SetCursorPosition($cursorX, $cursorY)
                     $this.Console.ShowCursor()
@@ -98,11 +103,10 @@ class FilteredListSelector {
                         $running = $false
                     }
                     elseif ($focusMode -eq "header" -and $headerOptions.Count -gt 0) {
+                         $this.LastHeaderIndex = $headerIndex # Persist choice
                          $result = @{ Type = "Header"; Value = $headerOptions[$headerIndex] }
                          $running = $false
                     }
-                    # Input enter usually does nothing unless we want to select first item?
-                    # Let's keep it consistent: Enter needs explicit selection
                     continue
                 }
                 
@@ -129,9 +133,11 @@ class FilteredListSelector {
                     if ($focusMode -eq "header") {
                         if ($headerIndex -lt ($headerOptions.Count - 1)) {
                             $headerIndex++
+                            $this.LastHeaderIndex = $headerIndex
                             $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions)
                         } else {
                             # Go to Input
+                            $this.LastHeaderIndex = $headerIndex # Remember where we left off
                             $focusMode = "input"
                             $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions)
                         }
@@ -176,13 +182,16 @@ class FilteredListSelector {
                     elseif ($focusMode -eq "input") {
                         if ($headerOptions.Count -gt 0) {
                             $focusMode = "header"
-                            $headerIndex = $headerOptions.Count - 1
+                            # Restore last header index
+                            $headerIndex = if ($this.LastHeaderIndex -lt $headerOptions.Count) { $this.LastHeaderIndex } else { $headerOptions.Count - 1 }
+                            
                             $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions)
                         }
                     }
                     elseif ($focusMode -eq "header") {
                         if ($headerIndex -gt 0) {
                             $headerIndex--
+                            $this.LastHeaderIndex = $headerIndex
                             $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions)
                         }
                     }
@@ -235,6 +244,8 @@ class FilteredListSelector {
                  $this.Console.WriteColored("  $hPrefix", $hColor)
                  $this.Console.WriteLineColored($headerOptions[$i], $hColor)
             }
+            # Add spacing after header options
+            $this.Console.NewLine()
         }
         
         # Search Input
@@ -260,25 +271,26 @@ class FilteredListSelector {
         $this.RenderList($items, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count)
         
         # Footer
-        $listEnd = $this.HeaderLines + $headerOptions.Count + $this.SearchInputLines + 2 + 1 + $pageSize
+        # HeaderLines(3) + HeaderOptions(N) + Spacing(1) + Input(3) + Footer(4) + Padding(2)
+        # List starts at: 3 + N + 1 + 1 + 1 + 1 + 1 = 8 + N
+        $listEnd = $this.HeaderLines + $headerOptions.Count + 1 + $this.SearchInputLines + 2 + 1 + $pageSize
         $this.Console.SetCursorPosition(0, $listEnd)
         $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
         $this.Console.WriteLineColored("  Enter to select | Esc to cancel", [Constants]::ColorHint)
     }
     
     hidden [void] RenderList([array]$items, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$headerOptionCount) {
-        # Calc start line accounting for dynamic header options
-        # HeaderLines (3) + HeaderOptionCount + Input (3) + Count (1) + Blank (1) + Sep (1)
-        # Actually in RenderFull:
+        # Calc start line
         # Header (3)
         # Options (count)
+        # Spacing (1)
         # Input line (1)
         # Count line (1)
         # Blank line (1)
         # Separator (1)
-        # So start is: 3 + count + 1 + 1 + 1 + 1 = 7 + count
+        # Total: 3 + count + 1 + 1 + 1 + 1 + 1 = 8 + count
         
-        $startLine = 7 + $headerOptionCount
+        $startLine = 8 + $headerOptionCount
         
         for ($i = 0; $i -lt $pageSize; $i++) {
             $this.Console.SetCursorPosition(0, $startLine + $i)
