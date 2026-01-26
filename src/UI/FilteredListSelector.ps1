@@ -153,15 +153,14 @@ class FilteredListSelector {
                     continue
                 }
                 
-                # Tab (Cycle Input -> List -> Header -> Input ?)
+                # Tab (Cycle Input <-> List)
                 if ($keyCode -eq [Constants]::KEY_TAB) {
                     if ($focusMode -eq "input") {
                         if ($filteredItems.Count -gt 0) { $focusMode = "list" }
-                        elseif ($headerOptions.Count -gt 0) { $focusMode = "header" }
+                        # Default is stay in input if list empty
                     } 
                     elseif ($focusMode -eq "list") {
-                        if ($headerOptions.Count -gt 0) { $focusMode = "header" }
-                        else { $focusMode = "input" }
+                        $focusMode = "input"
                     }
                     elseif ($focusMode -eq "header") {
                         $focusMode = "input"
