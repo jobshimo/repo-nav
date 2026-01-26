@@ -73,8 +73,8 @@ class FilteredListSelector {
             
             while ($running) {
                  if ($focusMode -eq "input") {
-                    # Calculate cursor X: indent (2) + prompt + ": " (2) + text
-                    $cursorX = 2 + $prompt.Length + 2 + $searchText.Length
+                    # Calculate cursor X: indent (4 for "  > ") + prompt + ": " (2) + text
+                    $cursorX = 4 + $prompt.Length + 2 + $searchText.Length
                     # Calculate cursor Y: 
                     # Header(3) + HeaderOptions(1 if any) + Spacing(1)
                     $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
