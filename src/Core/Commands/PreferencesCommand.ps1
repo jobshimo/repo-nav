@@ -85,11 +85,13 @@ class PreferencesCommand : INavigationCommand {
                     $allItems = $preferenceItems + $backItem
                     
                     # Dynamic Page Size Calculation
-                    # Header lines (approx 3) + Footer lines (2)
+                    # Header lines (approx 3) + Footer lines (2: Separator + Text) 
                     # Safety margin 1
                     $reserved = $listStartTop + 3 
+                    $reservedFooter = 2 # Separator + Message
+                    
                     $winHeight = $Console.GetWindowHeight() 
-                    $maxPageSize = $winHeight - $reserved
+                    $maxPageSize = $winHeight - ($reserved + $reservedFooter)
                     if ($maxPageSize -lt 5) { $maxPageSize = 5 } # Min size
                     
                     $pageSize = $maxPageSize
@@ -307,6 +309,14 @@ class PreferencesCommand : INavigationCommand {
     hidden [void] RenderFooter([ConsoleHelper]$Console, [string]$msg, [int]$timeout, [int]$footerStart) {
         # Feedback / Status Line
         $Console.SetCursorPosition(0, $footerStart)
+        $Console.ClearCurrentLine()
+        
+        # 1. Separator Line
+        $sep = "=" * [Constants]::UIWidth
+        $Console.WriteColored($sep, [Constants]::ColorSeparator)
+        
+        # 2. Message / Help
+        $Console.SetCursorPosition(0, $footerStart + 1)
         $Console.ClearCurrentLine()
         
         if ($msg -ne "" -and $timeout -gt 0) {
