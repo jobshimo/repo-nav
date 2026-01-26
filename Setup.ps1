@@ -14,28 +14,21 @@
 #region Constants
 $script:UI_WIDTH = 90
 $script:REQUIRED_PS_VERSION = [Version]"5.1"
-$script:SYMBOLS = @{
-    Check    = [char]0x2713  # ✓
-    Cross    = [char]0x2717  # ✗
-    Warning  = [char]0x26A0  # ⚠
-    Arrow    = [char]0x25B6  # ▶
-    Folder   = [char]0x1F4C1 # 📁 (fallback to text if not supported)
-    Gear     = [char]0x2699  # ⚙
-}
 #endregion
 
 #region UI Helpers
 function Write-SetupHeader {
     Clear-Host
+    
+    # ASCII art using only basic ASCII characters
     $ascii = @"
 
-    ██████╗ ███████╗██████╗  ██████╗       ███╗   ██╗ █████╗ ██╗   ██╗
-    ██╔══██╗██╔════╝██╔══██╗██╔═══██╗      ████╗  ██║██╔══██╗██║   ██║
-    ██████╔╝█████╗  ██████╔╝██║   ██║█████╗██╔██╗ ██║███████║██║   ██║
-    ██╔══██╗██╔══╝  ██╔═══╝ ██║   ██║╚════╝██║╚██╗██║██╔══██║╚██╗ ██╔╝
-    ██║  ██║███████╗██║     ╚██████╔╝      ██║ ╚████║██║  ██║ ╚████╔╝ 
-    ╚═╝  ╚═╝╚══════╝╚═╝      ╚═════╝       ╚═╝  ╚═══╝╚═╝  ╚═╝  ╚═══╝ 
-                                                                      
+    ____  ______ ____   ____           _   _    __     __
+   / __ \/ ____/ __ \ / __ \         / | / /   / \    / /
+  / /_/ / __/ / /_/ // / / /  ___   /  |/ /   / _ \  / / 
+ / _, _/ /___/ ____// /_/ /  |___| / /|  /   / /_\ \/ /  
+/_/ |_/_____/_/     \____/        /_/ |_/   /_/   \_\/   
+                                                          
 "@
     Write-Host $ascii -ForegroundColor Cyan
     Write-Host ("=" * $script:UI_WIDTH) -ForegroundColor Cyan
@@ -87,10 +80,10 @@ function Write-Status {
     )
     
     $symbol = switch ($Status) {
-        "Success" { $script:SYMBOLS.Check }
-        "Warning" { "!" }
-        "Error"   { $script:SYMBOLS.Cross }
-        "Info"    { "-" }
+        "Success" { "OK" }
+        "Warning" { "!!" }
+        "Error"   { "XX" }
+        "Info"    { "--" }
     }
     
     $symbolColor = switch ($Status) {
@@ -115,7 +108,7 @@ function Write-Option {
         [bool]$IsSelected = $false
     )
     
-    $prefix = if ($IsSelected) { "  $($script:SYMBOLS.Arrow) " } else { "    " }
+    $prefix = if ($IsSelected) { "  >> " } else { "     " }
     
     Write-Host $prefix -NoNewline -ForegroundColor Cyan
     Write-Host "[$Number] " -NoNewline -ForegroundColor Yellow
@@ -134,24 +127,24 @@ function Write-Prompt {
     Write-Host "  $Text " -NoNewline -ForegroundColor Yellow
 }
 
-function Write-Success {
+function Write-SuccessMessage {
     param([string]$Text)
-    Write-Host "  [$($script:SYMBOLS.Check)] $Text" -ForegroundColor Green
+    Write-Host "  [OK] $Text" -ForegroundColor Green
 }
 
-function Write-Warning {
+function Write-WarningMessage {
     param([string]$Text)
-    Write-Host "  [!] $Text" -ForegroundColor Yellow
+    Write-Host "  [!!] $Text" -ForegroundColor Yellow
 }
 
-function Write-Error {
+function Write-ErrorMessage {
     param([string]$Text)
-    Write-Host "  [$($script:SYMBOLS.Cross)] $Text" -ForegroundColor Red
+    Write-Host "  [XX] $Text" -ForegroundColor Red
 }
 
-function Write-Info {
+function Write-InfoMessage {
     param([string]$Text)
-    Write-Host "  [-] $Text" -ForegroundColor Gray
+    Write-Host "  [--] $Text" -ForegroundColor Gray
 }
 
 function Read-ValidatedInput {
@@ -168,18 +161,18 @@ function Read-ValidatedInput {
             Write-Host "(default: $Default) " -NoNewline -ForegroundColor DarkGray
         }
         
-        $input = Read-Host
-        $input = $input.Trim()
+        $userInput = Read-Host
+        $userInput = $userInput.Trim()
         
-        if ([string]::IsNullOrWhiteSpace($input) -and $Default) {
-            $input = $Default
+        if ([string]::IsNullOrWhiteSpace($userInput) -and $Default) {
+            $userInput = $Default
         }
         
-        if (& $Validator $input) {
-            return $input
+        if (& $Validator $userInput) {
+            return $userInput
         }
         
-        Write-Error $ErrorMessage
+        Write-ErrorMessage $ErrorMessage
     }
 }
 #endregion
@@ -274,29 +267,29 @@ function Test-SystemRequirements {
     
     # Warnings
     if (-not $results.Git.OK) {
-        Write-Warning "Git not found. Clone and status features will be disabled."
-        Write-Info "Install Git from: https://git-scm.com/downloads"
+        Write-WarningMessage "Git not found. Clone and status features will be disabled."
+        Write-InfoMessage "Install Git from: https://git-scm.com/downloads"
         Write-Host ""
     }
     
     if (-not $results.Npm.OK) {
-        Write-Warning "npm not found. Package management features will be disabled."
-        Write-Info "Install Node.js from: https://nodejs.org/"
+        Write-WarningMessage "npm not found. Package management features will be disabled."
+        Write-InfoMessage "Install Node.js from: https://nodejs.org/"
         Write-Host ""
     }
     
     # Critical check - PowerShell version
     if (-not $results.PowerShell.OK) {
         Write-Host ""
-        Write-Error "PowerShell 5.1 or higher is required for repo-nav."
-        Write-Error "Please upgrade PowerShell and run setup again."
+        Write-ErrorMessage "PowerShell 5.1 or higher is required for repo-nav."
+        Write-ErrorMessage "Please upgrade PowerShell and run setup again."
         Write-Host ""
         Write-Host "  Press any key to exit..." -ForegroundColor DarkGray
         $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         exit 1
     }
     
-    Write-Success "System check passed!"
+    Write-SuccessMessage "System check passed!"
     Write-Host ""
     Start-Sleep -Milliseconds 500
     
@@ -345,7 +338,7 @@ function Get-RepositoriesPath {
     $selectedPath = (Resolve-Path $selectedPath).Path
     
     Write-Host ""
-    Write-Success "Path configured: $selectedPath"
+    Write-SuccessMessage "Path configured: $selectedPath"
     Write-Host ""
     Start-Sleep -Milliseconds 300
     
@@ -374,7 +367,7 @@ function Get-CommandName {
     } "Invalid name. Use letters, numbers, hyphens or underscores. Must start with a letter."
     
     Write-Host ""
-    Write-Success "Command configured: $commandName"
+    Write-SuccessMessage "Command configured: $commandName"
     Write-Host ""
     Start-Sleep -Milliseconds 300
     
@@ -393,10 +386,10 @@ function Update-PowerShellProfile {
     Write-StepHeader "PROFILE SETUP" 4 4
     
     # Check if profile exists
-    Write-Info "Checking PowerShell profile..."
+    Write-InfoMessage "Checking PowerShell profile..."
     
     if (-not (Test-Path $PROFILE)) {
-        Write-Warning "Profile not found. Creating new profile..."
+        Write-WarningMessage "Profile not found. Creating new profile..."
         
         $profileDir = Split-Path -Parent $PROFILE
         if (-not (Test-Path $profileDir)) {
@@ -404,9 +397,9 @@ function Update-PowerShellProfile {
         }
         New-Item -Path $PROFILE -ItemType File -Force | Out-Null
         
-        Write-Success "Profile created: $PROFILE"
+        Write-SuccessMessage "Profile created: $PROFILE"
     } else {
-        Write-Success "Profile found: $PROFILE"
+        Write-SuccessMessage "Profile found: $PROFILE"
     }
     
     # Build the command
@@ -417,13 +410,13 @@ function Update-PowerShellProfile {
     $profileContent = Get-Content $PROFILE -Raw -ErrorAction SilentlyContinue
     
     if ($profileContent -match "function $CommandName\s*\{") {
-        Write-Warning "Function '$CommandName' already exists in profile."
+        Write-WarningMessage "Function '$CommandName' already exists in profile."
         Write-Host ""
         Write-Prompt "Replace existing function? (Y/n):"
         $response = Read-Host
         
         if ($response -ne '' -and $response -notin @('Y', 'y', 'yes', 'Yes')) {
-            Write-Info "Keeping existing function. Setup complete."
+            Write-InfoMessage "Keeping existing function. Setup complete."
             return $false
         }
         
@@ -442,7 +435,7 @@ $functionCode
     
     Add-Content -Path $PROFILE -Value $blockToAdd -Encoding UTF8
     
-    Write-Success "Profile updated successfully!"
+    Write-SuccessMessage "Profile updated successfully!"
     Write-Host ""
     
     return $true
@@ -456,7 +449,7 @@ function Update-ConfigurationFiles {
         [string]$ScriptPath
     )
     
-    Write-Info "Updating configuration files..."
+    Write-InfoMessage "Updating configuration files..."
     
     # Create .repo-config.json
     $configPath = Join-Path $ScriptPath ".repo-config.json"
@@ -474,16 +467,16 @@ function Update-ConfigurationFiles {
     
     $config | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath -Encoding UTF8
     
-    Write-Success "Configuration saved: .repo-config.json"
+    Write-SuccessMessage "Configuration saved: .repo-config.json"
     
     # Handle existing alias file migration
     $oldAliasPath = Join-Path $ReposPath ".repo-aliases.json"
     $newAliasPath = Join-Path $ScriptPath ".repo-aliases.json"
     
     if ((Test-Path $oldAliasPath) -and ($oldAliasPath -ne $newAliasPath)) {
-        Write-Info "Found existing aliases file. Migrating..."
+        Write-InfoMessage "Found existing aliases file. Migrating..."
         Move-Item -Path $oldAliasPath -Destination $newAliasPath -Force
-        Write-Success "Aliases migrated to app folder."
+        Write-SuccessMessage "Aliases migrated to app folder."
     }
 }
 #endregion
@@ -513,12 +506,12 @@ function Show-Summary {
     ) -BorderColor Cyan
     
     # Feature availability
-    $gitStatus = if ($SystemResults.Git.OK) { "Enabled" } else { "Disabled (Git not found)" }
-    $npmStatus = if ($SystemResults.Npm.OK) { "Enabled" } else { "Disabled (npm not found)" }
+    $gitStatus = if ($SystemResults.Git.OK) { "[ON]  Enabled" } else { "[OFF] Disabled - Git not found" }
+    $npmStatus = if ($SystemResults.Npm.OK) { "[ON]  Enabled" } else { "[OFF] Disabled - npm not found" }
     
     Write-Box "FEATURE STATUS" @(
         "",
-        "  Navigation & Aliases    Always available",
+        "  Navigation & Aliases    [ON]  Always available",
         "  Git operations          $gitStatus",
         "  npm operations          $npmStatus",
         ""
@@ -527,6 +520,7 @@ function Show-Summary {
     # Next steps
     Write-Host ""
     Write-Host "  NEXT STEPS" -ForegroundColor Yellow
+    Write-Host "  ----------" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "  1. Reload your profile:" -ForegroundColor White
     Write-Host "     " -NoNewline
@@ -592,7 +586,7 @@ function Start-Setup {
         
     } catch {
         Write-Host ""
-        Write-Error "Setup failed: $($_.Exception.Message)"
+        Write-ErrorMessage "Setup failed: $($_.Exception.Message)"
         Write-Host ""
         Write-Host "  Stack trace:" -ForegroundColor DarkGray
         Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
