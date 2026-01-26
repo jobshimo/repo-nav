@@ -92,7 +92,7 @@
     "Cmd.Desc.Exit": "Salir: Q/Esc",
     "Cmd.Desc.Favorite": "Añadir / Quitar favorito (F)",
     "Cmd.Desc.Git": "GtStatus: Cargar (L) / (G)",
-    "Cmd.Desc.Nav": "\u2190/\u2191/\u2193 | Enter",
+    "Cmd.Desc.Nav": "↑↓/Inic/Fin | Enter",
     "Cmd.Desc.Npm": "Npm: Instalar (I) / Borrar (X)",
     "Cmd.Desc.Pref": "Preferencias: U",
     "Cmd.Desc.Repo": "Abrir (Enter)",
@@ -207,9 +207,9 @@
     "Search.Placeholder": "Escribe para filtrar...",
     "Search.ResultCount": "{0} de {1} repositorios",
     "Search.NoResults": "No se encontraron repositorios",
-    "Search.Hint.Input": "Escribe para filtrar | ↓/Tab=Ir a lista | Esc=Cerrar",
-    "Search.Hint.List": "↑↓=Navegar | Enter=Abrir | ↑(arriba)/Tab=Volver a buscar | Esc=Cerrar",
-    "Search.Hint.FilteredList": "↑↓=Navegar | Enter=Seleccionar | ↑(arriba)/Tab=Volver a buscar | Esc=Cancelar",
+    "Search.Hint.Input": "Escribe para filtrar | ↓/Tab=Lista | Esc=Cerrar",
+    "Search.Hint.List": "↑↓/Inic/Fin:Nav Enter:Abrir Tab:Buscar Esc:Cerrar",
+    "Search.Hint.FilteredList": "↑↓/Inic/Fin:Nav Enter:Sel Tab:Buscar Esc:Cancel",
     "Search.NoItems": "No se encontraron elementos",
     "Search.TypeToFilter": "Escribe para filtrar...",
     "Cmd.Desc.Search": "Buscar (S)",
@@ -228,5 +228,6 @@
     "Flow.OpenPrPrompt": "¿Abrir Pull Request en GitHub?",
     "Flow.OpenPrTitle": "ABRIENDO PR",
     "Flow.Opening": "Abriendo: {0}",
-    "Flow.Error.Conflict": "Por favor resuelve los conflictos en tu IDE."
+    "Flow.Error.Conflict": "Por favor resuelve los conflictos en tu IDE.",
+    "Pref.Hint": "↑↓/Inic/Fin:Nav Enter:Cambiar Q/←:Volver"
 }
