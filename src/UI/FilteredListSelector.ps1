@@ -45,10 +45,19 @@ class FilteredListSelector {
     # @{ Type = "Item"; Value = "SelectedString" }
     # @{ Type = "Header"; Value = "HeaderOption" }
     # $null if cancelled
-    [object] ShowSelection([string]$title, [string[]]$items, [string]$prompt, [string[]]$headerOptions = @(), [string]$currentItem = $null, [string]$currentMarker = "(current)", [int]$initialIndex = 0, [string]$statusMessage = $null, [ConsoleColor]$statusColor = [ConsoleColor]::Gray) {
+    [object] ShowSelection([string]$title, [string[]]$items, [hashtable]$options) {
         if ($null -eq $items -or $items.Count -eq 0) {
             return $null
         }
+        
+        # Unpack options with defaults
+        $prompt = if ($options.ContainsKey('Prompt')) { $options['Prompt'] } else { "Filter" }
+        $headerOptions = if ($options.ContainsKey('HeaderOptions')) { $options['HeaderOptions'] } else { @() }
+        $currentItem = if ($options.ContainsKey('CurrentItem')) { $options['CurrentItem'] } else { $null }
+        $currentMarker = if ($options.ContainsKey('CurrentMarker')) { $options['CurrentMarker'] } else { "(current)" }
+        $initialIndex = if ($options.ContainsKey('InitialIndex')) { [int]$options['InitialIndex'] } else { 0 }
+        $statusMessage = if ($options.ContainsKey('StatusMessage')) { $options['StatusMessage'] } else { $null }
+        $statusColor = if ($options.ContainsKey('StatusColor')) { $options['StatusColor'] } else { [ConsoleColor]::Gray }
         
         $searchText = ""
         $filteredItems = $items

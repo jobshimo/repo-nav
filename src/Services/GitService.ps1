@@ -124,10 +124,9 @@ class GitService {
     }
     
     # Clone a repository
-    [bool] CloneRepository([string]$url, [string]$targetPath, [string]$folderName = "") {
+    [object] CloneRepository([string]$url, [string]$targetPath, [string]$folderName = "") {
         if (-not $this.IsValidGitUrl($url)) {
-            Write-Error "Invalid Git URL format"
-            return $false
+            return @{ Success = $false; Output = "Invalid Git URL format" }
         }
         
         # Ensure URL ends with .git
@@ -138,16 +137,18 @@ class GitService {
         Push-Location $targetPath
         try {
             if ([string]::IsNullOrWhiteSpace($folderName)) {
-                git clone $url 2>&1 | Out-Null
+                $output = git clone $url 2>&1
             }
             else {
-                git clone $url $folderName 2>&1 | Out-Null
+                $output = git clone $url $folderName 2>&1
             }
-            return $LASTEXITCODE -eq 0
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
         }
         catch {
-            Write-Error "Error cloning repository: $_"
-            return $false
+            return @{ Success = $false; Output = $_.ToString() }
         }
         finally {
             Pop-Location
@@ -222,19 +223,22 @@ class GitService {
     }
 
     # Create a new branch from a source branch
-    [bool] CreateBranch([string]$repoPath, [string]$newBranchName, [string]$sourceBranch) {
+    [object] CreateBranch([string]$repoPath, [string]$newBranchName, [string]$sourceBranch) {
         if (-not $this.IsGitRepository($repoPath)) {
-            return $false
+            return @{ Success = $false; Output = "Not a git repository" }
         }
         
         Push-Location $repoPath
         try {
             # git checkout -b new_branch source_branch
-            git checkout -b $newBranchName $sourceBranch 2>&1 | Out-Null
-            return $LASTEXITCODE -eq 0
+            $output = git checkout -b $newBranchName $sourceBranch 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
         }
         catch {
-            return $false
+             return @{ Success = $false; Output = $_.ToString() }
         }
         finally {
             Pop-Location
@@ -267,25 +271,21 @@ class GitService {
     }
 
     # Merge a branch into the current branch
-    # Returns true if successful, throws error if conflict or failure
-    [bool] Merge([string]$repoPath, [string]$branchToMerge) {
+    [object] Merge([string]$repoPath, [string]$branchToMerge) {
         if (-not $this.IsGitRepository($repoPath)) {
-            return $false
+            return @{ Success = $false; Output = "Not a git repository" }
         }
         
         Push-Location $repoPath
         try {
             $output = git merge $branchToMerge 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                return $true
-            }
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
             
-            # Check for conflict
-            if ($output -match "conflict") {
-               throw "CONFLICT"
-            }
-            
-            throw "MERGE_FAILED: $output"
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch {
+             return @{ Success = $false; Output = $_.ToString() }
         }
         finally {
             Pop-Location

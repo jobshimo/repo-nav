@@ -75,15 +75,26 @@ class GitFlowCommand : INavigationCommand {
                 $selectBaseTitle = $this.GetLoc($context, "Flow.SelectBase", "SELECT BRANCH")
                 $selectBasePrompt = $this.GetLoc($context, "Flow.SelectBasePrompt", "From Branch")
                 
-                # Header Options
-                $headerOptions = @("flow1", "flow2", "flow3")
+                # Header Options (Defined closer to usage or in a constant if shared)
+                $flowOptions = @("flow1", "flow2", "flow3")
                 
                 # Current Branch Info
                 $currentBranch = $gitService.GetCurrentBranch($repo.FullPath)
                 $currentMarker = "({0})" -f $this.GetLoc($context, "UI.Current", "current")
                 
+                # Prepare Options for Selector
+                $selectorOptions = @{
+                    Prompt        = $selectBasePrompt
+                    HeaderOptions = $flowOptions
+                    CurrentItem   = $currentBranch
+                    CurrentMarker = $currentMarker
+                    InitialIndex  = $lastIndex
+                    StatusMessage = $statusMessage
+                    StatusColor   = $statusColor
+                }
+                
                 # The selector now returns a hashtable: @{ Type=...; Value=...; Index=... }
-                $selection = $selector.ShowSelection($selectBaseTitle, $branches, $selectBasePrompt, $headerOptions, $currentBranch, $currentMarker, $lastIndex, $statusMessage, $statusColor)
+                $selection = $selector.ShowSelection($selectBaseTitle, $branches, $selectorOptions)
                 
                 # Clear status after showing it once
                 $statusMessage = $null
@@ -107,15 +118,14 @@ class GitFlowCommand : INavigationCommand {
                     if ($hasChanges) {
                         $statusMessage = "Error: Cannot checkout '$selectedBranch'. You have uncommitted changes."
                         $statusColor = [Constants]::ColorError
-                        # Loop continues, showing error in footer
                     } else {
-                        $checkoutResult = $gitService.Checkout($repo.FullPath, $selectedBranch)
-                        if ($checkoutResult.Success) {
+                        $result = $gitService.Checkout($repo.FullPath, $selectedBranch)
+                        if ($result.Success) {
                             $statusMessage = "Checked out '$selectedBranch' successfully."
                             $statusColor = [Constants]::ColorSuccess
                         } else {
                              # Clean up error message if possible
-                             $err = if ($checkoutResult.Output) { $checkoutResult.Output } else { "Unknown error" }
+                             $err = if ($result.Output) { $result.Output } else { "Unknown error" }
                              $statusMessage = "Error: $err"
                              $statusColor = [Constants]::ColorError
                         }
@@ -123,7 +133,7 @@ class GitFlowCommand : INavigationCommand {
                 }
                 elseif ($selection.Type -eq "Header") {
                     # Future flow logic...
-                    # For now just update status
+                    # For now just update status with cleaner message
                     $statusMessage = "Selected Flow: $($selection.Value) (Not implemented)"
                     $statusColor = [Constants]::ColorWarning
                 }
