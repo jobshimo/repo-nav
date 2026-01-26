@@ -28,8 +28,11 @@ class FilteredListSelector {
     }
     
     hidden [int] CalculatePageSize([int]$headerOptionCount) {
-        # Reserved: Header(3) + HeaderOptions(N) + Spacing(1) + Input(3) + Footer(4) + Padding(2)
-        $reservedLines = $this.HeaderLines + $this.SearchInputLines + $this.FooterLines + 2 + $headerOptionCount + 1
+        # Reserved: Header(3) + HeaderLines (now just 1 line if horizontal) + Spacing(1) + Input(3) + Footer(4) + Padding(2)
+        # Assuming horizontal options take 1 line (can wrap if needed but let's assume 1 for simple flows)
+        $optsHeight = if ($headerOptionCount -gt 0) { 1 } else { 0 }
+        
+        $reservedLines = $this.HeaderLines + $this.SearchInputLines + $this.FooterLines + 2 + $optsHeight + 1
         $windowHeight = $this.WindowCalculator.GetWindowHeight()
         $available = $windowHeight - $reservedLines
         
@@ -72,8 +75,10 @@ class FilteredListSelector {
                  if ($focusMode -eq "input") {
                     # Calculate cursor X: indent (2) + prompt + ": " (2) + text
                     $cursorX = 2 + $prompt.Length + 2 + $searchText.Length
-                    # Calculate cursor Y: HeaderLines + HeaderOptions + Spacing(1)
-                    $cursorY = $this.HeaderLines + $headerOptions.Count + 1
+                    # Calculate cursor Y: 
+                    # Header(3) + HeaderOptions(1 if any) + Spacing(1)
+                    $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
+                    $cursorY = $this.HeaderLines + $hLines + 1
                     
                     $this.Console.SetCursorPosition($cursorX, $cursorY)
                     $this.Console.ShowCursor()
@@ -128,19 +133,33 @@ class FilteredListSelector {
                     continue
                 }
                 
-                # Arrows
-                if ($keyCode -eq [Constants]::KEY_DOWN_ARROW) {
-                    if ($focusMode -eq "header") {
+                # Left / Right (Header Navigation)
+                if ($focusMode -eq "header") {
+                    if ($keyCode -eq [Constants]::KEY_LEFT_ARROW) {
+                        if ($headerIndex -gt 0) {
+                            $headerIndex--
+                            $this.LastHeaderIndex = $headerIndex
+                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions)
+                        }
+                        continue
+                    }
+                     if ($keyCode -eq [Constants]::KEY_RIGHT_ARROW) {
                         if ($headerIndex -lt ($headerOptions.Count - 1)) {
                             $headerIndex++
                             $this.LastHeaderIndex = $headerIndex
                             $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions)
-                        } else {
-                            # Go to Input
-                            $this.LastHeaderIndex = $headerIndex # Remember where we left off
-                            $focusMode = "input"
-                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions)
                         }
+                        continue
+                    }
+                }
+                
+                # Down Arrow
+                if ($keyCode -eq [Constants]::KEY_DOWN_ARROW) {
+                    if ($focusMode -eq "header") {
+                        # Down goes to input
+                        $this.LastHeaderIndex = $headerIndex # Remember
+                        $focusMode = "input"
+                        $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions)
                     }
                     elseif ($focusMode -eq "input") {
                         if ($filteredItems.Count -gt 0) {
@@ -165,6 +184,7 @@ class FilteredListSelector {
                     continue
                 }
                 
+                # Up Arrow
                 if ($keyCode -eq [Constants]::KEY_UP_ARROW) {
                     if ($focusMode -eq "list") {
                          if ($selectedIndex -gt 0) {
@@ -183,17 +203,13 @@ class FilteredListSelector {
                         if ($headerOptions.Count -gt 0) {
                             $focusMode = "header"
                             # Restore last header index
-                            $headerIndex = if ($this.LastHeaderIndex -lt $headerOptions.Count) { $this.LastHeaderIndex } else { $headerOptions.Count - 1 }
+                            $headerIndex = if ($this.LastHeaderIndex -lt $headerOptions.Count) { $this.LastHeaderIndex } else { 0 }
                             
                             $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions)
                         }
                     }
                     elseif ($focusMode -eq "header") {
-                        if ($headerIndex -gt 0) {
-                            $headerIndex--
-                            $this.LastHeaderIndex = $headerIndex
-                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions)
-                        }
+                        # Up from header? Currently nothing / clamp
                     }
                     continue
                 }
@@ -234,17 +250,30 @@ class FilteredListSelector {
         
         $this.Renderer.RenderHeader($title)
         
-        # Reader Header Options
+        # Render Header Options (Horizontal)
         if ($headerOptions.Count -gt 0) {
+            
+            # Start margin
+            $this.Console.WriteColored("  ", [Constants]::ColorMenuText)
+            
             for ($i = 0; $i -lt $headerOptions.Count; $i++) {
                  $isHeaderSelected = ($focusMode -eq "header" -and $i -eq $headerIndex)
-                 $hPrefix = if ($isHeaderSelected) { "> " } else { "  " } # Same indent as input
+                 $opt = $headerOptions[$i]
+                 
+                 # Formatting: [ Option ] vs Option
+                 # If selected, highlight background or different color?
+                 # Using standard menu colors.
+                 
+                 $currentOpt = if ($isHeaderSelected) { " > $opt " } else { "   $opt " }
                  $hColor = if ($isHeaderSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
                  
-                 $this.Console.WriteColored("  $hPrefix", $hColor)
-                 $this.Console.WriteLineColored($headerOptions[$i], $hColor)
+                 $this.Console.WriteColored($currentOpt, $hColor)
+                 
+                 # Spacing between items
+                 $this.Console.WriteColored("  ", [Constants]::ColorMenuText)
             }
             # Add spacing after header options
+            $this.Console.NewLine()
             $this.Console.NewLine()
         }
         
@@ -271,9 +300,10 @@ class FilteredListSelector {
         $this.RenderList($items, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count)
         
         # Footer
-        # HeaderLines(3) + HeaderOptions(N) + Spacing(1) + Input(3) + Footer(4) + Padding(2)
-        # List starts at: 3 + N + 1 + 1 + 1 + 1 + 1 = 8 + N
-        $listEnd = $this.HeaderLines + $headerOptions.Count + 1 + $this.SearchInputLines + 2 + 1 + $pageSize
+        # HeaderLines(3) + HeaderOptions(1) + Spacing(1) + Input(3) + Footer(4) + Padding(2)
+        $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
+        
+        $listEnd = $this.HeaderLines + $hLines + 1 + $this.SearchInputLines + 2 + 1 + $pageSize
         $this.Console.SetCursorPosition(0, $listEnd)
         $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
         $this.Console.WriteLineColored("  Enter to select | Esc to cancel", [Constants]::ColorHint)
@@ -282,15 +312,27 @@ class FilteredListSelector {
     hidden [void] RenderList([array]$items, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$headerOptionCount) {
         # Calc start line
         # Header (3)
-        # Options (count)
+        # Options (1 line horizontal)
         # Spacing (1)
         # Input line (1)
         # Count line (1)
         # Blank line (1)
         # Separator (1)
-        # Total: 3 + count + 1 + 1 + 1 + 1 + 1 = 8 + count
+        # Total: 3 + 1 (if options) + 1 + 1 + 1 + 1 + 1 = 9 (if options), 7 (if no options)
         
-        $startLine = 8 + $headerOptionCount
+        $hLines = if ($headerOptionCount -gt 0) { 1 } else { 0 }
+        $startLine = $this.HeaderLines + $hLines + 1 + 2 + 1 + 1 # Header + Opts + Spacing + Input(1) + Count(1) ... checking RenderFull
+        # Let's count calls in RenderFull:
+        # Header(3)
+        # Options(1) + NL(1) = 2 lines if opts
+        # Input(1)
+        # Count(1)
+        # NL(1)
+        # Sep(1)
+        # So start is: 3 + (2 if opts) + 1 + 1 + 1 + 1 = 9 if opts.
+        
+        $offset = if ($headerOptionCount -gt 0) { 2 } else { 0 }
+        $startLine = 3 + $offset + 4 # 7 + offset
         
         for ($i = 0; $i -lt $pageSize; $i++) {
             $this.Console.SetCursorPosition(0, $startLine + $i)
