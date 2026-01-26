@@ -83,8 +83,21 @@ class OptionSelector {
             $this.Console.HideCursor()
             
             # Clear screen once and render header
+            # Clear screen once and render header
             $this.Console.ClearScreen()
             $this.Renderer.RenderHeader($title)
+            
+            # If headers are hidden, we must still show the "Title" (Prompt/Question) 
+            # as part of the content body
+            $preferences = $this.Renderer.PreferencesService.LoadPreferences()
+            $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+            
+            if (-not $showHeaders) {
+                # Render prompt as high-visibility content
+                $this.Console.WriteLineColored("  $title", [Constants]::ColorHighlight)
+                $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)
+            }
+            
             $this.Console.NewLine()
             
             if (-not [string]::IsNullOrWhiteSpace($description)) {
