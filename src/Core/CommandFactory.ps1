@@ -26,36 +26,55 @@ class CommandFactory {
         Registers all available commands dynamically using Reflection (OCP)
     #>
     hidden [void] RegisterCommands() {
+        # Clean Code: The main method just orchestrates the high-level logic
+        $commandTypes = $this.FindCommandTypes()
+        
+        foreach ($type in $commandTypes) {
+            $this.RegisterOneCommand($type)
+        }
+    }
+
+    hidden [System.Collections.ArrayList] FindCommandTypes() {
+        $foundTypes = [System.Collections.ArrayList]::new()
         $baseType = [INavigationCommand]
         
-        # In PowerShell, classes defined in scripts are generated in a dynamic assembly.
-        # We scan all assemblies to find types inheriting from INavigationCommand.
         $assemblies = [System.AppDomain]::CurrentDomain.GetAssemblies()
         
         foreach ($assembly in $assemblies) {
-            try {
-                # Skip system assemblies to speed up
-                if ($assembly.FullName -match "^System|^Microsoft|^mscorlib") { continue }
-                
-                $types = $assembly.GetTypes()
-                foreach ($type in $types) {
-                    if ($baseType.IsAssignableFrom($type) -and $type -ne $baseType) {
-                        try {
-                            # Create instance and add to list
-                            # Ensure we don't add duplicates if type is defined multiple times (rare in this setup)
-                            if (-not $this.ContainsCommandType($type)) {
-                                $instance = [Activator]::CreateInstance($type)
-                                $this.commands.Add($instance)
-                            }
-                        }
-                        catch {
-                            # Skip types that can't be instantiated (e.g. abstract)
-                        }
-                    }
+            if ($this.IsSystemAssembly($assembly)) { continue }
+            
+            $types = $this.GetTypesSafe($assembly)
+            
+            foreach ($type in $types) {
+                if ($baseType.IsAssignableFrom($type) -and $type -ne $baseType) {
+                    $foundTypes.Add($type)
                 }
             }
+        }
+        return $foundTypes
+    }
+    
+    hidden [bool] IsSystemAssembly($assembly) {
+        return $assembly.FullName -match "^System|^Microsoft|^mscorlib|^Anonymously"
+    }
+
+    hidden [array] GetTypesSafe($assembly) {
+        try {
+            return $assembly.GetTypes()
+        }
+        catch {
+            return @()
+        }
+    }
+
+    hidden [void] RegisterOneCommand($type) {
+        if (-not $this.ContainsCommandType($type)) {
+            try {
+                $instance = [Activator]::CreateInstance($type)
+                $this.commands.Add($instance)
+            }
             catch {
-                # Ignore assemblies that don't allow type enumeration
+                # Skip types that can't be instantiated
             }
         }
     }
