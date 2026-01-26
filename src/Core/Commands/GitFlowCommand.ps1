@@ -160,16 +160,25 @@ class GitFlowCommand : INavigationCommand {
         $sourceBranch = ""
         
         # 1. Fetch Remotes
+        $context.Console.ClearScreen()
+        $context.Renderer.RenderHeader("INTEGRATION FLOW: INITIALIZING")
         $context.Console.NewLine()
-        $context.Console.WriteColored("  Fetching remotes...", [Constants]::ColorHint)
+        $context.Console.WriteColored("  Fetching remotes...", [Constants]::ColorMenuText)
+        
+        # Force redraw before blocking operation
+        # (PowerShell might buffer output, but Write-Host usually flushes. 
+        # Using WriteColored which wraps output, should be fine)
+        
         $fetchRes = $gitService.Fetch($repo.FullPath)
+        
         if (-not $fetchRes.Success) {
             $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
+            $context.Console.WriteLineColored("  $($fetchRes.Output)", [Constants]::ColorError)
             Start-Sleep -Seconds 2
             return
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
-        Start-Sleep -Milliseconds 500
+        Start-Sleep -Milliseconds 300
 
         # 2. Select Target Branch (Remote)
         $remoteBranches = $gitService.GetRemoteBranches($repo.FullPath)

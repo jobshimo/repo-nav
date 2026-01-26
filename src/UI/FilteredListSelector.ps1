@@ -89,13 +89,14 @@ class FilteredListSelector {
             $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $true, $currentItem, $currentMarker, $statusMessage, $statusColor)
             
             while ($running) {
-                 if ($focusMode -eq "input") {
+                    if ($focusMode -eq "input") {
                     # Calculate cursor X: indent (4 for "  > ") + prompt + ": " (2) + text
                     $cursorX = 4 + $prompt.Length + 2 + $searchText.Length
                     # Calculate cursor Y: 
-                    # Header(3) + HeaderOptions(1 if any) + Spacing(1)
+                    # Header(3) + HeaderOptions(1 if any)
+                    # We removed extra spacing, so input is directly after options (or header)
                     $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
-                    $cursorY = $this.HeaderLines + $hLines + 1
+                    $cursorY = $this.HeaderLines + $hLines
                     
                     $this.Console.SetCursorPosition($cursorX, $cursorY)
                     $this.Console.ShowCursor()
@@ -106,14 +107,6 @@ class FilteredListSelector {
                 $key = $this.Console.ReadKey()
                 $keyCode = $key.VirtualKeyCode
                 $keyChar = $key.Character
-                
-                # Clear Status Message on first keypress if it exists?
-                # For now let it stay until screen redraw or maybe we want to keep it?
-                # User says "aparezca el cartel... pero se quede seleccionado". 
-                # Usually status messages are transient. Let's clear it from args for next render?
-                # Actually, RenderFull clears the line before writing footer. So if we pass $null next time, it disappears.
-                # But we only call RenderFull on updates.
-                # Let's keep it simple: It stays until next full update updates the Footer area.
                 
                 # Esc
                 if ($keyCode -eq [Constants]::KEY_ESCAPE -or $keyCode -eq [Constants]::KEY_ESC) {
@@ -269,7 +262,7 @@ class FilteredListSelector {
         
         return $result
     }
-    
+
     hidden [void] RenderFull([string]$title, [string]$searchText, [array]$items, [int]$selectedIndex, [int]$headerIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$totalCount, [string]$prompt, [string[]]$headerOptions, [bool]$clearScreen, [string]$currentItem, [string]$currentMarker, [string]$statusMessage, [ConsoleColor]$statusColor) {
         $this.Console.HideCursor()
         
@@ -302,8 +295,7 @@ class FilteredListSelector {
                  # Spacing between items
                  $this.Console.WriteColored("  ", [Constants]::ColorMenuText)
             }
-            # Add spacing after header options
-            $this.Console.NewLine()
+            # Remove extra spacing
             $this.Console.NewLine()
         }
         
@@ -321,12 +313,14 @@ class FilteredListSelector {
         } else {
             $this.Console.WriteLineColored($searchText, [Constants]::ColorValue)
         }
-        $this.Console.NewLine()
+        # Remove extra newline after input
+        # $this.Console.NewLine() 
         
         if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
         $countText = "{0} of {1} items" -f $items.Count, $totalCount
         $this.Console.WriteLineColored("  $countText", [Constants]::ColorHint)
-        $this.Console.NewLine()
+        # Remove extra newline after count
+        # $this.Console.NewLine()
         
         if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
         $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)
@@ -334,10 +328,14 @@ class FilteredListSelector {
         $this.RenderList($items, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $currentItem, $currentMarker)
         
         # Footer
-        # HeaderLines(3) + HeaderOptions(1) + Spacing(1) + Input(3) + Footer(4) + Padding(2)
+        # Header(3) + Options(1?) + Input(1) + Count(1) + Separator(1) = Start of list
+        # List(PageSize)
         $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
         
-        $listEnd = $this.HeaderLines + $hLines + 1 + $this.SearchInputLines + 2 + 1 + $pageSize
+        # List Start = 3 + $hLines + 1(Input) + 1(Count) + 1(Sep) = 6 + $hLines
+        # List End = List Start + PageSize
+        $listEnd = $this.HeaderLines + $hLines + 1 + 1 + 1 + $pageSize
+        
         $this.Console.SetCursorPosition(0, $listEnd)
         
         if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
