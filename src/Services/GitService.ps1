@@ -200,4 +200,89 @@ class GitService {
         # This allows navigating empty folder structures.
         return $true
     }
+
+    # Get local branches
+    [string[]] GetBranches([string]$repoPath) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @()
+        }
+        
+        Push-Location $repoPath
+        try {
+            # --format=%(refname:short) gives just the branch name
+            $branches = git branch --format="%(refname:short)" 2>$null
+            if ($LASTEXITCODE -eq 0 -and $branches) {
+                return $branches
+            }
+            return @()
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    # Create a new branch from a source branch
+    [bool] CreateBranch([string]$repoPath, [string]$newBranchName, [string]$sourceBranch) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return $false
+        }
+        
+        Push-Location $repoPath
+        try {
+            # git checkout -b new_branch source_branch
+            git checkout -b $newBranchName $sourceBranch 2>&1 | Out-Null
+            return $LASTEXITCODE -eq 0
+        }
+        catch {
+            return $false
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    # Checkout a branch
+    [bool] Checkout([string]$repoPath, [string]$branchName) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return $false
+        }
+        
+        Push-Location $repoPath
+        try {
+            git checkout $branchName 2>&1 | Out-Null
+            return $LASTEXITCODE -eq 0
+        }
+        catch {
+            return $false
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    # Merge a branch into the current branch
+    # Returns true if successful, throws error if conflict or failure
+    [bool] Merge([string]$repoPath, [string]$branchToMerge) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return $false
+        }
+        
+        Push-Location $repoPath
+        try {
+            $output = git merge $branchToMerge 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                return $true
+            }
+            
+            # Check for conflict
+            if ($output -match "conflict") {
+               throw "CONFLICT"
+            }
+            
+            throw "MERGE_FAILED: $output"
+        }
+        finally {
+            Pop-Location
+        }
+    }
 }

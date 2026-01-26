@@ -92,6 +92,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\UIRenderer.ps1"
 . "$srcPath\UI\ColorSelector.ps1"
 . "$srcPath\UI\OptionSelector.ps1"
+. "$srcPath\UI\FilteredListSelector.ps1"
 
 # RepositoryManager (Depends on Services AND UI Components like ProgressIndicator)
 . "$srcPath\Core\RepositoryManager.ps1"
@@ -117,6 +118,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Core\Commands\PreferencesCommand.ps1"
 . "$srcPath\Core\Commands\CreateFolderCommand.ps1"
 . "$srcPath\Core\Commands\SearchCommand.ps1"
+. "$srcPath\Core\Commands\GitFlowCommand.ps1"
 
 # Core Components
 . "$srcPath\Core\CommandFactory.ps1"
