@@ -89,8 +89,8 @@ class FilteredListSelector {
         # Focus modes: "header", "input", "list"
         $desiredFocus = if ($options.ContainsKey('InitialFocus')) { $options['InitialFocus'] } else { $null }
         $focusMode = if ($desiredFocus) { $desiredFocus }
-                     elseif ($initialIndex -ge 0) { "list" } 
-                     else { "input" }
+                     elseif ($initialIndex -ge 0) { [Constants]::FocusList } 
+                     else { [Constants]::FocusInput }
         
         $running = $true
         $result = $null
@@ -109,7 +109,7 @@ class FilteredListSelector {
             # I will only replace the top part and helper methods, and assumes the loop logic calls methods that I update below.
             
             while ($running) {
-                if ($focusMode -eq "input") {
+                if ($focusMode -eq [Constants]::FocusInput) {
                     # Calculate cursor X: indent (4 for "  > ") + prompt + ": " (2) + text
                     $cursorX = 4 + $prompt.Length + 2 + $searchText.Length
                     # Calculate cursor Y: 
@@ -130,8 +130,8 @@ class FilteredListSelector {
                 # ... Event loop logic ...
                 # Esc
                 if ($keyCode -eq [Constants]::KEY_ESCAPE -or $keyCode -eq [Constants]::KEY_ESC) {
-                    if ($focusMode -eq "list" -or $focusMode -eq "header") {
-                        $focusMode = "input"
+                    if ($focusMode -eq [Constants]::FocusList -or $focusMode -eq [Constants]::FocusHeader) {
+                        $focusMode = [Constants]::FocusInput
                         $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
                     } else {
                         $running = $false
@@ -141,29 +141,28 @@ class FilteredListSelector {
                 
                 # Enter
                 if ($keyCode -eq [Constants]::KEY_ENTER) {
-                    if ($focusMode -eq "list" -and $filteredItems.Count -gt 0) {
+                    if ($focusMode -eq [Constants]::FocusList -and $filteredItems.Count -gt 0) {
                         $result = @{ Type = "Item"; Value = $filteredItems[$selectedIndex]; Index = $selectedIndex }
                         $running = $false
                     }
-                    elseif ($focusMode -eq "header" -and $headerOptions.Count -gt 0) {
+                    elseif ($focusMode -eq [Constants]::FocusHeader -and $headerOptions.Count -gt 0) {
                          $this.LastHeaderIndex = $headerIndex # Persist choice
                          $result = @{ Type = "Header"; Value = $headerOptions[$headerIndex] }
                          $running = $false
                     }
-                    continue
                 }
                 
                 # Tab (Cycle Input <-> List)
                 if ($keyCode -eq [Constants]::KEY_TAB) {
-                    if ($focusMode -eq "input") {
-                        if ($filteredItems.Count -gt 0) { $focusMode = "list" }
+                    if ($focusMode -eq [Constants]::FocusInput) {
+                        if ($filteredItems.Count -gt 0) { $focusMode = [Constants]::FocusList }
                         # Default is stay in input if list empty
                     } 
-                    elseif ($focusMode -eq "list") {
-                        $focusMode = "input"
+                    elseif ($focusMode -eq [Constants]::FocusList) {
+                        $focusMode = [Constants]::FocusInput
                     }
-                    elseif ($focusMode -eq "header") {
-                        $focusMode = "input"
+                    elseif ($focusMode -eq [Constants]::FocusHeader) {
+                        $focusMode = [Constants]::FocusInput
                     }
                     
                     $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
@@ -171,7 +170,7 @@ class FilteredListSelector {
                 }
                 
                 # Left / Right (Header Navigation)
-                if ($focusMode -eq "header") {
+                if ($focusMode -eq [Constants]::FocusHeader) {
                     if ($keyCode -eq [Constants]::KEY_LEFT_ARROW) {
                         if ($headerIndex -gt 0) {
                             $headerIndex--
@@ -192,21 +191,21 @@ class FilteredListSelector {
                 
                 # Down Arrow
                 if ($keyCode -eq [Constants]::KEY_DOWN_ARROW) {
-                    if ($focusMode -eq "header") {
+                    if ($focusMode -eq [Constants]::FocusHeader) {
                         # Down goes to input
                         $this.LastHeaderIndex = $headerIndex # Remember
-                        $focusMode = "input"
+                        $focusMode = [Constants]::FocusInput
                         $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
                     }
-                    elseif ($focusMode -eq "input") {
+                    elseif ($focusMode -eq [Constants]::FocusInput) {
                         if ($filteredItems.Count -gt 0) {
-                            $focusMode = "list"
+                            $focusMode = [Constants]::FocusList
                             $selectedIndex = 0
                             $viewportStart = 0
                             $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
                         }
                     }
-                    elseif ($focusMode -eq "list" -and $filteredItems.Count -gt 0) {
+                    elseif ($focusMode -eq [Constants]::FocusList -and $filteredItems.Count -gt 0) {
                         if ($selectedIndex -lt ($filteredItems.Count - 1)) {
                             $selectedIndex++
                             if ($selectedIndex -ge ($viewportStart + $pageSize)) {
@@ -224,7 +223,7 @@ class FilteredListSelector {
                 
                 # Up Arrow
                 if ($keyCode -eq [Constants]::KEY_UP_ARROW) {
-                    if ($focusMode -eq "list") {
+                    if ($focusMode -eq [Constants]::FocusList) {
                          if ($selectedIndex -gt 0) {
                             $selectedIndex--
                             if ($selectedIndex -lt $viewportStart) {
@@ -234,13 +233,13 @@ class FilteredListSelector {
                             $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
                         } else {
                             # Go to Input
-                            $focusMode = "input"
+                            $focusMode = [Constants]::FocusInput
                             $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
                         }
                     }
-                    elseif ($focusMode -eq "input") {
+                    elseif ($focusMode -eq [Constants]::FocusInput) {
                         if ($headerOptions.Count -gt 0) {
-                            $focusMode = "header"
+                            $focusMode = [Constants]::FocusHeader
                             # Restore last header index
                             $headerIndex = if ($this.LastHeaderIndex -lt $headerOptions.Count) { $this.LastHeaderIndex } else { 0 }
                             
@@ -252,7 +251,7 @@ class FilteredListSelector {
                 
                 # Home
                 if ($keyCode -eq [Constants]::KEY_HOME) {
-                    if ($focusMode -eq "list" -and $filteredItems.Count -gt 0) {
+                    if ($focusMode -eq [Constants]::FocusList -and $filteredItems.Count -gt 0) {
                         $selectedIndex = 0
                         $viewportStart = 0
                         $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
@@ -262,7 +261,7 @@ class FilteredListSelector {
                 
                 # End
                 if ($keyCode -eq [Constants]::KEY_END) {
-                    if ($focusMode -eq "list" -and $filteredItems.Count -gt 0) {
+                    if ($focusMode -eq [Constants]::FocusList -and $filteredItems.Count -gt 0) {
                         $selectedIndex = $filteredItems.Count - 1
                         if ($selectedIndex -ge $pageSize) {
                             $viewportStart = $selectedIndex - $pageSize + 1
@@ -275,7 +274,7 @@ class FilteredListSelector {
                 }
                 
                 # Input
-                 if ($focusMode -eq "input") {
+                 if ($focusMode -eq [Constants]::FocusInput) {
                     $needsUpdate = $false
                     if ($keyCode -eq [Constants]::KEY_BACKSPACE) {
                         if ($searchText.Length -gt 0) {
@@ -357,13 +356,16 @@ class FilteredListSelector {
         }
         
         # ... (Header Rendering same as before) ...
-        $this.Renderer.RenderHeader($title)
+        # ... (Header Rendering) ...
+        if ($this.HeaderLines -gt 0) {
+            $this.Renderer.RenderHeader($title)
+        }
         
         if ($headerOptions.Count -gt 0) {
             if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
             $this.Console.WriteColored("  ", [Constants]::ColorMenuText)
             for ($i = 0; $i -lt $headerOptions.Count; $i++) {
-                 $isHeaderSelected = ($focusMode -eq "header" -and $i -eq $headerIndex)
+                 $isHeaderSelected = ($focusMode -eq [Constants]::FocusHeader -and $i -eq $headerIndex)
                  $opt = $headerOptions[$i]
                  $currentOpt = if ($isHeaderSelected) { " > $opt " } else { "   $opt " }
                  $hColor = if ($isHeaderSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
@@ -375,8 +377,8 @@ class FilteredListSelector {
         
         # Input
         if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
-        $focusIndicator = if ($focusMode -eq "input") { ">" } else { " " }
-        $inputColor = if ($focusMode -eq "input") { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+        $focusIndicator = if ($focusMode -eq [Constants]::FocusInput) { ">" } else { " " }
+        $inputColor = if ($focusMode -eq [Constants]::FocusInput) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
         $this.Console.WriteColored("  $focusIndicator ", $inputColor)
         $this.Console.WriteColored("$prompt`: ", [Constants]::ColorLabel)
         
@@ -418,7 +420,7 @@ class FilteredListSelector {
             $itemIndex = $viewportStart + $i
             if ($itemIndex -lt $items.Count) {
                 $item = $items[$itemIndex]
-                $isSelected = ($itemIndex -eq $selectedIndex) -and ($focusMode -eq "list")
+                $isSelected = ($itemIndex -eq $selectedIndex) -and ($focusMode -eq [Constants]::FocusList)
                 
                 $prefix = if ($isSelected) { ">" } else { " " }
                 $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }

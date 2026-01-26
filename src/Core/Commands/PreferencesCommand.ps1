@@ -70,8 +70,11 @@ class PreferencesCommand : INavigationCommand {
                     # 1. Render Layer
                     if ($fullRedrawNeeded) {
                         $Console.ClearScreen()
-                        $Renderer.RenderHeader((& $GetLoc "Pref.Title" "USER PREFERENCES"))
-                        Write-Host ""
+                        $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+                        if ($showHeaders) {
+                            $Renderer.RenderHeader((& $GetLoc "Pref.Title" "USER PREFERENCES"))
+                            Write-Host ""
+                        }
                         $listStartTop = $Console.GetCursorTop()
                         $fullRedrawNeeded = $false
                     }
