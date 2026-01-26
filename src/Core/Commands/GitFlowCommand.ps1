@@ -71,8 +71,12 @@ class GitFlowCommand : INavigationCommand {
                 # Header Options
                 $headerOptions = @("flow1", "flow2", "flow3")
                 
+                # Current Branch Info
+                $currentBranch = $gitService.GetCurrentBranch($repo.FullPath)
+                $currentMarker = "({0})" -f $this.GetLoc($context, "UI.Current", "current")
+                
                 # The selector now returns a hashtable: @{ Type=...; Value=... }
-                $selection = $selector.ShowSelection($selectBaseTitle, $branches, $selectBasePrompt, $headerOptions)
+                $selection = $selector.ShowSelection($selectBaseTitle, $branches, $selectBasePrompt, $headerOptions, $currentBranch, $currentMarker)
                 
                 if ($null -eq $selection) { break } # Cancelled (Esc)
                 

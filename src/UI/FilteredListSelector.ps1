@@ -45,7 +45,7 @@ class FilteredListSelector {
     # @{ Type = "Item"; Value = "SelectedString" }
     # @{ Type = "Header"; Value = "HeaderOption" }
     # $null if cancelled
-    [object] ShowSelection([string]$title, [string[]]$items, [string]$prompt, [string[]]$headerOptions = @()) {
+    [object] ShowSelection([string]$title, [string[]]$items, [string]$prompt, [string[]]$headerOptions = @(), [string]$currentItem = $null, [string]$currentMarker = "(current)") {
         if ($null -eq $items -or $items.Count -eq 0) {
             return $null
         }
@@ -69,7 +69,7 @@ class FilteredListSelector {
             $this.Console.HideCursor()
             
             # Initial Render - Clear screen once
-            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $true)
+            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $true, $currentItem, $currentMarker)
             
             while ($running) {
                  if ($focusMode -eq "input") {
@@ -94,7 +94,7 @@ class FilteredListSelector {
                 if ($keyCode -eq [Constants]::KEY_ESCAPE -or $keyCode -eq [Constants]::KEY_ESC) {
                     if ($focusMode -eq "list" -or $focusMode -eq "header") {
                         $focusMode = "input"
-                        $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false)
+                        $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker)
                     } else {
                         $running = $false
                     }
@@ -129,7 +129,7 @@ class FilteredListSelector {
                         $focusMode = "input"
                     }
                     
-                    $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false)
+                    $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker)
                     continue
                 }
                 
@@ -139,7 +139,7 @@ class FilteredListSelector {
                         if ($headerIndex -gt 0) {
                             $headerIndex--
                             $this.LastHeaderIndex = $headerIndex
-                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false)
+                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker)
                         }
                         continue
                     }
@@ -147,7 +147,7 @@ class FilteredListSelector {
                         if ($headerIndex -lt ($headerOptions.Count - 1)) {
                             $headerIndex++
                             $this.LastHeaderIndex = $headerIndex
-                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false)
+                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker)
                         }
                         continue
                     }
@@ -159,14 +159,14 @@ class FilteredListSelector {
                         # Down goes to input
                         $this.LastHeaderIndex = $headerIndex # Remember
                         $focusMode = "input"
-                        $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false)
+                        $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker)
                     }
                     elseif ($focusMode -eq "input") {
                         if ($filteredItems.Count -gt 0) {
                             $focusMode = "list"
                             $selectedIndex = 0
                             $viewportStart = 0
-                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false)
+                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker)
                         }
                     }
                     elseif ($focusMode -eq "list" -and $filteredItems.Count -gt 0) {
@@ -180,7 +180,7 @@ class FilteredListSelector {
                             $viewportStart = 0
                         }
                         # RenderList is already optimized
-                        $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count)
+                        $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $currentItem, $currentMarker)
                     }
                     continue
                 }
@@ -193,11 +193,11 @@ class FilteredListSelector {
                             if ($selectedIndex -lt $viewportStart) {
                                 $viewportStart = $selectedIndex
                             }
-                            $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count)
+                            $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $currentItem, $currentMarker)
                         } else {
                             # Go to Input
                             $focusMode = "input"
-                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false)
+                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker)
                         }
                     }
                     elseif ($focusMode -eq "input") {
@@ -206,7 +206,7 @@ class FilteredListSelector {
                             # Restore last header index
                             $headerIndex = if ($this.LastHeaderIndex -lt $headerOptions.Count) { $this.LastHeaderIndex } else { 0 }
                             
-                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false)
+                            $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker)
                         }
                     }
                     elseif ($focusMode -eq "header") {
@@ -233,7 +233,7 @@ class FilteredListSelector {
                         $filteredItems = @($items | Where-Object { $_.ToLower().Contains($lowerSearch) })
                         $selectedIndex = 0
                         $viewportStart = 0
-                        $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false)
+                        $this.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker)
                     }
                  }
             }
@@ -245,7 +245,7 @@ class FilteredListSelector {
         return $result
     }
     
-    hidden [void] RenderFull([string]$title, [string]$searchText, [array]$items, [int]$selectedIndex, [int]$headerIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$totalCount, [string]$prompt, [string[]]$headerOptions, [bool]$clearScreen) {
+    hidden [void] RenderFull([string]$title, [string]$searchText, [array]$items, [int]$selectedIndex, [int]$headerIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$totalCount, [string]$prompt, [string[]]$headerOptions, [bool]$clearScreen, [string]$currentItem, [string]$currentMarker) {
         $this.Console.HideCursor()
         
         if ($clearScreen) {
@@ -306,7 +306,7 @@ class FilteredListSelector {
         if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
         $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)
         
-        $this.RenderList($items, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count)
+        $this.RenderList($items, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $currentItem, $currentMarker)
         
         # Footer
         # HeaderLines(3) + HeaderOptions(1) + Spacing(1) + Input(3) + Footer(4) + Padding(2)
@@ -322,7 +322,7 @@ class FilteredListSelector {
         $this.Console.WriteLineColored("  Enter to select | Esc to cancel", [Constants]::ColorHint)
     }
     
-    hidden [void] RenderList([array]$items, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$headerOptionCount) {
+    hidden [void] RenderList([array]$items, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$headerOptionCount, [string]$currentItem, [string]$currentMarker) {
         # Calc start line
         # Header (3)
         # Options (1 line horizontal)
@@ -360,7 +360,13 @@ class FilteredListSelector {
                 $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
                 
                 $this.Console.WriteColored("  $prefix ", $color)
-                $this.Console.WriteLineColored($item, $color)
+                $this.Console.WriteColored($item, $color)
+                
+                if ($null -ne $currentItem -and $item -eq $currentItem) {
+                    $this.Console.WriteColored(" $currentMarker", [Constants]::ColorHint)
+                }
+                
+                $this.Console.NewLine()
             }
         }
     }
