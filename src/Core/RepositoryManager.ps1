@@ -137,7 +137,9 @@ class RepositoryManager {
                 $repo.SetParentPath($parentPath)
             }
             
-            if ($aliases.ContainsKey($repo.Name)) {
+            if ($aliases.ContainsKey($repo.FullPath)) {
+                $repo.SetAlias($aliases[$repo.FullPath])
+            } elseif ($aliases.ContainsKey($repo.Name)) {
                 $repo.SetAlias($aliases[$repo.Name])
             }
             
@@ -211,7 +213,9 @@ class RepositoryManager {
                 # This is a repository - add it
                 $repo = [RepositoryModel]::new($dir)
                 
-                if ($aliases.ContainsKey($repo.Name)) {
+                if ($aliases.ContainsKey($repo.FullPath)) {
+                    $repo.SetAlias($aliases[$repo.FullPath])
+                } elseif ($aliases.ContainsKey($repo.Name)) {
                     $repo.SetAlias($aliases[$repo.Name])
                 }
                 
@@ -333,7 +337,7 @@ class RepositoryManager {
     
     # Set alias for a repository
     [bool] SetAlias([RepositoryModel]$repository, [AliasInfo]$aliasInfo) {
-        if ($this.AliasManager.SetAlias($repository.Name, $aliasInfo)) {
+        if ($this.AliasManager.SetAlias($repository.FullPath, $aliasInfo)) {
             $repository.SetAlias($aliasInfo)
             return $true
         }
@@ -342,7 +346,7 @@ class RepositoryManager {
     
     # Remove alias from a repository
     [bool] RemoveAlias([RepositoryModel]$repository) {
-        if ($this.AliasManager.RemoveAlias($repository.Name)) {
+        if ($this.AliasManager.RemoveAlias($repository.FullPath)) {
             $repository.RemoveAlias()
             return $true
         }
