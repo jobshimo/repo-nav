@@ -248,6 +248,30 @@ class FilteredListSelector {
                     continue
                 }
                 
+                # Home
+                if ($keyCode -eq [Constants]::KEY_HOME) {
+                    if ($focusMode -eq "list" -and $filteredItems.Count -gt 0) {
+                        $selectedIndex = 0
+                        $viewportStart = 0
+                        $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                    }
+                    continue
+                }
+                
+                # End
+                if ($keyCode -eq [Constants]::KEY_END) {
+                    if ($focusMode -eq "list" -and $filteredItems.Count -gt 0) {
+                        $selectedIndex = $filteredItems.Count - 1
+                        if ($selectedIndex -ge $pageSize) {
+                            $viewportStart = $selectedIndex - $pageSize + 1
+                        } else {
+                            $viewportStart = 0
+                        }
+                        $this.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                    }
+                    continue
+                }
+                
                 # Input
                  if ($focusMode -eq "input") {
                     $needsUpdate = $false

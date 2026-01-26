@@ -238,6 +238,32 @@ class SearchView {
                     }
                     continue
                 }
+
+                # Handle Home/End
+                if ($keyCode -eq [Constants]::KEY_HOME) {
+                    if ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
+                        $selectedIndex = 0
+                        $viewportStart = 0
+                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                    }
+                    continue
+                }
+                
+                if ($keyCode -eq [Constants]::KEY_END) {
+                    if ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
+                        $selectedIndex = $filteredRepos.Count - 1
+                        
+                        # Calculate viewport so selected item is at bottom or visible
+                        if ($selectedIndex -ge $pageSize) {
+                            $viewportStart = $selectedIndex - $pageSize + 1
+                        } else {
+                            $viewportStart = 0
+                        }
+                        
+                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                    }
+                    continue
+                }
                 
                 # Handle text input (only in input mode)
                 if ($focusMode -eq "input") {

@@ -136,6 +136,20 @@ class PreferencesCommand : INavigationCommand {
                             }
                         }
 
+                        ([Constants]::KEY_HOME) {
+                            $selectedOption = 0
+                            $viewportStart = 0
+                        }
+
+                        ([Constants]::KEY_END) {
+                            $selectedOption = $allItems.Count - 1
+                            if ($selectedOption -ge $pageSize) {
+                                $viewportStart = $selectedOption - $pageSize + 1
+                            } else {
+                                $viewportStart = 0
+                            }
+                        }
+
                         ([Constants]::KEY_LEFT_ARROW) {
                              $running = $false
                         }
