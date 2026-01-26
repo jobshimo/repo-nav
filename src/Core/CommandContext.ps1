@@ -6,5 +6,6 @@ class CommandContext {
     [ColorSelector] $ColorSelector
     [OptionSelector] $OptionSelector
     [LocalizationService] $LocalizationService
+    [UserPreferencesService] $PreferencesService
     [string] $BasePath
 }

@@ -41,12 +41,18 @@ class UIRenderer {
         return $default
     }
     
+    # Helper: Check preference for headers
+    [bool] ShouldShowHeaders() {
+        $preferences = $this.PreferencesService.LoadPreferences()
+        if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') {
+            return $preferences.display.showHeaders
+        }
+        return $true
+    }
+
     # Render header
     [void] RenderHeader([string]$title) {
-        $preferences = $this.PreferencesService.LoadPreferences()
-        $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
-        
-        if ($showHeaders) {
+        if ($this.ShouldShowHeaders()) {
             $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
             $this.Console.WriteLineColored("    $title", [Constants]::ColorHeader)
             $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)

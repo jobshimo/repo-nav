@@ -91,8 +91,7 @@ class SearchView {
         $cancelled = $false
         
         # Check Header Preference
-        $preferences = $this.Renderer.PreferencesService.LoadPreferences()
-        $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+        $showHeaders = $this.Renderer.ShouldShowHeaders()
         
         # Adjust layout based on preference
         $headerOffset = if ($showHeaders) { 3 } else { 0 }

@@ -64,6 +64,7 @@ function Start-NavigationLoop {
         $commandContext.ColorSelector = $ColorSelector
         $commandContext.OptionSelector = $OptionSelector
         $commandContext.LocalizationService = $LocalizationService
+        $commandContext.PreferencesService = $PreferencesService
         $commandContext.BasePath = $BasePath
         
         # Initial full render and layout calculation
