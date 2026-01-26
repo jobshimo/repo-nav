@@ -5,12 +5,12 @@ class RepositoryManagementCommand : INavigationCommand {
         return "Clone (C) or Delete (DELETE) repository"
     }
 
-    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+    [bool] CanExecute([object]$keyPress, [CommandContext]$context) {
         $key = $keyPress.VirtualKeyCode
         return $key -eq [Constants]::KEY_C -or $key -eq [Constants]::KEY_DELETE
     }
 
-    [void] Execute([object]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         $currentIndex = $state.GetCurrentIndex()

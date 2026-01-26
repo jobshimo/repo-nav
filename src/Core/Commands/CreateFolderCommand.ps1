@@ -13,11 +13,11 @@ class CreateFolderCommand : INavigationCommand {
         return "Create Folder (N)"
     }
 
-    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+    [bool] CanExecute([object]$keyPress, [CommandContext]$context) {
         return $keyPress.VirtualKeyCode -eq [Constants]::KEY_N
     }
 
-    [void] Execute([object]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         $console = $context.Console
         $state = $context.State
         $repoManager = $context.RepoManager

@@ -5,12 +5,12 @@ class GitCommand : INavigationCommand {
         return "Load git status - L (current) / G (all)"
     }
 
-    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+    [bool] CanExecute([object]$keyPress, [CommandContext]$context) {
         $key = $keyPress.VirtualKeyCode
         return $key -eq [Constants]::KEY_L -or $key -eq [Constants]::KEY_G
     }
 
-    [void] Execute([object]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         $currentIndex = $state.GetCurrentIndex()

@@ -9,7 +9,7 @@ class NpmView {
     [OptionSelector] $OptionSelector
     [LocalizationService] $LocalizationService
 
-    NpmView([hashtable]$context) {
+    NpmView([CommandContext]$context) {
         $this.Console = $context.Console
         $this.Renderer = $context.Renderer
         $this.OptionSelector = $context.OptionSelector
@@ -129,12 +129,12 @@ class NpmCommand : INavigationCommand {
         return "Install npm (I) or Remove node_modules (X)"
     }
 
-    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+    [bool] CanExecute([object]$keyPress, [CommandContext]$context) {
         $key = $keyPress.VirtualKeyCode
         return $key -eq [Constants]::KEY_I -or $key -eq [Constants]::KEY_X
     }
 
-    [void] Execute([object]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         $currentIndex = $state.GetCurrentIndex()

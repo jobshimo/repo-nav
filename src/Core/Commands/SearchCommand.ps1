@@ -20,13 +20,13 @@ class SearchCommand : INavigationCommand {
         return "Search repositories (S)"
     }
     
-    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+    [bool] CanExecute([object]$keyPress, [CommandContext]$context) {
         # Activate on 'S' or 's' key
         $char = $keyPress.Character
         return ($char -eq 'S' -or $char -eq 's')
     }
     
-    [void] Execute([object]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         $state = $context.State
         $console = $context.Console
         $renderer = $context.Renderer

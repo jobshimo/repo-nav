@@ -5,11 +5,11 @@ class PreferencesCommand : INavigationCommand {
         return "Open preferences menu (U)"
     }
 
-    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+    [bool] CanExecute([object]$keyPress, [CommandContext]$context) {
         return $keyPress.VirtualKeyCode -eq [Constants]::KEY_U
     }
 
-    [void] Execute([object]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         $state = $context.State
         
         # Stop the navigation loop to allow interactive menu

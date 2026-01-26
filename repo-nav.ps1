@@ -93,10 +93,16 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\ColorSelector.ps1"
 . "$srcPath\UI\OptionSelector.ps1"
 
+# RepositoryManager (Depends on Services AND UI Components like ProgressIndicator)
+. "$srcPath\Core\RepositoryManager.ps1"
+
 # Views (depend on UI components)
 . "$srcPath\UI\Views\RepositoryManagementView.ps1"
 . "$srcPath\UI\Views\AliasView.ps1"
 . "$srcPath\UI\Views\SearchView.ps1"
+
+# Core Context (Depends on RepositoryManager and UI)
+. "$srcPath\Core\CommandContext.ps1"
 
 # Commands (Interfaces and Implementations)
 . "$srcPath\Core\Commands\INavigationCommand.ps1"
@@ -115,7 +121,6 @@ $srcPath = Join-Path $scriptRoot "src"
 # Core Components
 . "$srcPath\Core\CommandFactory.ps1"
 . "$srcPath\Core\InputHandler.ps1"
-. "$srcPath\Core\RepositoryManager.ps1"
 . "$srcPath\Core\NavigationLoop.ps1"
 #endregion
 

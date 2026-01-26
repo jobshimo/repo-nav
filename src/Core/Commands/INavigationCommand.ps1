@@ -24,12 +24,12 @@ class INavigationCommand {
         The key press object to evaluate
     
     .PARAMETER context
-        Hashtable with dependencies (State, RepoManager, Renderer, etc.)
+        CommandContext with dependencies (State, RepoManager, Renderer, etc.)
     
     .RETURNS
         True if the command can execute, False otherwise
     #>
-    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+    [bool] CanExecute([object]$keyPress, [CommandContext]$context) {
         throw "CanExecute() must be implemented by derived class"
     }
     
@@ -41,9 +41,9 @@ class INavigationCommand {
         The key press object that triggered the command
     
     .PARAMETER context
-        Hashtable with dependencies (State, RepoManager, Renderer, etc.)
+        CommandContext with dependencies (State, RepoManager, Renderer, etc.)
     #>
-    [void] Execute([object]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         throw "Execute() must be implemented by derived class"
     }
     

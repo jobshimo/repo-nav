@@ -5,11 +5,11 @@ class FavoriteCommand : INavigationCommand {
         return "Toggle favorite status (F)"
     }
 
-    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+    [bool] CanExecute([object]$keyPress, [CommandContext]$context) {
         return $keyPress.VirtualKeyCode -eq [Constants]::KEY_F
     }
 
-    [void] Execute([object]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         $currentIndex = $state.GetCurrentIndex()
