@@ -307,7 +307,7 @@ class FilteredListSelector {
         if (-not [string]::IsNullOrEmpty($statusMessage)) {
              $this.Console.WriteColored("  $statusMessage", $statusColor)
         } else {
-             $this.Console.WriteColored("  " + "\u2191\u2193=Navigate | Enter=Open | \u2191(top)/Tab=Back to search | Esc=Close", [Constants]::ColorHint)
+             $this.Console.WriteColored("  " + "$([char]0x2191)$([char]0x2193)=Navigate | Enter=Open | $([char]0x2191)(top)/Tab=Back to search | Esc=Close", [Constants]::ColorHint)
         }
         
         # 4. Final Separator
