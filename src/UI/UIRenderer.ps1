@@ -23,9 +23,11 @@ class UIRenderer {
     [RepositoryListRenderer] $RepoListRenderer
     [StatusRenderer] $StatusRenderer
     [HeaderRenderer] $HeaderRenderer
+    [FeedbackRenderer] $FeedbackRenderer
+    [ColorRenderer] $ColorRenderer
     
     # Constructor with dependency injection
-    UIRenderer([ConsoleHelper]$console, [UserPreferencesService]$preferencesService, [LocalizationService]$localizationService, [MenuRenderer]$menuRenderer, [RepositoryListRenderer]$repoListRenderer, [StatusRenderer]$statusRenderer, [HeaderRenderer]$headerRenderer) {
+    UIRenderer([ConsoleHelper]$console, [UserPreferencesService]$preferencesService, [LocalizationService]$localizationService, [MenuRenderer]$menuRenderer, [RepositoryListRenderer]$repoListRenderer, [StatusRenderer]$statusRenderer, [HeaderRenderer]$headerRenderer, [FeedbackRenderer]$feedbackRenderer, [ColorRenderer]$colorRenderer) {
         $this.Console = $console
         $this.PreferencesService = $preferencesService
         $this.LocalizationService = $localizationService
@@ -33,6 +35,8 @@ class UIRenderer {
         $this.RepoListRenderer = $repoListRenderer
         $this.StatusRenderer = $statusRenderer
         $this.HeaderRenderer = $headerRenderer
+        $this.FeedbackRenderer = $feedbackRenderer
+        $this.ColorRenderer = $colorRenderer
     }
 
     # Helper for localization
@@ -85,40 +89,6 @@ class UIRenderer {
         }
         return 0
     }
-# NOTE: Duplicated in RepositoryListRenderer for safety/encapsulation.
-    # Eventually, RenderGitStatusFooter should move to a StatusRenderer.
-    [hashtable] GetGitStatusDisplay([GitStatusModel]$gitStatus) {
-        if (-not $gitStatus -or -not $gitStatus.IsGitRepo) {
-            return @{
-                Symbol = "?"
-                Color = ([Constants]::ColorGitUnknown)
-                Description = "Not a git repository"
-            }
-        }
-        
-        # Priority: Uncommitted > Unpushed > Clean
-        if ($gitStatus.HasUncommittedChanges) {
-            return @{
-                Symbol = [Constants]::GitSymbolUncommitted
-                Color = ([Constants]::ColorGitUncommitted)
-                Description = "Uncommitted changes"
-            }
-        }
-        
-        if ($gitStatus.HasUnpushedCommits) {
-            return @{
-                Symbol = [Constants]::GitSymbolUnpushed
-                Color = ([Constants]::ColorGitUnpushed)
-                Description = "Unpushed commits"
-            }
-        }
-        
-        return @{
-            Symbol = [Constants]::GitSymbolClean
-            Color = ([Constants]::ColorGitClean)
-            Description = "Clean repository"
-        }
-    }
     
     # Render visible repository list based on Viewport
     [void] RenderRepositoryList([NavigationState]$state, [int]$startLine) {
@@ -136,36 +106,16 @@ class UIRenderer {
     
     # Render color selection item
     [void] RenderColorItem([string]$color, [bool]$isSelected) {
-        $backgroundColor = $null
-        if ($isSelected) {
-            $preferences = $this.PreferencesService.LoadPreferences()
-            $bgColor = $preferences.display.selectedBackground
-            if ($bgColor -ne 'None') {
-                $backgroundColor = $bgColor
-            }
-        }
-        
-        $displayColor = $this.GetLoc("Color.$color", $color)
-
-        if ($isSelected) {
-            $this.Console.WriteColored("  > ", [Constants]::ColorSelected)
-            if ($backgroundColor) {
-                $this.Console.WriteWithBackground($displayColor, $color, $backgroundColor)
-            } else {
-                $this.Console.WriteColored($displayColor, $color)
-            }
-            $this.Console.NewLine()
-        } else {
-            $this.Console.Write("    ")
-            $this.Console.WriteLineColored($displayColor, $color)
+        if ($null -ne $this.ColorRenderer) {
+            $this.ColorRenderer.RenderColorItem($color, $isSelected)
         }
     }
     
     # Update color item at specific line
     [void] UpdateColorItemAt([int]$lineNumber, [string]$color, [bool]$isSelected) {
-        $this.Console.SetCursorPosition(0, $lineNumber)
-        $this.Console.ClearCurrentLine()
-        $this.RenderColorItem($color, $isSelected)
+         if ($null -ne $this.ColorRenderer) {
+            $this.ColorRenderer.UpdateColorItemAt($lineNumber, $color, $isSelected)
+        }
     }
     
     # Clear the git status footer area (4 lines)
@@ -185,20 +135,22 @@ class UIRenderer {
     
     # Render error message
     [void] RenderError([string]$message) {
-        $msg = $this.GetLoc("Error.Generic", "Error: {0}")
-        # Simplistic format since we can't easily pass args to PS format for partial string
-        # If message is already localized/dynamic, we just prepend Error if needed.
-        # But here we just print as is usually.
-        $this.Console.WriteLineColored("Error: $message", [Constants]::ColorError)
+        if ($null -ne $this.FeedbackRenderer) {
+            $this.FeedbackRenderer.RenderError($message)
+        }
     }
     
     # Render success message
     [void] RenderSuccess([string]$message) {
-        $this.Console.WriteLineColored($message, [Constants]::ColorSuccess)
+         if ($null -ne $this.FeedbackRenderer) {
+            $this.FeedbackRenderer.RenderSuccess($message)
+        }
     }
     
     # Render warning message
     [void] RenderWarning([string]$message) {
-        $this.Console.WriteLineColored($message, [Constants]::ColorWarning)
+         if ($null -ne $this.FeedbackRenderer) {
+            $this.FeedbackRenderer.RenderWarning($message)
+        }
     }
 }
