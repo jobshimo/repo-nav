@@ -85,7 +85,7 @@ class PreferencesCommand : INavigationCommand {
                 if ($confirmationTimeout -gt 0) { $confirmationTimeout-- } else { $confirmationMessage = "" }
                 
                 Write-Host ""
-                Write-Host "  Use Arrows to navigate | Enter to change/select | Q to go back" -ForegroundColor ([Constants]::ColorHint)
+                Write-Host "  Use Arrows to navigate | Enter to change/select | Q/Left to go back" -ForegroundColor ([Constants]::ColorHint)
                 
                 # 5. Input Layer
                 $key = $Console.ReadKey()
@@ -97,6 +97,10 @@ class PreferencesCommand : INavigationCommand {
                     
                     ([Constants]::KEY_DOWN_ARROW) {
                         $selectedOption = if ($selectedOption -lt $preferenceItems.Count) { $selectedOption + 1 } else { 0 }
+                    }
+
+                    ([Constants]::KEY_LEFT_ARROW) {
+                         $running = $false
                     }
                     
                     ([Constants]::KEY_ENTER) {

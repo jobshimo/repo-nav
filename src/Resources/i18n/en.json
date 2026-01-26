@@ -43,6 +43,20 @@
     "Pref.Value.Disabled": "Disabled",
     "Pref.Value.Show": "Show",
     "Pref.Value.Hide": "Hide",
+    
+    "Pref.AliasPosition": "Alias Position",
+    "Pref.AliasSeparator": "Alias Separator",
+    "Pref.AliasWrapper": "Alias Style",
+
+    "Pref.Value.After": "After Name",
+    "Pref.Value.Before": "Before Name",
+    "Pref.Value.SepHyphen": "Hyphen ( - )",
+    "Pref.Value.SepColon": "Colon ( : )",
+    "Pref.Value.SepPipe": "Pipe ( | )",
+    "Pref.Value.None": "None",
+    "Pref.Value.WrapParens": "Parentheses (alias)",
+    "Pref.Value.WrapBrackets": "Brackets [alias]",
+    "Pref.Value.WrapBraces": "Braces {alias}",
 
     "Msg.LanguageChanged": "Language changed to {0}",
     "Msg.FavoritesPosUpdated": "Updated favorites position",
