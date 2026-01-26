@@ -8,7 +8,7 @@
 
 Comencé este proyecto como un simple script de PowerShell para resolver un problema común que tenía: **identificar y navegar rápidamente entre mis múltiples repositorios Git**. Mi idea original era sencilla: quería una forma de asignar alias cortos y coloridos a mis repositorios para reconocerlos instantáneamente.
 
-Lo que empezó como una utilidad de ~200 líneas ha evolucionado hasta convertirse en una aplicación completa, fruto de aplicar mi **mentalidad de ingeniero** y **principios sólidos de ingeniería de software**. A pesar de las limitaciones de PowerShell (sin interfaces reales, POO limitada...), he construido una arquitectura mantenible y extensible siguiendo los **principios SOLID**.
+Lo que empezó como una utilidad de ~200 líneas ha evolucionado hasta convertirse en una aplicación completa, fruto de aplicar mi **mentalidad de ingeniero** y **principios SOLID de ingeniería de software**. A pesar de las limitaciones de PowerShell (sin interfaces reales, POO limitada...), he construido una arquitectura mantenible y extensible siguiendo los **principios SOLID**.
 
 El resultado es lo que ves ahora: una **herramienta CLI de grado profesional** que demuestra cómo un buen diseño puede transformar un script en una aplicación robusta.
 
