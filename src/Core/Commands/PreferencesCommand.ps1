@@ -62,69 +62,134 @@ class PreferencesCommand : INavigationCommand {
             # Save cursor position to avoid full screen clearing
             $listStartTop = 0
             
+            # Viewport State
+            $viewportStart = 0
+            
             while ($running) {
-                # 1. Render Layer
-                if ($fullRedrawNeeded) {
-                    $Console.ClearScreen()
-                    $Renderer.RenderHeader((& $GetLoc "Pref.Title" "USER PREFERENCES"))
-                    Write-Host ""
-                    $listStartTop = $Console.GetCursorTop()
-                    $fullRedrawNeeded = $false
-                }
-                
-                $Console.SetCursorPosition(0, $listStartTop)
-
-                # 2. Data Layer (Construct Menu Model)
-                $preferenceItems = $this.GetPreferenceItems($preferences, $GetLoc, $LocalizationService)
-                
-                # 3. View Layer (Draw Menu)
-                $this.RenderMenu($preferenceItems, $selectedOption, $GetLoc)
-                
-                # 4. Feedback Layer
-                $this.RenderFeedback($confirmationMessage, $confirmationTimeout, $Renderer)
-                if ($confirmationTimeout -gt 0) { $confirmationTimeout-- } else { $confirmationMessage = "" }
-                
-                Write-Host ""
-                Write-Host "  Use Arrows to navigate | Enter to change/select | Q/Left to go back" -ForegroundColor ([Constants]::ColorHint)
-                
-                # 5. Input Layer
-                $key = $Console.ReadKey()
-                
-                switch ($key.VirtualKeyCode) {
-                    ([Constants]::KEY_UP_ARROW) {
-                        $selectedOption = if ($selectedOption -gt 0) { $selectedOption - 1 } else { $preferenceItems.Count }
-                    }
-                    
-                    ([Constants]::KEY_DOWN_ARROW) {
-                        $selectedOption = if ($selectedOption -lt $preferenceItems.Count) { $selectedOption + 1 } else { 0 }
-                    }
-
-                    ([Constants]::KEY_LEFT_ARROW) {
-                         $running = $false
-                    }
-                    
-                    ([Constants]::KEY_ENTER) {
-                        if ($selectedOption -eq $preferenceItems.Count) {
-                            $running = $false
+                try {
+                    # 1. Render Layer
+                    if ($fullRedrawNeeded) {
+                        $Console.ClearScreen()
+                        $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+                        if ($showHeaders) {
+                            $Renderer.RenderHeader((& $GetLoc "Pref.Title" "USER PREFERENCES"))
+                            Write-Host ""
                         }
-                        else {
-                            # 6. Action Layer (Process Selection)
-                            $selectedItem = $preferenceItems[$selectedOption]
-                            $result = $this.HandleSelection($selectedItem, $preferences, $context, $GetLoc)
-                            
-                            # Always redraw after interaction because OptionSelector dirties the screen
-                            $fullRedrawNeeded = $true
-                            
-                            if ($result.Updated) {
-                                $preferences = $PreferencesService.LoadPreferences()
-                                $confirmationMessage = $result.Message
-                                $confirmationTimeout = $result.Timeout
+                        $listStartTop = $Console.GetCursorTop()
+                        $fullRedrawNeeded = $false
+                    }
+                    
+                    $Console.SetCursorPosition(0, $listStartTop)
+
+                    # 2. Data Layer (Construct Menu Model)
+                    $preferenceItems = $this.GetPreferenceItems($preferences, $GetLoc, $LocalizationService)
+                    # Add "Back" as a pseudo-item for consistent navigation
+                    $backItem = @{ Id = "BACK_BUTTON"; Name = (& $GetLoc "Pref.Back" "Back to main menu"); CurrentValue = ""; IsAction = $true }
+                    $allItems = $preferenceItems + $backItem
+                    
+                    # Dynamic Page Size Calculation
+                    # Header lines (approx 3) + Footer lines (2: Separator + Text) 
+                    # Safety margin 1
+                    $reserved = $listStartTop + 3 
+                    $reservedFooter = 2 # Separator + Message
+                    
+                    $winHeight = $Console.GetWindowHeight() 
+                    $maxPageSize = $winHeight - ($reserved + $reservedFooter)
+                    if ($maxPageSize -lt 5) { $maxPageSize = 5 } # Min size
+                    
+                    $pageSize = $maxPageSize
+                    
+                    # 3. View Layer (Draw Menu)
+                    $this.RenderMenu($Console, $allItems, $selectedOption, $listStartTop, $viewportStart, $pageSize, $GetLoc)
+                    
+                    # 4. Feedback / Footer Layer
+                    # Footer is always at Start + PageSize
+                    $footerLine = $listStartTop + $pageSize
+                    $this.RenderFooter($Console, $confirmationMessage, $confirmationTimeout, $footerLine, $GetLoc)
+                    
+                    if ($confirmationTimeout -gt 0) { $confirmationTimeout-- } else { $confirmationMessage = "" }
+                    
+                    # 5. Input Layer
+                    $key = $Console.ReadKey()
+                    
+                    switch ($key.VirtualKeyCode) {
+                        ([Constants]::KEY_UP_ARROW) {
+                            if ($selectedOption -gt 0) { 
+                                $selectedOption-- 
+                                if ($selectedOption -lt $viewportStart) {
+                                    $viewportStart = $selectedOption
+                                }
+                            } else {
+                                # Wrap to bottom
+                                $selectedOption = $allItems.Count - 1
+                                $viewportStart = [Math]::Max(0, $allItems.Count - $pageSize)
                             }
                         }
+                        
+                        ([Constants]::KEY_DOWN_ARROW) {
+                            if ($selectedOption -lt ($allItems.Count - 1)) { 
+                                $selectedOption++ 
+                                if ($selectedOption -ge ($viewportStart + $pageSize)) {
+                                    $viewportStart = $selectedOption - $pageSize + 1
+                                }
+                            } else {
+                                # Wrap to top
+                                $selectedOption = 0
+                                $viewportStart = 0
+                            }
+                        }
+
+                        ([Constants]::KEY_HOME) {
+                            $selectedOption = 0
+                            $viewportStart = 0
+                        }
+
+                        ([Constants]::KEY_END) {
+                            $selectedOption = $allItems.Count - 1
+                            if ($selectedOption -ge $pageSize) {
+                                $viewportStart = $selectedOption - $pageSize + 1
+                            } else {
+                                $viewportStart = 0
+                            }
+                        }
+
+                        ([Constants]::KEY_LEFT_ARROW) {
+                             $running = $false
+                        }
+                        
+                        ([Constants]::KEY_ENTER) {
+                             $selectedItem = $allItems[$selectedOption]
+                             if ($selectedItem.Id -eq "BACK_BUTTON") {
+                                 $running = $false
+                             }
+                             else {
+                                # 6. Action Layer (Process Selection)
+                                $result = $this.HandleSelection($selectedItem, $preferences, $context, $GetLoc)
+                                
+                                # Always redraw after interaction because OptionSelector dirties the screen
+                                $fullRedrawNeeded = $true
+                                $viewportStart = 0 # Reset view on redraw usually safer
+                                
+                                if ($result.Updated) {
+                                    $preferences = $PreferencesService.LoadPreferences()
+                                    $confirmationMessage = $result.Message
+                                    $confirmationTimeout = $result.Timeout
+                                }
+                            }
+                        }
+                        
+                        ([Constants]::KEY_Q) { $running = $false }
+                        ([Constants]::KEY_ESC) { $running = $false }
                     }
-                    
-                    ([Constants]::KEY_Q) { $running = $false }
-                    ([Constants]::KEY_ESC) { $running = $false }
+                }
+                catch {
+                    $running = $false
+                    $Console.ClearScreen()
+                    Write-Host "ERROR IN PREFERENCES MENU:" -ForegroundColor Red
+                    Write-Host $_.Exception.Message -ForegroundColor Yellow
+                    Write-Host $_.ScriptStackTrace -ForegroundColor Gray
+                    Write-Host "Press any key to exit..."
+                    $Console.ReadKey() | Out-Null
                 }
             }
         }
@@ -135,8 +200,8 @@ class PreferencesCommand : INavigationCommand {
         return $true
     }
 
-    # Region: Helper Methods (Refactoring for SOLID/Clean Code)
-
+    # Region: Helper Methods
+    
     hidden [array] GetPreferenceItems($preferences, $GetLoc, $LocalizationService) {
         $items = @()
 
@@ -144,6 +209,11 @@ class PreferencesCommand : INavigationCommand {
         $currentLang = $LocalizationService.GetCurrentLanguage()
         $langName = & $GetLoc "Lang.$currentLang" $currentLang
         $items += @{ Id = "language"; Name = (& $GetLoc "Pref.Language" "Language"); CurrentValue = $langName }
+
+        # 0.5: Show Headers
+        $headersVal = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+        $headerDisplay = if ($headersVal) { (& $GetLoc "Pref.Value.Show" "Show") } else { (& $GetLoc "Pref.Value.Hide" "Hide") }
+        $items += @{ Id = "showHeaders"; Name = (& $GetLoc "Pref.ShowHeaders" "Show Headers"); CurrentValue = $headerDisplay }
 
         # 1: Favorites On Top
         $favVal = if ($preferences.display.favoritesOnTop) { (& $GetLoc "Pref.Value.Top" "Top") } else { (& $GetLoc "Pref.Value.Original" "Original") }
@@ -199,10 +269,10 @@ class PreferencesCommand : INavigationCommand {
                 $sectionKeys = @("navigation", "alias", "modules", "repository", "git", "tools")
                 $sectionLabels = @{
                 "navigation" = (& $GetLoc "UI.Group.Nav" "Navigation");
-                "alias"      = "Alias";
+                "alias"      = (& $GetLoc "Pref.Group.Alias" "Alias");
                 "modules"    = (& $GetLoc "UI.Group.Modules" "Modules");
                 "repository" = (& $GetLoc "UI.Group.Repo" "Repository");
-                "git"        = "Git Status";
+                "git"        = (& $GetLoc "Pref.Group.Git" "Git Status");
                 "tools"      = (& $GetLoc "UI.Group.Tools" "Tools")
                 }
 
@@ -223,41 +293,60 @@ class PreferencesCommand : INavigationCommand {
         return $items
     }
 
-    hidden [void] RenderMenu([array]$items, [int]$selectedOption, $GetLoc) {
-        for ($i = 0; $i -lt $items.Count; $i++) {
-            $item = $items[$i]
-            $isSelected = ($i -eq $selectedOption)
-            $prefix = if ($isSelected) { ">" } else { " " }
-            $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+
+    hidden [void] RenderMenu([ConsoleHelper]$Console, [array]$items, [int]$selectedOption, [int]$startTop, [int]$viewportStart, [int]$pageSize, $GetLoc) {
+        for ($i = 0; $i -lt $pageSize; $i++) {
+            $Console.SetCursorPosition(0, $startTop + $i)
+            $Console.ClearCurrentLine()
             
-            Write-Host "  $prefix $( $item.Name): " -NoNewline -ForegroundColor $color
-            
-            if ($item.Id -eq "selectedBackground") {
-                # Special handling for background preview
-                $bgVal = $item.CurrentValue
-                $bgDisplay = if ($bgVal -eq 'None') { & $GetLoc "Color.None" "No background" } else { & $GetLoc "Color.$bgVal" $bgVal }
+            $itemIndex = $viewportStart + $i
+            if ($itemIndex -lt $items.Count) {
+                $item = $items[$itemIndex]
+                $isSelected = ($itemIndex -eq $selectedOption)
+                $prefix = if ($isSelected) { ">" } else { " " }
+                $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
                 
-                $fgColor = if ($bgVal -ne 'None' -and ($bgVal -as [System.ConsoleColor])) { $bgVal } else { $color }
-                Write-Host $bgDisplay -ForegroundColor $fgColor
-            }
-            else {
-                Write-Host $item.CurrentValue -ForegroundColor $color
+                if ($item.Id -eq "BACK_BUTTON") {
+                     $Console.WriteColored("  $prefix $( $item.Name )", $color)
+                }
+                else {
+                    $Console.WriteColored("  $prefix $( $item.Name): ", $color)
+                    
+                    if ($item.Id -eq "selectedBackground") {
+                        # Special handling for background preview
+                        $bgVal = $item.CurrentValue
+                        $bgDisplay = if ($bgVal -eq 'None') { & $GetLoc "Color.None" "No background" } else { & $GetLoc "Color.$bgVal" $bgVal }
+                        
+                        $fgColor = if ($bgVal -ne 'None' -and ($bgVal -as [System.ConsoleColor])) { $bgVal } else { $color }
+                        $Console.WriteColored($bgDisplay, $fgColor)
+                    }
+                    else {
+                        $Console.WriteColored($item.CurrentValue, $color)
+                    }
+                }
             }
         }
-        
-        Write-Host ""
-        $backIndex = $items.Count
-        $prefix = if ($selectedOption -eq $backIndex) { ">" } else { " " }
-        $color = if ($selectedOption -eq $backIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
-        Write-Host "  $prefix $( & $GetLoc "Pref.Back" "Back to main menu")" -ForegroundColor $color
     }
 
-    hidden [void] RenderFeedback([string]$msg, [int]$timeout, $Renderer) {
-        Write-Host ""
+    hidden [void] RenderFooter([ConsoleHelper]$Console, [string]$msg, [int]$timeout, [int]$footerStart, $GetLoc) {
+        # Feedback / Status Line
+        $Console.SetCursorPosition(0, $footerStart)
+        $Console.ClearCurrentLine()
+        
+        # 1. Separator Line
+        $sep = "=" * [Constants]::UIWidth
+        $Console.WriteColored($sep, [Constants]::ColorSeparator)
+        
+        # 2. Message / Help
+        $Console.SetCursorPosition(0, $footerStart + 1)
+        $Console.ClearCurrentLine()
+        
         if ($msg -ne "" -and $timeout -gt 0) {
-            $Renderer.RenderSuccess($msg.PadRight(60))
+            $Console.WriteColored("  $msg", [ConsoleColor]::Green)
         } else {
-            Write-Host (" " * 60)
+            # Help Text (User requested format)
+            $hint = & $GetLoc "Pref.Hint" "Use Arrows to navigate | Enter to change/select | Q/Left to go back"
+            $Console.WriteColored("  $hint", [Constants]::ColorHint)
         }
     }
 
@@ -286,6 +375,14 @@ class PreferencesCommand : INavigationCommand {
                 $updated = $true
                 $timeout = 5
             }
+        }
+        elseif ($item.Id -eq "showHeaders") {
+            $current = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+            $newVal = -not $current
+            $PrefsService.SetPreference("display", "showHeaders", $newVal)
+            $msg = (& $GetLoc "Msg.HeaderPrefUpdated" "Header visibility updated")
+            $updated = $true
+            $timeout = 2
         }
         elseif ($item.Id -eq "favoritesOnTop") {
             $opts = @( @{ DisplayText = (& $GetLoc "Pref.Value.Top"); Value = $true }, @{ DisplayText = (& $GetLoc "Pref.Value.Original"); Value = $false } )

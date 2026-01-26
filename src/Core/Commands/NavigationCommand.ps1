@@ -10,7 +10,9 @@ class NavigationCommand : INavigationCommand {
         return $key -eq [Constants]::KEY_UP_ARROW -or 
                $key -eq [Constants]::KEY_DOWN_ARROW -or
                $key -eq [Constants]::KEY_LEFT_ARROW -or
-               $key -eq [Constants]::KEY_RIGHT_ARROW
+               $key -eq [Constants]::KEY_RIGHT_ARROW -or
+               $key -eq [Constants]::KEY_HOME -or
+               $key -eq [Constants]::KEY_END
     }
 
     [void] Execute([object]$keyPress, [CommandContext]$context) {
@@ -85,6 +87,12 @@ class NavigationCommand : INavigationCommand {
             else {
                 $state.SetCurrentIndex(0)
             }
+        }
+        elseif ($key -eq [Constants]::KEY_HOME) {
+            $state.SetCurrentIndex(0)
+        }
+        elseif ($key -eq [Constants]::KEY_END) {
+            $state.SetCurrentIndex($repos.Count - 1)
         }
         
         # Selection changed flag is automatically set by SetCurrentIndex()

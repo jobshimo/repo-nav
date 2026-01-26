@@ -24,6 +24,8 @@
     
     "Pref.Title": "PREFERENCIAS DE USUARIO",
     "Pref.Language": "Idioma",
+    "Pref.ShowHeaders": "Mostrar Cabeceras",
+    "Msg.HeaderPrefUpdated": "Visibilidad de cabeceras actualizada",
     "Pref.FavoritesPos": "Posición de Favoritos",
     "Pref.SelectedBg": "Fondo del Elemento Seleccionado",
     "Pref.SelectedDelim": "Delimitador de Selección",
@@ -81,12 +83,16 @@
     "UI.Group.Repo": "Repositorio",
     "UI.Group.Modules": "Módulos",
     "UI.Group.Tools": "Herramientas",
+    "UI.Label.Item": "Elemento",
+    "UI.Label.Filtered": "Filtrado",
+    "UI.Label.Of": "de",
+    "UI.Label.Items": "elementos",
     
     "Cmd.Desc.Alias": "Alias: Set (E) / Del(R)",
     "Cmd.Desc.Exit": "Salir: Q/Esc",
     "Cmd.Desc.Favorite": "Añadir / Quitar favorito (F)",
     "Cmd.Desc.Git": "GtStatus: Cargar (L) / (G)",
-    "Cmd.Desc.Nav": "\u2190/\u2191/\u2193 | Enter",
+    "Cmd.Desc.Nav": "↑↓/Inic/Fin | Enter",
     "Cmd.Desc.Npm": "Npm: Instalar (I) / Borrar (X)",
     "Cmd.Desc.Pref": "Preferencias: U",
     "Cmd.Desc.Repo": "Abrir (Enter)",
@@ -201,8 +207,11 @@
     "Search.Placeholder": "Escribe para filtrar...",
     "Search.ResultCount": "{0} de {1} repositorios",
     "Search.NoResults": "No se encontraron repositorios",
-    "Search.Hint.Input": "Escribe para filtrar | ↓/Tab=Ir a lista | Esc=Cerrar",
-    "Search.Hint.List": "↑↓=Navegar | Enter=Abrir | ↑(arriba)/Tab=Volver a buscar | Esc=Cerrar",
+    "Search.Hint.Input": "Escribe para filtrar | ↓/Tab=Lista | Esc=Cerrar",
+    "Search.Hint.List": "↑↓/Inic/Fin:Nav Enter:Abrir Tab:Buscar Esc:Cerrar",
+    "Search.Hint.FilteredList": "↑↓/Inic/Fin:Nav Enter:Sel Tab:Buscar Esc:Cancel",
+    "Search.NoItems": "No se encontraron elementos",
+    "Search.TypeToFilter": "Escribe para filtrar...",
     "Cmd.Desc.Search": "Buscar (S)",
     "Cmd.Desc.GitFlow": "Flujo (B)",
     
@@ -219,5 +228,6 @@
     "Flow.OpenPrPrompt": "¿Abrir Pull Request en GitHub?",
     "Flow.OpenPrTitle": "ABRIENDO PR",
     "Flow.Opening": "Abriendo: {0}",
-    "Flow.Error.Conflict": "Por favor resuelve los conflictos en tu IDE."
+    "Flow.Error.Conflict": "Por favor resuelve los conflictos en tu IDE.",
+    "Pref.Hint": "↑↓/Inic/Fin:Nav Enter:Cambiar Q/←:Volver"
 }

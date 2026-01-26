@@ -55,7 +55,7 @@ class SearchView {
         $available = $windowHeight - $reservedLines
         
         # Bounds
-        if ($available -lt 3) { return 3 }
+        if ($available -lt 1) { return 1 }
         if ($available -gt 20) { return 20 }
         return $available
     }
@@ -90,6 +90,14 @@ class SearchView {
         $running = $true
         $cancelled = $false
         
+        # Check Header Preference
+        $preferences = $this.Renderer.PreferencesService.LoadPreferences()
+        $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+        
+        # Adjust layout based on preference
+        $headerOffset = if ($showHeaders) { 3 } else { 0 }
+        $this.HeaderLines = $headerOffset
+        
         # Viewport state
         $viewportStart = 0
         $pageSize = $this.CalculatePageSize()
@@ -117,7 +125,8 @@ class SearchView {
                     # Position cursor at end of search input
                     # Format: "  > " (4 chars) + label + ": " (2 chars) + text
                     $cursorX = 4 + $searchLabel.Length + 2 + $searchText.Length
-                    $this.Console.SetCursorPosition($cursorX, 3)
+                    $cursorY = $this.HeaderLines # Input is immediately after header
+                    $this.Console.SetCursorPosition($cursorX, $cursorY)
                     $this.Console.ShowCursor()
                 } else {
                     $this.Console.HideCursor()
@@ -229,6 +238,32 @@ class SearchView {
                     }
                     continue
                 }
+
+                # Handle Home/End
+                if ($keyCode -eq [Constants]::KEY_HOME) {
+                    if ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
+                        $selectedIndex = 0
+                        $viewportStart = 0
+                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                    }
+                    continue
+                }
+                
+                if ($keyCode -eq [Constants]::KEY_END) {
+                    if ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
+                        $selectedIndex = $filteredRepos.Count - 1
+                        
+                        # Calculate viewport so selected item is at bottom or visible
+                        if ($selectedIndex -ge $pageSize) {
+                            $viewportStart = $selectedIndex - $pageSize + 1
+                        } else {
+                            $viewportStart = 0
+                        }
+                        
+                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                    }
+                    continue
+                }
                 
                 # Handle text input (only in input mode)
                 if ($focusMode -eq "input") {
@@ -297,6 +332,11 @@ class SearchView {
         
         # Results count (2 lines)
         $resultCount = $filteredRepos.Count
+        # "Search.ResultCount" is "{0} of {1} repositories" in en.json
+        # But we added UI.Label.Repositories? No.
+        # Check if Search.ResultCount is okay. It is "{0} of {1} repositories" in en.json.
+        # In es.json it is "{0} de {1} repositorios".
+        # This seems fine as a full sentence/phrase.
         $countText = $this.GetLoc("Search.ResultCount", "{0} of {1} repositories") -f $resultCount, $totalCount
         $this.Console.WriteLineColored("  $countText", [Constants]::ColorHint)
         $this.Console.NewLine()
@@ -435,10 +475,14 @@ class SearchView {
         # Position info
         if ($filteredCount -gt 0) {
             $currentPos = $selectedIndex + 1
-            $this.Console.WriteColored("  Item: ", [Constants]::ColorLabel)
+            $lblItem = $this.GetLoc("UI.Label.Item", "Item")
+            $lblFiltered = $this.GetLoc("UI.Label.Filtered", "Filtered")
+            $lblOf = $this.GetLoc("UI.Label.Of", "of")
+            
+            $this.Console.WriteColored("  $lblItem`: ", [Constants]::ColorLabel)
             $this.Console.WriteColored("$currentPos/$filteredCount", [Constants]::ColorValue)
-            $this.Console.WriteColored(" | Filtered: ", [Constants]::ColorLabel)
-            $this.Console.WriteLineColored("$filteredCount of $totalCount", [Constants]::ColorHint)
+            $this.Console.WriteColored(" | $lblFiltered`: ", [Constants]::ColorLabel)
+            $this.Console.WriteLineColored("$filteredCount $lblOf $totalCount", [Constants]::ColorHint)
         } else {
             $noResults = $this.GetLoc("Search.NoResults", "No repositories found")
             $this.Console.WriteLineColored("  $noResults", [Constants]::ColorWarning)

@@ -40,10 +40,17 @@ class Constants {
     static [int] $KEY_RIGHT_ARROW = 39
     static [int] $KEY_N = 78
     static [int] $KEY_B = 66
+    static [int] $KEY_HOME = 36
+    static [int] $KEY_END = 35
     
     # UI Constants
     static [int] $CursorStartLine = 10
     static [int] $UIWidth = 90  # New standardized width for separators
+    
+    # Focus Mode Constants
+    static [string] $FocusInput = "input"
+    static [string] $FocusList = "list"
+    static [string] $FocusHeader = "header"
     
     # Git Status Symbols
     static [string] $GitSymbolClean = [char]0x2713      # ✓
