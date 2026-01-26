@@ -87,7 +87,10 @@ class FilteredListSelector {
         $headerIndex = if ($this.LastHeaderIndex -lt $headerOptions.Count) { $this.LastHeaderIndex } else { 0 }
         
         # Focus modes: "header", "input", "list"
-        $focusMode = if ($initialIndex -ge 0) { "list" } else { "input" }
+        $desiredFocus = if ($options.ContainsKey('InitialFocus')) { $options['InitialFocus'] } else { $null }
+        $focusMode = if ($desiredFocus) { $desiredFocus }
+                     elseif ($initialIndex -ge 0) { "list" } 
+                     else { "input" }
         
         $running = $true
         $result = $null
