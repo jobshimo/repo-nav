@@ -5,11 +5,11 @@ class PreferencesCommand : INavigationCommand {
         return "Open preferences menu (U)"
     }
 
-    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+    [bool] CanExecute([object]$keyPress, [CommandContext]$context) {
         return $keyPress.VirtualKeyCode -eq [Constants]::KEY_U
     }
 
-    [void] Execute([object]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         $state = $context.State
         
         # Stop the navigation loop to allow interactive menu
@@ -85,7 +85,7 @@ class PreferencesCommand : INavigationCommand {
                 if ($confirmationTimeout -gt 0) { $confirmationTimeout-- } else { $confirmationMessage = "" }
                 
                 Write-Host ""
-                Write-Host "  Use Arrows to navigate | Enter to change/select | Q to go back" -ForegroundColor ([Constants]::ColorHint)
+                Write-Host "  Use Arrows to navigate | Enter to change/select | Q/Left to go back" -ForegroundColor ([Constants]::ColorHint)
                 
                 # 5. Input Layer
                 $key = $Console.ReadKey()
@@ -97,6 +97,10 @@ class PreferencesCommand : INavigationCommand {
                     
                     ([Constants]::KEY_DOWN_ARROW) {
                         $selectedOption = if ($selectedOption -lt $preferenceItems.Count) { $selectedOption + 1 } else { 0 }
+                    }
+
+                    ([Constants]::KEY_LEFT_ARROW) {
+                         $running = $false
                     }
                     
                     ([Constants]::KEY_ENTER) {
@@ -148,9 +152,39 @@ class PreferencesCommand : INavigationCommand {
         # 3: Delimiter
         $items += @{ Id = "selectedDelimiter"; Name = (& $GetLoc "Pref.SelectedDelim" "Selected Item Delimiter"); CurrentValue = $preferences.display.selectedDelimiter }
 
+        # 3.1: Alias Position
+        $posValKey = if ($preferences.display.aliasPosition -eq "Before") { "Pref.Value.Before" } else { "Pref.Value.After" }
+        $posVal = & $GetLoc $posValKey $preferences.display.aliasPosition
+        $items += @{ Id = "aliasPosition"; Name = (& $GetLoc "Pref.AliasPosition" "Alias Position"); CurrentValue = $posVal }
+        
+        # 3.2: Alias Separator
+        $sepMap = @{
+            " - " = "Pref.Value.SepHyphen"
+            " : " = "Pref.Value.SepColon"
+            " | " = "Pref.Value.SepPipe"
+            "None" = "Pref.Value.None"
+        }
+        $sepKey = if ($sepMap.ContainsKey($preferences.display.aliasSeparator)) { $sepMap[$preferences.display.aliasSeparator] } else { "Pref.Value.SepHyphen" }
+        $sepVal = & $GetLoc $sepKey $preferences.display.aliasSeparator
+        $items += @{ Id = "aliasSeparator"; Name = (& $GetLoc "Pref.AliasSeparator" "Alias Separator"); CurrentValue = $sepVal }
+        
+        # 3.3: Alias Wrapper
+        $wrapMap = @{
+            "None" = "Pref.Value.None"
+            "Parens" = "Pref.Value.WrapParens"
+            "Brackets" = "Pref.Value.WrapBrackets"
+            "Braces" = "Pref.Value.WrapBraces"
+        }
+        $wrapKey = if ($wrapMap.ContainsKey($preferences.display.aliasWrapper)) { $wrapMap[$preferences.display.aliasWrapper] } else { "Pref.Value.None" }
+        $wrapVal = & $GetLoc $wrapKey $preferences.display.aliasWrapper
+        $items += @{ Id = "aliasWrapper"; Name = (& $GetLoc "Pref.AliasWrapper" "Alias Style"); CurrentValue = $wrapVal }
+
         # 4: Auto Git
-        $gitVal = if ($preferences.git.autoLoadFavoritesStatus) { (& $GetLoc "Pref.Value.Enabled" "Enabled") } else { (& $GetLoc "Pref.Value.Disabled" "Disabled") }
-        $items += @{ Id = "autoLoadGit"; Name = (& $GetLoc "Pref.AutoLoadGit" "Auto-load Git Status"); CurrentValue = $gitVal }
+        $mode = $preferences.git.autoLoadGitStatusMode
+        if (-not $mode) { $mode = "None" }
+        $displayKey = "Pref.AutoLoadGit.$mode"
+        $display = & $GetLoc $displayKey $mode
+        $items += @{ Id = "autoLoadGit"; Name = (& $GetLoc "Pref.AutoLoadGit" "Auto-load Git Status"); CurrentValue = $display }
         
         # 5: Menu Mode
         $menuModeDisplay = if ($preferences.display.menuMode) { $preferences.display.menuMode } else { "Full" }
@@ -159,13 +193,14 @@ class PreferencesCommand : INavigationCommand {
         # 6..N: Custom Menu Sections
         if ($preferences.display.menuMode -eq 'Custom' -and $preferences.display.PSObject.Properties.Name -contains 'menuSections') {
                 $sections = $preferences.display.menuSections
-                $sectionKeys = @("navigation", "alias", "modules", "repository", "git")
+                $sectionKeys = @("navigation", "alias", "modules", "repository", "git", "tools")
                 $sectionLabels = @{
                 "navigation" = (& $GetLoc "UI.Group.Nav" "Navigation");
                 "alias"      = "Alias";
                 "modules"    = (& $GetLoc "UI.Group.Modules" "Modules");
                 "repository" = (& $GetLoc "UI.Group.Repo" "Repository");
-                "git"        = "Git Status"
+                "git"        = "Git Status";
+                "tools"      = (& $GetLoc "UI.Group.Tools" "Tools")
                 }
 
                 foreach ($secKey in $sectionKeys) {
@@ -284,11 +319,58 @@ class PreferencesCommand : INavigationCommand {
                  $timeout = 2
              }
         }
+        elseif ($item.Id -eq "aliasPosition") {
+             $opts = @(
+                 @{ DisplayText = (& $GetLoc "Pref.Value.After" "After Name"); Value = "After" },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.Before" "Before Name"); Value = "Before" }
+             )
+             $newVal = $OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasPos" "Select Alias Position"), $opts, $preferences.display.aliasPosition, "Cancel")
+             if ($newVal) {
+                 $PrefsService.SetPreference("display", "aliasPosition", $newVal)
+                 $msg = (& $GetLoc "Msg.AliasPosUpdated" "Alias position updated")
+                 $updated = $true
+                 $timeout = 2
+             }
+        }
+        elseif ($item.Id -eq "aliasSeparator") {
+             $opts = @(
+                 @{ DisplayText = (& $GetLoc "Pref.Value.SepHyphen" "Hyphen ( - )"); Value = " - " },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.SepColon" "Colon ( : )"); Value = " : " },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.SepPipe" "Pipe ( | )"); Value = " | " },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.None" "None"); Value = "None" }
+             )
+             $newVal = $OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasSep" "Select Alias Separator"), $opts, $preferences.display.aliasSeparator, "Cancel")
+             if ($newVal) {
+                 $PrefsService.SetPreference("display", "aliasSeparator", $newVal)
+                 $msg = (& $GetLoc "Msg.AliasSepUpdated" "Alias separator updated")
+                 $updated = $true
+                 $timeout = 2
+             }
+        }
+        elseif ($item.Id -eq "aliasWrapper") {
+             $opts = @(
+                 @{ DisplayText = (& $GetLoc "Pref.Value.None" "None"); Value = "None" },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.WrapParens" "Parentheses (alias)"); Value = "Parens" },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.WrapBrackets" "Brackets [alias]"); Value = "Brackets" },
+                 @{ DisplayText = (& $GetLoc "Pref.Value.WrapBraces" "Braces {alias]"); Value = "Braces" }
+             )
+             $newVal = $OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasWrap" "Select Alias Style"), $opts, $preferences.display.aliasWrapper, "Cancel")
+             if ($newVal) {
+                 $PrefsService.SetPreference("display", "aliasWrapper", $newVal)
+                 $msg = (& $GetLoc "Msg.AliasWrapUpdated" "Alias style updated")
+                 $updated = $true
+                 $timeout = 2
+             }
+        }
         elseif ($item.Id -eq "autoLoadGit") {
-             $opts = @( @{ DisplayText = (& $GetLoc "Pref.Value.Enabled"); Value = $true }, @{ DisplayText = (& $GetLoc "Pref.Value.Disabled"); Value = $false } )
-             $newVal = $OptionSelector.ShowSelection((& $GetLoc "Pref.AutoLoadGit"), $opts, $preferences.git.autoLoadFavoritesStatus, "Cancel")
+             $opts = @(
+                 @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.None" "None"); Value = "None" },
+                 @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.Favorites" "Favorites"); Value = "Favorites" },
+                 @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.All" "All Repositories"); Value = "All" }
+             )
+             $newVal = $OptionSelector.ShowSelection((& $GetLoc "Pref.AutoLoadGit"), $opts, $preferences.git.autoLoadGitStatusMode, "Cancel")
              if ($null -ne $newVal) {
-                 $PrefsService.SetPreference("git", "autoLoadFavoritesStatus", $newVal)
+                 $PrefsService.SetPreference("git", "autoLoadGitStatusMode", $newVal)
                  $msg = (& $GetLoc "Msg.AutoLoadUpdated")
                  $updated = $true
                  $timeout = 2

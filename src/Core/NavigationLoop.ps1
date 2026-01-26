@@ -44,35 +44,27 @@ function Start-NavigationLoop {
         $progressIndicator = [ProgressIndicator]::new($Console)
         
         $autoLoadFavorites = $PreferencesService.GetPreference("git", "autoLoadFavoritesStatus")
-        
-        if ($autoLoadFavorites) {
-            $favorites = $repos | Where-Object { $_.IsFavorite }
-            if ($favorites.Count -gt 0) {
-                $progressCallback = {
-                    param([int]$current, [int]$total)
-                    $progressIndicator.RenderProgressBar("Loading git status (favorites)", $current, $total)
-                }
-                
-                $RepoManager.LoadGitStatusForRepos($favorites, $progressCallback)
-                $progressIndicator.CompleteProgressBar()
-            }
+        if ($null -ne $autoLoadFavorites) {
+             # Legacy cleanup if needed, though PerformAutoLoadGitStatus handles new pref
         }
+
+        # Perform Auto Load using centralized logic
+        $RepoManager.PerformAutoLoadGitStatus($repos, $Console)
         
         # Initialize CommandFactory and InputHandler
         $factory = [CommandFactory]::new()
         $inputHandler = [InputHandler]::new($factory)
         
-        # Create context hashtable for commands
-        $commandContext = @{
-            State               = $state
-            RepoManager         = $RepoManager
-            Renderer            = $Renderer
-            Console             = $Console
-            ColorSelector       = $ColorSelector
-            OptionSelector      = $OptionSelector
-            LocalizationService = $LocalizationService
-            BasePath            = $BasePath
-        }
+        # Create CommandContext for commands (Strongly Typed)
+        $commandContext = [CommandContext]::new()
+        $commandContext.State = $state
+        $commandContext.RepoManager = $RepoManager
+        $commandContext.Renderer = $Renderer
+        $commandContext.Console = $Console
+        $commandContext.ColorSelector = $ColorSelector
+        $commandContext.OptionSelector = $OptionSelector
+        $commandContext.LocalizationService = $LocalizationService
+        $commandContext.BasePath = $BasePath
         
         # Initial full render and layout calculation
         $renderOrchestrator.Initialize($state)

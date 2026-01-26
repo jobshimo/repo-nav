@@ -22,82 +22,169 @@ class AliasManager {
         $this.ConfigService = $configService
     }
     
-    # Get all aliases as hashtable: RepoName -> AliasInfo
+    # Helper to normalize aliases configuration to a List
+    hidden [System.Collections.ArrayList] GetAliasesAsList([PSCustomObject]$config) {
+        $list = [System.Collections.ArrayList]::new()
+        
+        if ($null -eq $config.aliases) {
+            return $list
+        }
+
+        # Check if it's a Hashtable/PSCustomObject (Legacy map format)
+        if ($config.aliases -is [PSCustomObject] -or $config.aliases -is [hashtable]) {
+            foreach ($property in $config.aliases.PSObject.Properties) {
+                $aliasData = $property.Value
+                $key = $property.Name
+                
+                # Determine if key is path or name based on content
+                $isPath = $key.Contains("\") -or $key.Contains("/")
+                
+                # Normalize data structure
+                $entry = $null
+                
+                # Handle simple string format "alias" (Legacy)
+                if ($aliasData -is [string]) {
+                    $entry = [PSCustomObject]@{
+                        alias = $aliasData
+                        color = [ColorPalette]::DefaultAliasColor
+                    }
+                } else {
+                    $entry = [PSCustomObject]@{
+                        alias = $aliasData.alias
+                        color = if ($aliasData.color) { $aliasData.color } else { [ColorPalette]::DefaultAliasColor }
+                    }
+                }
+                
+                # Add identifier
+                if ($isPath) {
+                    $entry | Add-Member -NotePropertyName "path" -NotePropertyValue $key -Force
+                } else {
+                    $entry | Add-Member -NotePropertyName "name" -NotePropertyValue $key -Force
+                }
+                
+                [void]$list.Add($entry)
+            }
+        }
+        # Check if it's already an array (New list format)
+        elseif ($config.aliases -is [array]) {
+            $list.AddRange($config.aliases)
+        }
+        
+        return $list
+    }
+
+    # Get all aliases as hashtable: RepoIdentifier -> AliasInfo
     [hashtable] GetAllAliases() {
         $config = $this.ConfigService.LoadConfiguration()
+        $aliasList = $this.GetAliasesAsList($config)
         $result = @{}
         
-        if ($config.aliases) {
-            foreach ($property in $config.aliases.PSObject.Properties) {
-                $repoName = $property.Name
-                $aliasData = $property.Value
-                
-                # Handle old format (string) vs new format (object)
-                if ($aliasData -is [string]) {
-                    $result[$repoName] = [AliasInfo]::new($aliasData)
-                }
-                else {
-                    $alias = $aliasData.alias
-                    $color = if ($aliasData.color) { $aliasData.color } else { [ColorPalette]::DefaultAliasColor }
-                    
-                    # Validate color - ensure it's not null or empty
-                    $color = [ColorPalette]::GetColorOrDefault($color)
-                    
-                    $result[$repoName] = [AliasInfo]::new($alias, $color)
-                }
+        foreach ($item in $aliasList) {
+            $alias = $item.alias
+            # Validate color
+            $color = [ColorPalette]::GetColorOrDefault($item.color)
+            $aliasInfo = [AliasInfo]::new($alias, $color)
+            
+            # Map by path if available
+            if ($item.PSObject.Properties.Name -contains 'path') {
+                $result[$item.path] = $aliasInfo
+            }
+            
+            # Map by name if available
+            if ($item.PSObject.Properties.Name -contains 'name') {
+                 $result[$item.name] = $aliasInfo
             }
         }
         
         return $result
     }
     
-    # Get alias for a specific repository
-    [AliasInfo] GetAlias([string]$repoName) {
+    # Get alias for a specific repository (by name or path)
+    [AliasInfo] GetAlias([string]$repoIdentifier) {
         $aliases = $this.GetAllAliases()
-        if ($aliases.ContainsKey($repoName)) {
-            return $aliases[$repoName]
+        if ($aliases.ContainsKey($repoIdentifier)) {
+            return $aliases[$repoIdentifier]
         }
         return $null
     }
     
     # Check if repository has an alias
-    [bool] HasAlias([string]$repoName) {
+    [bool] HasAlias([string]$repoIdentifier) {
         $aliases = $this.GetAllAliases()
-        return $aliases.ContainsKey($repoName)
+        return $aliases.ContainsKey($repoIdentifier)
     }
     
     # Set alias for a repository
-    [bool] SetAlias([string]$repoName, [AliasInfo]$aliasInfo) {
+    [bool] SetAlias([string]$repoIdentifier, [AliasInfo]$aliasInfo) {
         if (-not $aliasInfo.IsValid()) {
             Write-Warning "Invalid alias format"
             return $false
         }
         
         $config = $this.ConfigService.LoadConfiguration()
+        $aliasList = $this.GetAliasesAsList($config)
         
-        # Create alias object
-        $aliasData = [PSCustomObject]@{
+        # Prepare new list excluding existing entry for this path
+        $updatedList = [System.Collections.ArrayList]::new()
+        
+        foreach ($item in $aliasList) {
+            # If item has path and matches, skip (we will replace it)
+            if ($item.PSObject.Properties.Name -contains 'path' -and $item.path -eq $repoIdentifier) {
+                continue
+            }
+            [void]$updatedList.Add($item)
+        }
+        
+        # Add new entry
+        # We assume if SetAlias is called with a path-like string (with slashes), it's a path
+        # If it's a simple name, should we store it as 'name'?
+        # Based on user request, new entries should use 'path' property if needed.
+        # Since RepositoryManager is sending FullPath, we treat it as path.
+        
+        $isPath = $repoIdentifier.Contains("\") -or $repoIdentifier.Contains("/")
+        
+        $newEntry = [PSCustomObject]@{
             alias = $aliasInfo.Alias
             color = $aliasInfo.Color
         }
         
-        # Add or update alias
-        if ($config.aliases.PSObject.Properties.Name -contains $repoName) {
-            $config.aliases.$repoName = $aliasData
-        }
-        else {
-            $config.aliases | Add-Member -NotePropertyName $repoName -NotePropertyValue $aliasData
+        if ($isPath) {
+             $newEntry | Add-Member -NotePropertyName "path" -NotePropertyValue $repoIdentifier
+        } else {
+             $newEntry | Add-Member -NotePropertyName "name" -NotePropertyValue $repoIdentifier
         }
         
+        [void]$updatedList.Add($newEntry)
+        
+        $config.aliases = $updatedList
         return $this.ConfigService.SaveConfiguration($config)
     }
     
     # Remove alias for a repository
-    [bool] RemoveAlias([string]$repoName) {
+    [bool] RemoveAlias([string]$repoIdentifier) {
         $config = $this.ConfigService.LoadConfiguration()
+        $aliasList = $this.GetAliasesAsList($config)
         
-        if ($config.aliases.PSObject.Properties.Name -contains $repoName) {
-            $config.aliases.PSObject.Properties.Remove($repoName)
+        $updatedList = [System.Collections.ArrayList]::new()
+        $found = $false
+        
+        foreach ($item in $aliasList) {
+            # Check for path match
+            if ($item.PSObject.Properties.Name -contains 'path' -and $item.path -eq $repoIdentifier) {
+                $found = $true
+                continue
+            }
+            # Check for name match (Legacy support for simple names)
+            if ($item.PSObject.Properties.Name -contains 'name' -and $item.name -eq $repoIdentifier) {
+                $found = $true
+                continue
+            }
+            
+            [void]$updatedList.Add($item)
+        }
+        
+        if ($found) {
+            $config.aliases = $updatedList
             return $this.ConfigService.SaveConfiguration($config)
         }
         

@@ -5,12 +5,12 @@ class RepositoryManagementCommand : INavigationCommand {
         return "Clone (C) or Delete (DELETE) repository"
     }
 
-    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+    [bool] CanExecute([object]$keyPress, [CommandContext]$context) {
         $key = $keyPress.VirtualKeyCode
         return $key -eq [Constants]::KEY_C -or $key -eq [Constants]::KEY_DELETE
     }
 
-    [void] Execute([object]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         $currentIndex = $state.GetCurrentIndex()
@@ -18,6 +18,9 @@ class RepositoryManagementCommand : INavigationCommand {
         
         # Create View
         $view = [RepositoryManagementView]::new($context.Console, $context.LocalizationService, $context.Renderer, $context.OptionSelector)
+        
+        # Flag to track if we need to refresh repos (skip if folder delete was blocked)
+        $needsRefresh = $true
         
         # Stop the navigation loop to allow interactive input
         $state.Stop()
@@ -31,13 +34,19 @@ class RepositoryManagementCommand : INavigationCommand {
                 # Delete repository
                 if ($repos.Count -gt 0) {
                     $currentRepo = $repos[$currentIndex]
-                    $this.InvokeRepositoryDelete($context, $currentRepo, $view)
+                    $needsRefresh = $this.InvokeRepositoryDelete($context, $currentRepo, $view)
                 }
             }
             
             # Reload repositories after clone/delete
             # Note: RepoManager.CloneRepository/DeleteRepository handles the file system,
             # but we need to refresh the in-memory list.
+            # Skip refresh if folder delete was blocked (needsRefresh = false)
+            
+            if (-not $needsRefresh) {
+                # Don't reload or redraw - just resume navigation
+                return
+            }
             
             $repoManager = $context.RepoManager
             if ($null -ne $repoManager) {
@@ -84,10 +93,16 @@ class RepositoryManagementCommand : INavigationCommand {
 
     hidden [void] InvokeRepositoryClone($context, [RepositoryManagementView]$view) {
         $repoManager = $context.RepoManager
-        $basePath = $context.BasePath
+        # Important: Clone into the current path where the user is navigating, not always BasePath
+        $state = $context.State
+        $targetPath = $state.GetCurrentPath()
+        if (-not $targetPath) {
+             # Fallback to base path if current path isn't set (e.g. root)
+             $targetPath = $context.BasePath
+        }
 
-        # 1. View: Get Input
-        $details = $view.GetCloneDetails()
+        # 1. View: Get Input - Pass target path to view for display
+        $details = $view.GetCloneDetails($targetPath)
         if ($null -eq $details) { return }
 
         $url = $details.Url
@@ -99,8 +114,8 @@ class RepositoryManagementCommand : INavigationCommand {
         try {
             [Console]::CursorVisible = $true
             
-            # Call Service method
-            $result = $repoManager.CloneRepository($url, $name, $basePath)
+            # Call Service method - Use $targetPath instead of $basePath
+            $result = $repoManager.CloneRepository($url, $name, $targetPath)
             
             # 3. View: Show Result
             $view.ShowCloneResult($result.Success, $result.Message)
@@ -110,7 +125,8 @@ class RepositoryManagementCommand : INavigationCommand {
         }
     }
 
-    hidden [void] InvokeRepositoryDelete($context, [RepositoryModel]$repository, [RepositoryManagementView]$view) {
+    # Returns $true if refresh is needed, $false if operation was blocked (no refresh needed)
+    hidden [bool] InvokeRepositoryDelete($context, [RepositoryModel]$repository, [RepositoryManagementView]$view) {
         $repoManager = $context.RepoManager
         $console = $context.Console
         $forceDelete = $false
@@ -119,6 +135,92 @@ class RepositoryManagementCommand : INavigationCommand {
         try { [Console]::CursorVisible = $true } catch {}
         
         try {
+            # Special handling for Folder Containers (non-git folders)
+            if ($repository.IsContainer) {
+                $locService = $context.LocalizationService
+                
+                # First check if folder is empty
+                $isEmpty = $repoManager.IsFolderEmpty($repository.FullPath)
+                
+                if (-not $isEmpty) {
+                    # Folder has content - show error message inline
+                    # Save current cursor position
+                    $savedTop = [Console]::CursorTop
+                    $savedLeft = [Console]::CursorLeft
+                    
+                    # Get localized message
+                    $errorMsg = "Cannot delete: Folder is not empty"
+                    if ($null -ne $locService) {
+                        $errorMsg = $locService.Get("Folder.CannotDelete")
+                    }
+                    
+                    try {
+                        # Hide cursor during this operation
+                        [Console]::CursorVisible = $false
+                        
+                        # Calculate target line (Status line is 2 lines above current position)
+                        $targetLine = $savedTop - 2
+                        if ($targetLine -ge 0) {
+                            # Move to the Status line
+                            [Console]::SetCursorPosition(38, $targetLine)
+                            
+                            # Clear rest of line first (to avoid duplicate messages)
+                            $clearLength = [Console]::WindowWidth - 38 - 1
+                            if ($clearLength -gt 0) {
+                                Write-Host (" " * $clearLength) -NoNewline
+                            }
+                            
+                            # Move back to write the message
+                            [Console]::SetCursorPosition(38, $targetLine)
+                            Write-Host " <- " -NoNewline -ForegroundColor Red
+                            Write-Host $errorMsg -NoNewline -ForegroundColor Red
+                            
+                            # Restore cursor position
+                            [Console]::SetCursorPosition($savedLeft, $savedTop)
+                        }
+                    }
+                    catch {
+                        # Silently fail - message just won't show
+                    }
+                    # Return false = no refresh needed, don't redraw
+                    return $false
+                }
+                
+                # Folder is empty - ask for confirmation using OptionSelector
+                $optionSelector = $context.OptionSelector
+                
+                # Get localized question
+                $question = "Delete empty folder '$($repository.Name)'?"
+                if ($null -ne $locService) {
+                    $question = $locService.Get("Folder.DeleteConfirm") -f $repository.Name
+                }
+                
+                $confirmed = $optionSelector.SelectYesNo($question, $locService)
+                
+                if (-not $confirmed) {
+                    # User cancelled
+                    return $true
+                }
+                
+                # Proceed to delete
+                $result = $repoManager.DeleteFolder($repository)
+                
+                if (-not $result.Success) {
+                    Write-Host $result.Message -ForegroundColor ([Constants]::ColorError)
+                    Start-Sleep -Seconds 2
+                    return $true
+                }
+                
+                # Success - show localized folder message
+                $successMsg = "Folder deleted successfully."
+                if ($null -ne $locService) {
+                    $successMsg = $locService.Get("Folder.DeleteSuccess")
+                }
+                Write-Host $successMsg -ForegroundColor ([Constants]::ColorSuccess)
+                Start-Sleep -Seconds 2
+                return $true
+            }
+
             # Ensure git status is loaded
             if (-not $repository.HasGitStatusLoaded()) {
                 $repoManager.LoadGitStatus($repository)
@@ -128,13 +230,13 @@ class RepositoryManagementCommand : INavigationCommand {
             if ($repository.GitStatus -and $repository.GitStatus.NeedsAttention()) {
                 # Show warning and ask for confirmation
                 $continueAnyway = $view.ConfirmGitStatusWarning($repository)
-                if (-not $continueAnyway) { return }
+                if (-not $continueAnyway) { return $true }
                 $forceDelete = $true
             }
             
             # Step 2: Confirm deletion by typing repo name
             $confirmed = $view.ConfirmDelete($repository)
-            if (-not $confirmed) { return }
+            if (-not $confirmed) { return $true }
             
             # Step 3: Show Progress
             $view.ShowDeletingMessage()
@@ -144,6 +246,8 @@ class RepositoryManagementCommand : INavigationCommand {
             
             # Step 5: Show Result
             $view.ShowDeleteResult($result.Success, $result.Message)
+            
+            return $true
         }
         finally {
             # Hide cursor again

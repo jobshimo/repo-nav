@@ -124,7 +124,7 @@ class GitService {
     }
     
     # Clone a repository
-    [bool] CloneRepository([string]$url, [string]$targetPath) {
+    [bool] CloneRepository([string]$url, [string]$targetPath, [string]$folderName = "") {
         if (-not $this.IsValidGitUrl($url)) {
             Write-Error "Invalid Git URL format"
             return $false
@@ -137,7 +137,12 @@ class GitService {
         
         Push-Location $targetPath
         try {
-            git clone $url 2>&1 | Out-Null
+            if ([string]::IsNullOrWhiteSpace($folderName)) {
+                git clone $url 2>&1 | Out-Null
+            }
+            else {
+                git clone $url $folderName 2>&1 | Out-Null
+            }
             return $LASTEXITCODE -eq 0
         }
         catch {
@@ -190,7 +195,9 @@ class GitService {
             return $false
         }
         
-        # Check if any subdirectory is a git repo
-        return ($this.CountContainedRepositories($path) -gt 0)
+        # Check if any subdirectory is a git repo OR if the directory is empty/has no git repos but is structured to be one
+        # Current logic: If it's not a git repo, treat as container so user can enter and create repos or folders there.
+        # This allows navigating empty folder structures.
+        return $true
     }
 }

@@ -117,6 +117,7 @@ class UIRenderer {
         $showModules = $true
         $showRepo    = $true
         $showGit     = $true
+        $showTools   = $true
         
         if ($mode -eq 'Custom') {
             $preferences = $this.PreferencesService.LoadPreferences()
@@ -127,6 +128,7 @@ class UIRenderer {
                 $showModules = if ($sections.PSObject.Properties.Name -contains 'modules') { $sections.modules } else { $true }
                 $showRepo    = if ($sections.PSObject.Properties.Name -contains 'repository') { $sections.repository } else { $true }
                 $showGit     = if ($sections.PSObject.Properties.Name -contains 'git') { $sections.git } else { $true }
+                $showTools   = if ($sections.PSObject.Properties.Name -contains 'tools') { $sections.tools } else { $true }
             }
         }
         
@@ -153,6 +155,10 @@ class UIRenderer {
             $linesRendered += $this.RenderSectionGitStatus($labelWidth)
         }
         
+        if ($showTools) {
+             $linesRendered += $this.RenderSectionTools($labelWidth)
+        }
+        
         $this.Console.NewLine()
         $linesRendered++
         
@@ -164,10 +170,10 @@ class UIRenderer {
         $grpNav = $this.GetLoc("UI.Group.Nav", "Navigation")
         $cmdNav = $this.GetLoc("Cmd.Desc.Nav", "Arrows | Enter=open")
         $cmdExit = $this.GetLoc("Cmd.Desc.Exit", "Q=quit")
-        $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
+        # Prefs moved to Tools
         
         $lblNav = "${grpNav}:".PadRight($labelWidth)
-        $this.Console.WriteLineColored("  $lblNav $cmdNav | $cmdExit | $cmdPref", [Constants]::ColorMenuText)
+        $this.Console.WriteLineColored("  $lblNav $cmdNav | $cmdExit", [Constants]::ColorMenuText)
         return 1
     }
     
@@ -203,6 +209,18 @@ class UIRenderer {
         $cmdGit = $this.GetLoc("Cmd.Desc.Git", "L=load current | G=load all")
         $lblGit = "Git Status:".PadRight($labelWidth)
         $this.Console.WriteLineColored("  $lblGit $cmdGit", [Constants]::ColorMenuText)
+        return 1
+    }
+    
+    # Helper: Render Tools Section
+    hidden [int] RenderSectionTools([int]$labelWidth) {
+        $grpTool = $this.GetLoc("UI.Group.Tools", "Tools")
+        $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
+        $cmdFolder = $this.GetLoc("Cmd.Desc.CreateFolder", "N=New Folder")
+        $cmdSearch = $this.GetLoc("Cmd.Desc.Search", "S=Search")
+        
+        $lblTool = "${grpTool}:".PadRight($labelWidth)
+        $this.Console.WriteLineColored("  $lblTool $cmdSearch | $cmdFolder | $cmdPref", [Constants]::ColorMenuText)
         return 1
     }
 
@@ -242,6 +260,8 @@ class UIRenderer {
     
     # Render a single repository list item
     [void] RenderRepositoryItem([RepositoryModel]$repo, [bool]$isSelected) {
+        $preferences = $this.PreferencesService.LoadPreferences()
+
         # Get user-configured background color and delimiter
         $backgroundColor = $null
         $selectedTextColor = [Constants]::ColorSelected
@@ -249,7 +269,6 @@ class UIRenderer {
         $rightDelimiter = ''
         
         if ($isSelected) {
-            $preferences = $this.PreferencesService.LoadPreferences()
             $bgColor = $preferences.display.selectedBackground
             
             if ($bgColor -ne 'None') {
@@ -302,6 +321,44 @@ class UIRenderer {
             $this.Console.WriteColored("$($gitDisplay.Symbol) ", $gitDisplay.Color)
         }
         
+        # Alias Configuration
+        $aliasPosition = if ($preferences.display.PSObject.Properties.Name -contains 'aliasPosition') { $preferences.display.aliasPosition } else { "After" }
+        $aliasSeparator = if ($preferences.display.PSObject.Properties.Name -contains 'aliasSeparator') { $preferences.display.aliasSeparator } else { " - " }
+        $aliasWrapper = if ($preferences.display.PSObject.Properties.Name -contains 'aliasWrapper') { $preferences.display.aliasWrapper } else { "None" }
+
+        # Prepare Alias Content
+        $shouldRenderAlias = $repo.HasAlias -and $repo.AliasInfo -and (-not $repo.IsContainer)
+        $aliasTextToRender = ""
+        
+        if ($shouldRenderAlias) {
+            $rawAlias = $repo.AliasInfo.Alias
+            $aliasTextToRender = switch ($aliasWrapper) {
+                "Parens"   { "($rawAlias)" }
+                "Brackets" { "[$rawAlias]" }
+                "Braces"   { "{$rawAlias}" }
+                Default    { $rawAlias }
+            }
+        }
+
+        # Define Rendering Blocks for reused logic
+        $RenderAliasBlock = {
+             if ($shouldRenderAlias) {
+                 $this.Console.WriteColored($aliasTextToRender, $repo.AliasInfo.Color)
+             }
+        }
+        
+        $RenderSeparatorBlock = {
+            if ($shouldRenderAlias -and $aliasSeparator -ne "None") {
+                 $this.Console.WriteColored($aliasSeparator, $repo.AliasInfo.Color)
+            }
+        }
+
+        # Render BEFORE: Name
+        if ($aliasPosition -eq "Before" -and (-not $repo.IsContainer)) {
+             & $RenderAliasBlock
+             & $RenderSeparatorBlock
+        }
+
         # Render left delimiter
         if ($leftDelimiter -ne '') {
             if ($backgroundColor) {
@@ -327,18 +384,14 @@ class UIRenderer {
             }
         }
         
-        # For containers, show count of items inside (could be repos or more folders)
+        # Render AFTER: Contained Count or Alias
         if ($repo.IsContainer) {
             $countText = " ($($repo.ContainedRepoCount))"
             $this.Console.WriteColored($countText, [Constants]::ColorInfo)
         }
-        # Render alias if exists (always without background) - only for non-containers
-        elseif ($repo.HasAlias -and $repo.AliasInfo) {
-            $aliasText = " - $($repo.AliasInfo.Alias)"
-            $this.Console.WriteColored($aliasText, $repo.AliasInfo.Color)
-        } else {
-             # Do nothing or just ensure no residual text (handled by ClearCurrentLine)
-             # Write-Host "" -NoNewline 
+        elseif ($aliasPosition -eq "After") {
+            & $RenderSeparatorBlock
+            & $RenderAliasBlock
         }
         # Explicitly NO newline at the end. Caller handles positioning.
     }
@@ -443,6 +496,13 @@ class UIRenderer {
         $lblNoGit = $this.GetLoc("UI.NoGit", "Not a git repository")
         $lblNotLoaded = $this.GetLoc("UI.NotLoaded", "Not loaded")
         $lblContainer = $this.GetLoc("UI.Container", "Folder (contains repos)")
+
+        # Handle empty/null repo case (empty folder)
+        if ($null -eq $repo) {
+            $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
+            $this.Console.WriteLineColored("Folder is empty", [Constants]::ColorHint)
+            return
+        }
 
         # Line 3: Git status details
         # If it's a container, show that it's a folder, not a repo

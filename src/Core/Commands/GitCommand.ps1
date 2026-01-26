@@ -5,12 +5,12 @@ class GitCommand : INavigationCommand {
         return "Load git status - L (current) / G (all)"
     }
 
-    [bool] CanExecute([object]$keyPress, [hashtable]$context) {
+    [bool] CanExecute([object]$keyPress, [CommandContext]$context) {
         $key = $keyPress.VirtualKeyCode
         return $key -eq [Constants]::KEY_L -or $key -eq [Constants]::KEY_G
     }
 
-    [void] Execute([object]$keyPress, [hashtable]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
         $currentIndex = $state.GetCurrentIndex()
@@ -55,7 +55,11 @@ class GitCommand : INavigationCommand {
             }
             
             try {
-                $repoManager.LoadMissingGitStatus($progressCallback)
+                # Load missing status ONLY for repositories in the current view (passed from state)
+                # This ensures we don't accidentally load global repos if RepoManager state drifts,
+                # and satisfies the requirement "only repositories in the current folder".
+                $visibleRepos = $repos | Where-Object { -not $_.IsContainer -and -not $_.HasGitStatusLoaded() }
+                $repoManager.LoadGitStatusForRepos($visibleRepos, $progressCallback)
             }
             finally {
                 $progressIndicator.CompleteProgressBar()

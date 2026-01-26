@@ -173,4 +173,48 @@ class OptionSelector {
         
         return $result
     }
+    
+    <#
+    .SYNOPSIS
+        Show a simple Yes/No confirmation dialog
+    
+    .PARAMETER question
+        The question to ask
+        
+    .PARAMETER localizationService
+        Optional LocalizationService for translated texts
+    
+    .RETURNS
+        $true if Yes selected, $false if No or cancelled
+    #>
+    [bool] SelectYesNo([string]$question, [object]$localizationService) {
+        # Get localized texts or use defaults
+        $yesText = "Yes"
+        $noText = "No"
+        $cancelText = "Cancel"
+        
+        if ($null -ne $localizationService) {
+            $yesText = $localizationService.Get("Prompt.Yes")
+            $noText = $localizationService.Get("Prompt.No")
+            $cancelText = $localizationService.Get("Prompt.Cancel")
+        }
+        
+        $options = @(
+            @{ DisplayText = $yesText; Value = $true },
+            @{ DisplayText = $noText; Value = $false }
+        )
+        
+        $result = $this.ShowSelection($question, $options, $false, $cancelText, $false, "")
+        
+        if ($null -eq $result) {
+            return $false
+        }
+        
+        return $result
+    }
+    
+    # Overload without localization for backward compatibility
+    [bool] SelectYesNo([string]$question) {
+        return $this.SelectYesNo($question, $null)
+    }
 }

@@ -23,25 +23,67 @@ class CommandFactory {
     
     <#
     .SYNOPSIS
-        Registers all available commands
+        Registers all available commands dynamically using Reflection (OCP)
     #>
     hidden [void] RegisterCommands() {
-        # Navigation commands
-        $this.commands.Add([ExitCommand]::new())
-        $this.commands.Add([NavigationCommand]::new())
-        $this.commands.Add([RepositoryCommand]::new())
+        # Clean Code: The main method just orchestrates the high-level logic
+        $commandTypes = $this.FindCommandTypes()
         
-        # Git commands
-        $this.commands.Add([GitCommand]::new())
+        foreach ($type in $commandTypes) {
+            $this.RegisterOneCommand($type)
+        }
+    }
+
+    hidden [System.Collections.ArrayList] FindCommandTypes() {
+        $foundTypes = [System.Collections.ArrayList]::new()
+        $baseType = [INavigationCommand]
         
-        # Repository management commands
-        $this.commands.Add([FavoriteCommand]::new())
-        $this.commands.Add([AliasCommand]::new())
-        $this.commands.Add([NpmCommand]::new())
-        $this.commands.Add([RepositoryManagementCommand]::new())
+        $assemblies = [System.AppDomain]::CurrentDomain.GetAssemblies()
         
-        # Preferences command
-        $this.commands.Add([PreferencesCommand]::new())
+        foreach ($assembly in $assemblies) {
+            if ($this.IsSystemAssembly($assembly)) { continue }
+            
+            $types = $this.GetTypesSafe($assembly)
+            
+            foreach ($type in $types) {
+                if ($baseType.IsAssignableFrom($type) -and $type -ne $baseType) {
+                    $foundTypes.Add($type)
+                }
+            }
+        }
+        return $foundTypes
+    }
+    
+    hidden [bool] IsSystemAssembly($assembly) {
+        return $assembly.FullName -match "^System|^Microsoft|^mscorlib|^Anonymously"
+    }
+
+    hidden [array] GetTypesSafe($assembly) {
+        try {
+            return $assembly.GetTypes()
+        }
+        catch {
+            return @()
+        }
+    }
+
+    hidden [void] RegisterOneCommand($type) {
+        if (-not $this.ContainsCommandType($type)) {
+            try {
+                $instance = [Activator]::CreateInstance($type)
+                $this.commands.Add($instance)
+            }
+            catch {
+                # Skip types that can't be instantiated
+            }
+        }
+    }
+    
+    hidden [bool] ContainsCommandType($type) {
+        foreach ($cmd in $this.commands) {
+            if ($cmd.GetType() -eq $type) { return $true }
+        }
+        return $false
     }
     
     <#
@@ -56,7 +98,7 @@ class CommandFactory {
     .SYNOPSIS
         Finds a command that can execute the given key press
     #>
-    [INavigationCommand] FindCommand([object]$keyPress, [hashtable]$context) {
+    [INavigationCommand] FindCommand([object]$keyPress, [CommandContext]$context) {
         foreach ($command in $this.commands) {
             if ($command.CanExecute($keyPress, $context)) {
                 return $command

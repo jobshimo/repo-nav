@@ -27,7 +27,10 @@
     "Pref.FavoritesPos": "Favorites Position",
     "Pref.SelectedBg": "Selected Item Background",
     "Pref.SelectedDelim": "Selected Item Delimiter",
-    "Pref.AutoLoadGit": "Auto-load Git Status (Favorites)",
+    "Pref.AutoLoadGit": "Auto-load Git Status",
+    "Pref.AutoLoadGit.None": "None",
+    "Pref.AutoLoadGit.Favorites": "Favorites",
+    "Pref.AutoLoadGit.All": "All Repositories",
     "Pref.MenuMode": "Menu Display",
     "Pref.MenuMode.Full": "Full (All commands)",
     "Pref.MenuMode.Minimal": "Minimal (Navigation only)",
@@ -40,6 +43,20 @@
     "Pref.Value.Disabled": "Disabled",
     "Pref.Value.Show": "Show",
     "Pref.Value.Hide": "Hide",
+    
+    "Pref.AliasPosition": "Alias Position",
+    "Pref.AliasSeparator": "Alias Separator",
+    "Pref.AliasWrapper": "Alias Style",
+
+    "Pref.Value.After": "After Name",
+    "Pref.Value.Before": "Before Name",
+    "Pref.Value.SepHyphen": "Hyphen ( - )",
+    "Pref.Value.SepColon": "Colon ( : )",
+    "Pref.Value.SepPipe": "Pipe ( | )",
+    "Pref.Value.None": "None",
+    "Pref.Value.WrapParens": "Parentheses (alias)",
+    "Pref.Value.WrapBrackets": "Brackets [alias]",
+    "Pref.Value.WrapBraces": "Braces {alias}",
 
     "Msg.LanguageChanged": "Language changed to {0}",
     "Msg.FavoritesPosUpdated": "Updated favorites position",
@@ -59,14 +76,14 @@
     "UI.Behind": "Behind",
     "UI.Ahead": "Ahead",
     "UI.NoGit": "No git repo",
-    "UI.Container": "Folder (Enter to browse)",
+    "UI.Container": "Folder (Enter / \u2192 to browse)",
     "UI.Loading": "loading...",
     "UI.NotLoaded": "Not loaded",
     "UI.Commands": "COMMANDS",
     "UI.Group.Nav": "Navigation",
     "UI.Group.Repo": "Repository",
     "UI.Group.Modules": "Modules",
-    "UI.Group.Other": "Other",
+    "UI.Group.Tools": "Tools",
     
     "Cmd.Desc.Alias": "Set alias (E) or Remove alias (R)",
     "Cmd.Desc.Exit": "Exit: Q/Esc",
@@ -75,8 +92,9 @@
     "Cmd.Desc.Nav": "\u2190/\u2191/\u2193 | Enter",
     "Cmd.Desc.Npm": "Npm: Install (I) / Remove (X)",
     "Cmd.Desc.Pref": "Prefs: U",
-    "Cmd.Desc.Repo": "Open repository (Enter)",
+    "Cmd.Desc.Repo": "Open (Enter)",
     "Cmd.Desc.RepoMgmt": "Clone (C) / Delete (Del)",
+    "Cmd.Desc.CreateFolder": "Create Folder (N)",
 
     "Nav.BackHint": "\u2190 back",
     "Nav.Container": "Folder",
@@ -92,6 +110,8 @@
     
     "Repo.Clone.Title": "CLONE REPOSITORY",
     "Repo.Clone.Prompt": "Enter repository URL",
+    "Repo.CloneTarget": "Cloning into:",
+    "Repo.Clone.NamePrompt": "Folder name",
     "Repo.Clone.Success": "Repository cloned successfully!",
     "Repo.Delete.Title": "DELETE REPOSITORY",
     "Repo.Delete.Confirm": "Are you sure you want to delete {0}?",
@@ -135,6 +155,7 @@
     "Prompt.ConfirmTitle": "CONFIRMATION",
     "Prompt.Yes": "YES",
     "Prompt.No": "NO",
+    "Prompt.Cancel": "Cancel",
     "Prompt.DeleteConfirmInput": "DELETE",
 
     "Prompt.Continue": "Continue?",
@@ -171,5 +192,19 @@
     "Repo.Deleting": "Deleting...",
     "Repo.DeleteSuccess": "Repository deleted successfully.",
     "Repo.DeleteFail": "Error deleting repository: {0}",
-    "Repo.DeleteFailHint": "Check if files are open in another program."
+    "Repo.DeleteFailHint": "Check if files are open in another program.",
+    
+    "Folder.DeleteTitle": "DELETE FOLDER",
+    "Folder.DeleteConfirm": "Delete empty folder '{0}'?",
+    "Folder.DeleteSuccess": "Folder deleted successfully.",
+    "Folder.CannotDelete": "Cannot delete: Folder is not empty",
+    
+    "Search.Title": "SEARCH REPOSITORIES",
+    "Search.Label": "Search",
+    "Search.Placeholder": "Type to filter...",
+    "Search.ResultCount": "{0} of {1} repositories",
+    "Search.NoResults": "No repositories found",
+    "Search.Hint.Input": "Type to filter | ↓/Tab=Go to list | Esc=Close",
+    "Search.Hint.List": "↑↓=Navigate | Enter=Open | ↑(top)/Tab=Back to search | Esc=Close",
+    "Cmd.Desc.Search": "Search (S)"
 }

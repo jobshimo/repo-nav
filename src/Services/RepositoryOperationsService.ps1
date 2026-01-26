@@ -71,7 +71,7 @@ class RepositoryOperationsService {
         
         # Perform clone
         try {
-            $success = $this.GitService.CloneRepository($url, $basePath)
+            $success = $this.GitService.CloneRepository($url, $basePath, $repoName)
             
             if ($success) {
                 return @{ 
@@ -147,6 +147,51 @@ class RepositoryOperationsService {
     
     <#
     .SYNOPSIS
+        Creates a new folder
+    #>
+    [hashtable] CreateFolder([string]$name, [string]$parentPath) {
+        # Validate name (no spaces)
+        if ($name -match '\s') {
+            return @{
+                Success = $false
+                Message = "Folder name cannot contain spaces."
+            }
+        }
+        
+        # Validate parent path
+        if (-not (Test-Path $parentPath)) {
+            return @{
+                Success = $false
+                Message = "Parent path does not exist."
+            }
+        }
+        
+        $newPath = Join-Path $parentPath $name
+        
+        if (Test-Path $newPath) {
+             return @{
+                Success = $false
+                Message = "Folder '$name' already exists."
+            }
+        }
+        
+        try {
+            New-Item -Path $newPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+            return @{
+                Success = $true
+                Message = "Folder created successfully."
+            }
+        }
+        catch {
+             return @{
+                Success = $false
+                Message = "Error creating folder: $_"
+            }
+        }
+    }
+
+    <#
+    .SYNOPSIS
         Validates if a repository can be safely deleted
         
     .PARAMETER repository
@@ -218,5 +263,61 @@ class RepositoryOperationsService {
             TargetExists = $targetExists
             CanClone     = $isValid -and -not $targetExists
         }
+    }
+    
+    <#
+    .SYNOPSIS
+        Deletes a folder if it is empty
+        
+    .PARAMETER folder
+        The folder (RepositoryModel) to delete
+        
+    .RETURNS
+        Hashtable with Success (bool) and Message (string)
+    #>
+    [hashtable] DeleteFolder([RepositoryModel]$folder) {
+        # Check if path exists
+        if (-not (Test-Path $folder.FullPath)) {
+             return @{
+                Success = $false
+                Message = "Path does not exist"
+            }
+        }
+        
+        # Delete empty folder
+        try {
+            Remove-Item -Path $folder.FullPath -Force -ErrorAction Stop
+            
+            return @{
+                Success = $true
+                Message = "Folder deleted successfully"
+                DeletedPath = $folder.FullPath
+            }
+        }
+        catch {
+            return @{
+                Success = $false
+                Message = "Error deleting folder: $_"
+            }
+        }
+    }
+    
+    <#
+    .SYNOPSIS
+        Checks if a folder is empty (no files, no subfolders)
+        
+    .PARAMETER folderPath
+        The path to check
+        
+    .RETURNS
+        $true if empty, $false if has content
+    #>
+    [bool] IsFolderEmpty([string]$folderPath) {
+        if (-not (Test-Path $folderPath)) {
+            return $false
+        }
+        
+        $hasItems = Get-ChildItem -Path $folderPath -Force -ErrorAction SilentlyContinue | Select-Object -First 1
+        return ($null -eq $hasItems)
     }
 }

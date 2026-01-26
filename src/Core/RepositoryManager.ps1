@@ -126,6 +126,7 @@ class RepositoryManager {
             $repo = [RepositoryModel]::new($dir)
             
             # Check if this is a container (has repos inside but is not a repo itself)
+            # With new logic in GitService, any non-git-repo directory is a container
             if ($this.GitService.IsContainerDirectory($dir.FullName)) {
                 $repoCount = $this.GitService.CountContainedRepositories($dir.FullName)
                 $repo.MarkAsContainer($repoCount)
@@ -136,7 +137,9 @@ class RepositoryManager {
                 $repo.SetParentPath($parentPath)
             }
             
-            if ($aliases.ContainsKey($repo.Name)) {
+            if ($aliases.ContainsKey($repo.FullPath)) {
+                $repo.SetAlias($aliases[$repo.FullPath])
+            } elseif ($aliases.ContainsKey($repo.Name)) {
                 $repo.SetAlias($aliases[$repo.Name])
             }
             
@@ -186,6 +189,46 @@ class RepositoryManager {
         return $this.Repositories.ToArray()
     }
     
+    # Get all repositories recursively from base path (for search)
+    # Returns only actual repositories, not container folders
+    [array] GetAllRepositoriesRecursive([string]$basePath) {
+        $allRepos = [System.Collections.ArrayList]::new()
+        $aliases = $this.AliasManager.GetAllAliases()
+        
+        # Recursively scan for git repositories
+        $this.ScanRepositoriesRecursive($basePath, $allRepos, $aliases)
+        
+        return $allRepos.ToArray()
+    }
+    
+    # Helper method for recursive repository scanning
+    hidden [void] ScanRepositoriesRecursive([string]$path, [System.Collections.ArrayList]$results, [hashtable]$aliases) {
+        $directories = Get-ChildItem -Directory -Path $path -ErrorAction SilentlyContinue |
+                       Where-Object { $_.Name -notin @('envs', 'classes', 'repo-nav', 'node_modules', '.git') }
+        
+        foreach ($dir in $directories) {
+            $isGitRepo = Test-Path (Join-Path $dir.FullName ".git")
+            
+            if ($isGitRepo) {
+                # This is a repository - add it
+                $repo = [RepositoryModel]::new($dir)
+                
+                if ($aliases.ContainsKey($repo.FullPath)) {
+                    $repo.SetAlias($aliases[$repo.FullPath])
+                } elseif ($aliases.ContainsKey($repo.Name)) {
+                    $repo.SetAlias($aliases[$repo.Name])
+                }
+                
+                $this.FavoriteService.UpdateRepositoryModel($repo)
+                
+                [void]$results.Add($repo)
+            } else {
+                # Not a git repo - check if it's a container with repos inside
+                $this.ScanRepositoriesRecursive($dir.FullName, $results, $aliases)
+            }
+        }
+    }
+
     # Get repository by name
     [RepositoryModel] GetRepository([string]$name) {
         foreach ($repo in $this.Repositories) {
@@ -237,10 +280,49 @@ class RepositoryManager {
         
         # Cache the loaded git status for all repos
         foreach ($repo in $reposToLoad) {
+            # Update cache regardless of whether it was newly loaded or not
+            # If ParallelGitLoader worked, HasGitStatusLoaded should be true
             if ($repo.HasGitStatusLoaded()) {
                 $this.GitStatusCache[$repo.FullPath] = $repo.GitStatus
             }
         }
+    }
+
+    <#
+    .SYNOPSIS
+        Checks user preferences and loads git status automatically
+    #>
+    [void] PerformAutoLoadGitStatus([array]$repos, [object]$console) {
+         if (-not $this.PreferencesService) { return }
+
+         $mode = $this.PreferencesService.GetPreference("git", "autoLoadGitStatusMode")
+         if (-not $mode) { $mode = "None" }
+         
+         if ($mode -ne "None") {
+             $toLoad = @()
+             $msg = ""
+             
+             if ($mode -eq "Favorites") {
+                 # Only load if favorite AND not loaded yet (respects cache)
+                 $toLoad = $repos | Where-Object { $_.IsFavorite -and -not $_.HasGitStatusLoaded() }
+                 $msg = "favorites"
+             } elseif ($mode -eq "All") {
+                 # Only load if not loaded yet (respects cache)
+                 $toLoad = $repos | Where-Object { -not $_.HasGitStatusLoaded() }
+                 $msg = "all"
+             }
+             
+             if ($toLoad.Count -gt 0) {
+                  $progressIndicator = [ProgressIndicator]::new($console)
+                  $progressCallback = {
+                     param([int]$c, [int]$t)
+                     $progressIndicator.RenderProgressBar("Loading git status ($msg)", $c, $t)
+                  }
+                  
+                  $this.LoadGitStatusForRepos($toLoad, $progressCallback)
+                  $progressIndicator.CompleteProgressBar()
+             }
+         }
     }
     
     [int] GetLoadedGitStatusCount() {
@@ -255,7 +337,7 @@ class RepositoryManager {
     
     # Set alias for a repository
     [bool] SetAlias([RepositoryModel]$repository, [AliasInfo]$aliasInfo) {
-        if ($this.AliasManager.SetAlias($repository.Name, $aliasInfo)) {
+        if ($this.AliasManager.SetAlias($repository.FullPath, $aliasInfo)) {
             $repository.SetAlias($aliasInfo)
             return $true
         }
@@ -264,7 +346,7 @@ class RepositoryManager {
     
     # Remove alias from a repository
     [bool] RemoveAlias([RepositoryModel]$repository) {
-        if ($this.AliasManager.RemoveAlias($repository.Name)) {
+        if ($this.AliasManager.RemoveAlias($repository.FullPath)) {
             $repository.RemoveAlias()
             return $true
         }
@@ -309,5 +391,25 @@ class RepositoryManager {
         if ($repository.HasGitStatusLoaded()) {
             $this.LoadGitStatus($repository)
         }
+    }
+
+    # Delete a folder (delegates to RepositoryOperationsService)
+    # Returns a result object { Success: bool, Message: string }
+    [hashtable] DeleteFolder([RepositoryModel]$folder) {
+        $result = $this.RepoOperationsService.DeleteFolder($folder)
+        
+        if ($result.Success) {
+            # Remove from local list if strictly necessary, but usually reload happens after
+            if ($this.Repositories.Contains($folder)) {
+                $this.Repositories.Remove($folder)
+            }
+        }
+        
+        return $result
+    }
+    
+    # Check if folder is empty (delegates to RepositoryOperationsService)
+    [bool] IsFolderEmpty([string]$folderPath) {
+        return $this.RepoOperationsService.IsFolderEmpty($folderPath)
     }
 }

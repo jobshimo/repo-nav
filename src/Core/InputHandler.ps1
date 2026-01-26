@@ -37,7 +37,7 @@ class InputHandler {
     .RETURNS
         $true if a command was executed, $false if no command could handle the input
     #>
-    [bool] HandleInput([object]$keyPress, [hashtable]$context) {
+    [bool] HandleInput([object]$keyPress, [CommandContext]$context) {
         if ($null -eq $keyPress) {
             return $false
         }

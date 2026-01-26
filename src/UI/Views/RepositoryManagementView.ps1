@@ -19,14 +19,22 @@ class RepositoryManagementView {
 
     # Prompt user for cloning information
     # Returns hashtable @{ Url = "url"; Name = "name" } or $null if cancelled
-    [hashtable] GetCloneDetails() {
+    [hashtable] GetCloneDetails([string]$targetPath) {
         $this.Console.ClearForWorkflow()
         
         $header = $this.GetLoc("Repo.CloneTitle", "CLONE REPOSITORY")
         $this.Renderer.RenderWorkflowHeader($header)
         
+        # Display current target path
+        $pathLabel = $this.GetLoc("Repo.CloneTarget", "Cloning into:")
+        Write-Host "$pathLabel " -NoNewline -ForegroundColor ([Constants]::ColorLabel)
+        Write-Host $targetPath -ForegroundColor ([Constants]::ColorValue)
+        Write-Host ""
+        
         # Get URL
-        Write-Host "GitHub URL (https://... or git@...): " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        $urlPrompt = $this.GetLoc("Repo.Clone.Prompt", "Enter repository URL")
+        Write-Host "${urlPrompt}: " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        [Console]::CursorVisible = $true
         $url = Read-Host
         
         if ([string]::IsNullOrWhiteSpace($url)) {
@@ -37,11 +45,28 @@ class RepositoryManagementView {
         }
         
         # Extract default name
-        $defaultName = $url.Split('/')[-1].Replace('.git', '')
+        try {
+            # Handle URLs ending in slash
+            $cleanUrl = $url.TrimEnd('/')
+            $defaultName = $cleanUrl.Split('/')[-1].Replace('.git', '')
+        } catch {
+            $defaultName = "repository"
+        }
         
-        # Get Custom Name
-        Write-Host "Target folder name (Enter = '$defaultName'): " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        # Get Custom Name - Improved UI
+        $namePrompt = $this.GetLoc("Repo.Clone.NamePrompt", "Folder name")
+        Write-Host "$namePrompt " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        Write-Host "[$defaultName]" -NoNewline -ForegroundColor ([Constants]::ColorHint)
+        Write-Host ": " -NoNewline -ForegroundColor ([Constants]::ColorPrompt)
+        
         $customName = Read-Host
+        [Console]::CursorVisible = $false
+        
+        if ([string]::IsNullOrWhiteSpace($customName)) {
+             $customName = $defaultName
+             Write-Host "Using default: $defaultName" -ForegroundColor ([Constants]::ColorInfo)
+             Start-Sleep -Milliseconds 500
+        }
         
         return @{
             Url = $url
