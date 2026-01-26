@@ -91,7 +91,7 @@ class GitFlowCommand : INavigationCommand {
                     InitialIndex  = $lastIndex
                     StatusMessage = $statusMessage
                     StatusColor   = $statusColor
-                    InitialFocus  = "input"
+                    InitialFocus  = [Constants]::FocusInput
                 }
                 
                 # The selector now returns a hashtable: @{ Type=...; Value=...; Index=... }
@@ -192,7 +192,7 @@ class GitFlowCommand : INavigationCommand {
         $targetOpts = @{
             Prompt = "Select TARGET (Environment) Branch"
             HeaderOptions = @()
-            InitialFocus = "input"
+            InitialFocus = [Constants]::FocusInput
         }
         # Passing $null as currentItem so no pre-selection or maybe 'origin/develop'?
         $targetSelection = $selector.ShowSelection("INTEGRATION FLOW: STEP 1/3", $remoteBranches, $targetOpts)
@@ -221,7 +221,7 @@ class GitFlowCommand : INavigationCommand {
             HeaderOptions = @()
             CurrentItem = $currentBranch
             CurrentMarker = "(current)"
-            InitialFocus = "input"
+            InitialFocus = [Constants]::FocusInput
         }
         $sourceSelection = $selector.ShowSelection("INTEGRATION FLOW: STEP 3/3", $localBranches, $sourceOpts)
         if ($null -eq $sourceSelection) { return }

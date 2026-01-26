@@ -47,6 +47,11 @@ class Constants {
     static [int] $CursorStartLine = 10
     static [int] $UIWidth = 90  # New standardized width for separators
     
+    # Focus Mode Constants
+    static [string] $FocusInput = "input"
+    static [string] $FocusList = "list"
+    static [string] $FocusHeader = "header"
+    
     # Git Status Symbols
     static [string] $GitSymbolClean = [char]0x2713      # ✓
     static [string] $GitSymbolUncommitted = [char]0x25CF # ●
