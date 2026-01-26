@@ -75,6 +75,7 @@
     "UI.Changes": "Changes",
     "UI.Behind": "Behind",
     "UI.Ahead": "Ahead",
+    "UI.Current": "current",
     "UI.NoGit": "No git repo",
     "UI.Container": "Folder (Enter / \u2192 to browse)",
     "UI.Loading": "loading...",
@@ -206,5 +207,21 @@
     "Search.NoResults": "No repositories found",
     "Search.Hint.Input": "Type to filter | ↓/Tab=Go to list | Esc=Close",
     "Search.Hint.List": "↑↓=Navigate | Enter=Open | ↑(top)/Tab=Back to search | Esc=Close",
-    "Cmd.Desc.Search": "Search (S)"
+    "Cmd.Desc.Search": "Search (S)",
+    "Cmd.Desc.GitFlow": "Flow (B)",
+    
+    "Flow.SelectBase": "SELECT BASE BRANCH",
+    "Flow.SelectBasePrompt": "From Branch",
+    "Flow.CreateTitle": "CREATE NEW BRANCH",
+    "Flow.EnterName": "Enter new branch name: ",
+    "Flow.Creating": "Creating branch '{0}'...",
+    "Flow.MergePrompt": "Merge another branch into '{0}'?",
+    "Flow.SelectMergeTitle": "SELECT BRANCH TO MERGE",
+    "Flow.SelectMergePrompt": "Merge Branch",
+    "Flow.MergeTitle": "MERGING",
+    "Flow.Merging": "Merging '{0}' into '{1}'...",
+    "Flow.OpenPrPrompt": "Open Pull Request on GitHub?",
+    "Flow.OpenPrTitle": "OPENING PR",
+    "Flow.Opening": "Opening: {0}",
+    "Flow.Error.Conflict": "Please resolve conflicts in your IDE."
 }

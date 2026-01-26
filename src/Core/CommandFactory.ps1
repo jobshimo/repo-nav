@@ -32,6 +32,13 @@ class CommandFactory {
         foreach ($type in $commandTypes) {
             $this.RegisterOneCommand($type)
         }
+
+        # Explicitly attempt to register GitFlowCommand to ensure it's loaded
+        # This handles cases where reflection might miss dynamically compiled classes
+        $gitFlowType = "GitFlowCommand" -as [type]
+        if ($null -ne $gitFlowType) {
+            $this.RegisterOneCommand($gitFlowType)
+        }
     }
 
     hidden [System.Collections.ArrayList] FindCommandTypes() {

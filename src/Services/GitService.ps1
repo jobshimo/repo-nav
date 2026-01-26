@@ -124,10 +124,9 @@ class GitService {
     }
     
     # Clone a repository
-    [bool] CloneRepository([string]$url, [string]$targetPath, [string]$folderName = "") {
+    [object] CloneRepository([string]$url, [string]$targetPath, [string]$folderName = "") {
         if (-not $this.IsValidGitUrl($url)) {
-            Write-Error "Invalid Git URL format"
-            return $false
+            return @{ Success = $false; Output = "Invalid Git URL format" }
         }
         
         # Ensure URL ends with .git
@@ -138,16 +137,18 @@ class GitService {
         Push-Location $targetPath
         try {
             if ([string]::IsNullOrWhiteSpace($folderName)) {
-                git clone $url 2>&1 | Out-Null
+                $output = git clone $url 2>&1
             }
             else {
-                git clone $url $folderName 2>&1 | Out-Null
+                $output = git clone $url $folderName 2>&1
             }
-            return $LASTEXITCODE -eq 0
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
         }
         catch {
-            Write-Error "Error cloning repository: $_"
-            return $false
+            return @{ Success = $false; Output = $_.ToString() }
         }
         finally {
             Pop-Location
@@ -199,5 +200,95 @@ class GitService {
         # Current logic: If it's not a git repo, treat as container so user can enter and create repos or folders there.
         # This allows navigating empty folder structures.
         return $true
+    }
+
+    # Get local branches
+    [string[]] GetBranches([string]$repoPath) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @()
+        }
+        
+        Push-Location $repoPath
+        try {
+            # --format=%(refname:short) gives just the branch name
+            $branches = git branch --format="%(refname:short)" 2>$null
+            if ($LASTEXITCODE -eq 0 -and $branches) {
+                return $branches
+            }
+            return @()
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    # Create a new branch from a source branch
+    [object] CreateBranch([string]$repoPath, [string]$newBranchName, [string]$sourceBranch) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @{ Success = $false; Output = "Not a git repository" }
+        }
+        
+        Push-Location $repoPath
+        try {
+            # git checkout -b new_branch source_branch
+            $output = git checkout -b $newBranchName $sourceBranch 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch {
+             return @{ Success = $false; Output = $_.ToString() }
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    # Checkout a branch
+    [object] Checkout([string]$repoPath, [string]$branchName) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @{ Success = $false; Output = "Not a git repository" }
+        }
+        
+        Push-Location $repoPath
+        try {
+            $output = git checkout $branchName 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            
+            # If success, output might be "Switched to branch..." which isn't an error.
+            # Convert array to string if needed
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch {
+             return @{ Success = $false; Output = $_.ToString() }
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    # Merge a branch into the current branch
+    [object] Merge([string]$repoPath, [string]$branchToMerge) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @{ Success = $false; Output = "Not a git repository" }
+        }
+        
+        Push-Location $repoPath
+        try {
+            $output = git merge $branchToMerge 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch {
+             return @{ Success = $false; Output = $_.ToString() }
+        }
+        finally {
+            Pop-Location
+        }
     }
 }

@@ -218,9 +218,10 @@ class UIRenderer {
         $cmdPref = $this.GetLoc("Cmd.Desc.Pref", "U=preferences")
         $cmdFolder = $this.GetLoc("Cmd.Desc.CreateFolder", "N=New Folder")
         $cmdSearch = $this.GetLoc("Cmd.Desc.Search", "S=Search")
+        $cmdFlow = $this.GetLoc("Cmd.Desc.GitFlow", "B=Flow")
         
         $lblTool = "${grpTool}:".PadRight($labelWidth)
-        $this.Console.WriteLineColored("  $lblTool $cmdSearch | $cmdFolder | $cmdPref", [Constants]::ColorMenuText)
+        $this.Console.WriteLineColored("  $lblTool $cmdSearch | $cmdFolder | $cmdFlow | $cmdPref", [Constants]::ColorMenuText)
         return 1
     }
 
