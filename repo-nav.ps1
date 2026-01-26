@@ -92,6 +92,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\MenuRenderer.ps1"
 . "$srcPath\UI\RepositoryListRenderer.ps1"
 . "$srcPath\UI\StatusRenderer.ps1"
+. "$srcPath\UI\HeaderRenderer.ps1"
 . "$srcPath\UI\UIRenderer.ps1"
 . "$srcPath\UI\ColorSelector.ps1"
 . "$srcPath\UI\OptionSelector.ps1"
@@ -178,7 +179,8 @@ function Start-RepositoryNavigator {
         $menuRenderer = [MenuRenderer]::new($consoleHelper, $preferencesService, $localizationService)
         $repoListRenderer = [RepositoryListRenderer]::new($consoleHelper, $preferencesService)
         $statusRenderer = [StatusRenderer]::new($consoleHelper, $localizationService)
-        $renderer = [UIRenderer]::new($consoleHelper, $preferencesService, $localizationService, $menuRenderer, $repoListRenderer, $statusRenderer)
+        $headerRenderer = [HeaderRenderer]::new($consoleHelper, $localizationService)
+        $renderer = [UIRenderer]::new($consoleHelper, $preferencesService, $localizationService, $menuRenderer, $repoListRenderer, $statusRenderer, $headerRenderer)
         $colorSelector = [ColorSelector]::new($renderer, $consoleHelper)
         $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
         
