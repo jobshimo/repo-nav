@@ -1,281 +1,266 @@
 ﻿# REPO-NAV
 
-> **Interactive PowerShell repository navigator with aliases, Git integration, and npm management.**
+> **Navegador interactivo de repositorios en PowerShell con integración de Git, npm y gestión avanzada.**
 
 ---
 
-## The Story
+## La Historia
 
-This project started as a simple PowerShell script to solve a common problem: **quickly identifying and navigating between multiple Git repositories**. The original idea was straightforward — a way to assign short aliases with colors to repositories so you could instantly recognize them in a long list.
+Este proyecto comenzó como un simple script de PowerShell para resolver un problema común: **identificar y navegar rápidamente entre múltiples repositorios Git**. La idea original era sencilla: una forma de asignar alias cortos con colores a los repositorios para reconocerlos instantáneamente en una lista larga.
 
-What began as a ~200 line utility script has evolved into a full-featured application through the application of **software engineering principles** and an **engineer's mindset**. Despite PowerShell's limitations as a language (no true interfaces, limited OOP support, challenging class syntax), we've built a maintainable, extensible architecture following **SOLID principles**.
+Lo que empezó como una utilidad de ~200 líneas ha evolucionado hasta convertirse en una aplicación completa mediante la aplicación de **principios de ingeniería de software** y una **mentalidad de ingeniero**. A pesar de las limitaciones de PowerShell como lenguaje (sin interfaces verdaderas, soporte limitado de POO, sintaxis de clases desafiante), hemos construido una arquitectura mantenible y extensible siguiendo los **principios SOLID**.
 
-The result is what you see now: a **professional-grade CLI tool** that demonstrates how proper software design can transform even a simple script into a robust application.
+El resultado es lo que ves ahora: una **herramienta CLI de grado profesional** que demuestra cómo un diseño de software adecuado puede transformar incluso un script simple en una aplicación robusta.
 
----
-
-## Features
-
-### Core Navigation
-- **Arrow key navigation** through repository list
-- **Hierarchical folder support** — navigate into container folders
-- **Smart pagination** — adapts to terminal window size
-- **Real-time search** — filter repositories as you type
-
-### Repository Management
-- **Custom aliases** with configurable colors
-- **Favorites system** — pin important repos to the top
-- **Clone repositories** directly from URLs
-- **Delete repositories** with safety confirmations
-
-### Git Integration
-- **Branch information** display
-- **Status indicators** — uncommitted changes, unpushed commits
-- **Parallel status loading** — load all repos simultaneously
-- **Auto-load options** — favorites or all on startup
-
-### npm Integration  
-- **Install dependencies** — run `npm install` from the navigator
-- **Remove node_modules** — clean up with one keypress
-- **Visual indicators** — see which repos have node_modules
-
-### User Experience
-- **Localization** — English and Spanish supported
-- **Customizable UI** — colors, delimiters, menu visibility
-- **Preferences system** — persistent user settings
-- **Clean visual design** — consistent, readable interface
+**Nota Personal:**
+"La excelencia no es un acto, es un hábito. Este proyecto es una prueba de que no importa el lenguaje o la herramienta; si aplicas buenos principios de diseño y limpieza de código, puedes crear software de calidad empresarial. PowerShell puede ser mucho más que simples scripts de automatización."
 
 ---
 
-## Requirements
+## Características
 
-| Requirement | Version | Notes |
-|-------------|---------|-------|
-| **PowerShell** | 5.1+ | **Required** — Uses class syntax and modern features |
-| **Git** | Any | *Optional* — Required for Git features |
-| **npm** | Any | *Optional* — Required for package management |
+### Navegación Principal
+- **Navegación con flechas** a través de la lista de repositorios.
+- **Soporte jerárquico** — entra y sal de carpetas contenedoras.
+- **Paginación inteligente** — se adapta al tamaño de la terminal.
+- **Búsqueda en tiempo real** — filtra repositorios mientras escribes (`/` o simplemente escribiendo).
+- **Interfaz limpia** — opción para ocultar cabeceras y ganar espacio.
+
+### Gestión de Repositorios
+- **Alias personalizados** con colores configurables.
+- **Sistema de Favoritos** — fija repos importantes al principio de la lista (`Space` o `F`).
+- **Clonar repositorios** directamente desde URLs (`C`).
+- **Eliminar repositorios** con confirmaciones de seguridad (`Del`).
+- **Crear Carpetas** nuevas para organizar proyectos (`N`).
+
+### Integración con Git (Git Flow)
+- **Visualización de Ramas** en tiempo real.
+- **Indicadores de Estado** — cambios sin commitear, commits sin pushear.
+- **Carga paralela** — carga el estado de todos los repos simultáneamente sin bloquear la UI.
+- **Flujo de Integración** (`B` - Flow):
+    - Selecciona ramas de origen y destino interactivamente.
+    - Chequea estado remoto.
+    - Genera URLs de Pull Request automáticamente.
+
+### Integración con npm
+- **Instalar dependencias** — ejecuta `npm install` desde el navegador (`I`).
+- **Eliminar node_modules** — limpieza rápida con una tecla (`X`).
+- **Indicadores visuales** — ve qué repos tienen `node_modules`.
+
+### Experiencia de Usuario (UI/UX)
+- **Localización** — Soporte para Inglés y Español.
+- **Interfaz Personalizable** (`U` - Preferencias):
+    - Colores de selección y fondos.
+    - Posición y estilo de los alias.
+    - Visibilidad de cabeceras (Modo Compacto).
+    - Modos de menú (Completo, Minimalista, Oculto).
+- **Diseño visual limpio** — interfaz consistente y legible, respetando el espacio del desarrollador.
 
 ---
 
-## Installation
+## Requisitos
 
-### 1. Clone or Download
+| Requisito | Versión | Notas |
+|-----------|---------|-------|
+| **PowerShell** | 5.1+ | **Requerido** — Usa sintaxis de clases y características modernas |
+| **Git** | Cualquiera | *Requerido* para las funcionalidades de control de versiones |
+| **npm** | Cualquiera | *Opcional* — Requerido para gestión de paquetes Node.js |
+
+---
+
+## Instalación
+
+### 1. Clonar o Descargar
 
 ```powershell
-git clone https://github.com/yourusername/repo-nav.git
+git clone https://github.com/tuusuario/repo-nav.git
 cd repo-nav
 ```
 
-### 2. Run Setup
+### 2. Ejecutar Setup
 
 ```powershell
 .\Setup.ps1
 ```
 
-The setup wizard will:
-- ✓ Check system requirements (PowerShell, Git, npm)
-- ✓ Configure your repositories path
-- ✓ Set up a command in your PowerShell profile
-- ✓ Create configuration files
+El asistente de instalación:
+- ✓ Verificar requisitos del sistema (PowerShell, Git, npm).
+- ✓ Configurará tu ruta base de repositorios.
+- ✓ Creará un comando en tu perfil de PowerShell.
+- ✓ Creará los archivos de configuración iniciales.
 
-### 3. Reload Profile
+### 3. Recargar Perfil
 
 ```powershell
 . $PROFILE
 ```
 
-Or restart your terminal.
+O reinicia tu terminal.
 
-### 4. Launch
+### 4. Lanzar
 
 ```powershell
 list
 ```
 
-(or whatever command name you chose during setup)
+(o el nombre del comando que elegiste durante el setup, por defecto `list`, `repo`, o `nav`).
 
 ---
 
-## Controls
+## Controles
 
-| Key | Action | Description |
-|-----|--------|-------------|
-| `↑` `↓` | Navigate | Move selection up/down |
-| `←` `→` | Hierarchy | Enter/exit container folders |
-| `Enter` | Open | Navigate to selected repository |
-| `Q` / `Esc` | Quit | Exit the navigator |
-| `E` | Edit Alias | Set or modify repository alias |
-| `R` | Remove Alias | Remove repository alias |
-| `F` | Favorite | Toggle favorite status |
-| `L` | Load Status | Load Git status for current repo |
-| `G` | Load All | Load Git status for all repos |
-| `I` | Install | Run `npm install` |
-| `X` | Remove | Delete `node_modules` folder |
-| `C` | Clone | Clone new repository from URL |
-| `N` | New Folder | Create a new folder |
-| `Del` | Delete | Delete repository (with confirmations) |
-| `/` | Search | Open search interface |
-| `P` | Preferences | Open preferences menu |
-
----
-
-## Configuration
-
-### Setup Files
-
-| File | Purpose | Git Status |
-|------|---------|------------|
-| `.repo-config.json` | Your repositories path and username | Ignored |
-| `.repo-aliases.json` | Repository aliases and favorites | Ignored |
-| `.repo-preferences.json` | UI preferences and settings | Ignored |
-| `.repo-config.example.json` | Template for config | Tracked |
-
-### Example Config
-
-```json
-{
-  "reposBasePath": "C:\\Users\\YourUser\\repos",
-  "userName": "YourUser"
-}
-```
+| Tecla | Acción | Descripción |
+|-------|--------|-------------|
+| `↑` `↓` | Navegar | Mover selección arriba/abajo |
+| `←` `→` | Jerarquía | Entrar/Salir de carpetas contenedoras |
+| `Enter` | Abrir | Navegar al repositorio seleccionado en la terminal |
+| `Q` / `Esc` | Salir | Salir del navegador |
+| `E` | Editar Alias | Establecer o modificar el alias del repositorio |
+| `R` | Borrar Alias | Eliminar el alias del repositorio |
+| `Espacio` | Favorito | Marcar/Desmarcar como favorito |
+| `L` | Cargar Estado | Cargar estado Git del repo actual |
+| `G` | Cargar Todo | Cargar estado Git de todos los repos (paralelo) |
+| `I` | Instalar | Ejecutar `npm install` |
+| `X` | Limpiar | Eliminar carpeta `node_modules` |
+| `C` | Clonar | Clonar nuevo repositorio desde URL |
+| `N` | Nueva Carpeta | Crear una nueva carpeta |
+| `Del` | Eliminar | Eliminar repositorio (con confirmación) |
+| `/` | Buscar | Abrir interfaz de búsqueda |
+| `U` | Preferencias | Abrir menú de preferencias de usuario |
+| `B` | Git Flow | Abrir menú de flujo Git (Integración/PRs) |
 
 ---
 
-## Architecture
+## Configuración
 
-### Project Structure
+### Archivos de Setup
+
+| Archivo | Propósito | Estado Git |
+|---------|-----------|------------|
+| `.repo-config.json` | Tu ruta de repositorios y nombre de usuario | Ignorado |
+| `.repo-aliases.json` | Alias de repositorios y favoritos | Ignorado |
+| `.repo-preferences.json` | Preferencias de UI y ajustes de usuario | Ignorado |
+| `.repo-config.example.json` | Plantilla de configuración | Tracked |
+
+---
+
+## Arquitectura
+
+### Estructura del Proyecto
 
 ```
 repo-nav/
-├── repo-nav.ps1              # Entry point
-├── Setup.ps1                 # Setup wizard
-├── README.md
+├── repo-nav.ps1              # Punto de entrada
+├── Setup.ps1                 # Asistente de instalación
+├── README.md                 # Documentación
 ├── src/
-│   ├── Config/               # Constants and color palettes
-│   ├── Models/               # Data structures (Repository, Alias, GitStatus)
-│   ├── Services/             # Business logic layer
-│   │   ├── GitService.ps1
-│   │   ├── NpmService.ps1
-│   │   ├── AliasManager.ps1
-│   │   ├── FavoriteService.ps1
-│   │   ├── SearchService.ps1
-│   │   └── ...
-│   ├── UI/                   # Presentation layer
-│   │   ├── ConsoleHelper.ps1
-│   │   ├── UIRenderer.ps1
-│   │   ├── MenuRenderer.ps1
-│   │   └── Views/
-│   └── Core/                 # Application core
-│       ├── NavigationState.ps1
-│       ├── RepositoryManager.ps1
-│       ├── CommandFactory.ps1
-│       └── Commands/         # Command Pattern implementations
-└── tests/                    # Test structure (WIP)
+│   ├── Config/               # Constantes y paletas de colores
+│   ├── Models/               # Estructuras de datos (Repository, Alias, GitStatus)
+│   ├── Services/             # Capa de Lógica de Negocio (Git, Npm, Alias, Search...)
+│   ├── UI/                   # Capa de Presentación (Renderers, Views, Interactive Selectors)
+│   └── Core/                 # Núcleo de la aplicación (State, Commands, Factory)
+└── tests/                    # Estructura de pruebas (WIP)
 ```
 
-### Design Principles
+### Principios de Diseño
 
-This project follows **SOLID principles** adapted for PowerShell:
+Este proyecto sigue **principios SOLID** adaptados para PowerShell:
 
-| Principle | Implementation |
+| Principio | Implementación |
 |-----------|----------------|
-| **Single Responsibility** | Each class has one clear purpose |
-| **Open/Closed** | Commands can be added without modifying existing code |
-| **Liskov Substitution** | All commands implement `INavigationCommand` contract |
-| **Interface Segregation** | Specialized renderers for different UI components |
-| **Dependency Inversion** | Services injected via constructor, not instantiated internally |
+| **Single Responsibility** | Cada clase tiene un propósito claro y único. |
+| **Open/Closed** | Se pueden añadir nuevos comandos sin modificar el código existente. |
+| **Liskov Substitution** | Todos los comandos implementan el contrato `INavigationCommand`. |
+| **Interface Segregation** | Renderizadores especializados para diferentes componentes UI. |
+| **Dependency Inversion** | Servicios inyectados vía constructor, no instanciados internamente. |
 
-### Key Patterns Used
+### Patrones Clave Usados
 
-- **Command Pattern** — Decoupled input handling from execution
-- **Facade Pattern** — `RepositoryManager` simplifies complex operations
-- **Factory Pattern** — `CommandFactory` creates and registers commands
-- **State Pattern** — `NavigationState` manages all navigation state
-- **Composition Root** — Dependencies wired in main entry point
+- **Command Pattern** — Desacopla la entrada del usuario de la ejecución lógica.
+- **Factory Pattern** — `CommandFactory` crea y registra los comandos dinámicamente.
+- **State Pattern** — `NavigationState` gestiona todo el estado de navegación de forma centralizada.
+- **Facade Pattern** — `RepositoryManager` simplifica operaciones complejas de múltiples servicios.
 
 ---
 
-## Troubleshooting
+## Solución de Problemas
 
-### Command not found after setup
+### Comando no encontrado tras setup
 
 ```powershell
 . $PROFILE
 ```
 
-### ExecutionPolicy error
+### Error de ExecutionPolicy
+
+Si PowerShell no te deja ejecutar scripts:
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-### Config file not found
+### Archivo de configuración no encontrado
 
-Run setup again:
+Ejecuta el setup de nuevo:
 ```powershell
 .\Setup.ps1
 ```
 
-Or manually create from template:
-```powershell
-Copy-Item .repo-config.example.json .repo-config.json
-notepad .repo-config.json
-```
+---
+
+## Privacidad y Seguridad
+
+Este proyecto está diseñado para **nunca exponer información personal**:
+
+- ✓ Tu nombre de usuario NO se sube.
+- ✓ Tus rutas de archivos NO se suben.
+- ✓ Tus alias y favoritos NO se suben.
+- ✓ Todos los archivos de configuración personal están en `.gitignore`.
+
+Solo el código fuente y los archivos de ejemplo se rastrean en Git.
 
 ---
 
-## Privacy & Security
+## Notas Técnicas
 
-This project is designed to **never expose personal information**:
+### Limitaciones de PowerShell (Workarounds)
 
-- ✓ Your username is NOT uploaded
-- ✓ Your file paths are NOT uploaded  
-- ✓ Your aliases are NOT uploaded
-- ✓ All personal config files are in `.gitignore`
+- **Sin interfaces reales** — Usamos clases base abstractas con métodos que lanzan errores.
+- **Sin modificadores privados estrictos** — Usamos `hidden` donde es posible.
+- **Genéricos limitados** — Trabajamos con `[hashtable]` y `[ArrayList]`.
+- **Sin async/await nativo** — Usamos Runspace pools para operaciones paralelas (carga de Git).
+- **Orden de carga de clases** — Se requiere una secuencia de carga de archivos cuidadosa en `repo-nav.ps1`.
 
-Only source code and example files are tracked in Git.
+### Consideraciones de Rendimiento
 
----
-
-## Technical Notes
-
-### PowerShell Limitations We Worked Around
-
-- **No true interfaces** — Used abstract base class with throwing methods
-- **No private modifiers** — Used `hidden` keyword where possible
-- **Limited generics** — Worked with `[hashtable]` and `[ArrayList]`
-- **No async/await** — Used Runspace pools for parallel operations
-- **Class parsing order** — Careful file loading sequence required
-
-### Performance Considerations
-
-- **Parallel Git loading** — Uses Runspace pool for concurrent status checks
-- **Lazy loading** — Git status loaded on demand, not at startup
-- **Viewport rendering** — Only visible items are rendered
-- **Optimized redraws** — Dirty flags minimize screen updates
+- **Carga de Git Paralela** — Usa un pool de Runspaces para no congelar la UI.
+- **Lazy Loading** — El estado completo de Git se carga bajo demanda o en segundo plano.
+- **Renderizado Viewport** — Solo se pintan los elementos visibles en pantalla.
+- **Redibujado Optimizado** — Flags de "suciedad" (dirty flags) minimizan parpadeos y actualizaciones de pantalla.
 
 ---
 
-## Contributing
+## Contribución
 
-This is a personal project, but suggestions are welcome. The codebase demonstrates how to build maintainable PowerShell applications — feel free to learn from it or adapt the patterns for your own projects.
+Este es un proyecto personal, pero las sugerencias y pull requests son bienvenidas. El código base demuestra cómo construir aplicaciones PowerShell mantenibles — siéntete libre de aprender de él o adaptar los patrones para tus propios proyectos.
 
 ---
 
-## Version History
+## Historial de Versiones
 
-| Version | Description |
+| Versión | Descripción |
 |---------|-------------|
-| **2.0** | SOLID refactor — Full architectural redesign |
-| **1.0** | Original script — Basic navigation and aliases |
+| **2.1** | **UX Update** — UI Refinament, Preferencias de Cabecera, Git Flow Command, Navegación mejorada. |
+| **2.0** | **SOLID Refactor** — Rediseño arquitectónico completo. |
+| **1.0** | **Script Original** — Navegación básica y alias. |
 
 ---
 
-## Author
+## Autor
 
 **Martin Miguel Bernal Garcia**  
-January 2026
+Enero 2026
 
 ---
 
-*Built with PowerShell, engineered with principles.*
+*Construido con PowerShell, diseñado con principios.*
