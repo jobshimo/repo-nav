@@ -380,10 +380,6 @@ class GitFlowCommand : INavigationCommand {
             $context.Console.WriteLineColored("  [i] Could not determine Pull Request URL.", [Constants]::ColorHint)
         }
         
-        $context.Console.NewLine()
-        $context.Console.WriteLineColored("Integration Flow Completed. Press any key to return...", [Constants]::ColorMenuText)
-        $context.Console.ReadKey()
-        
         return $true
     }
 }
