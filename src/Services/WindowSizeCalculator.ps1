@@ -13,7 +13,7 @@
 class WindowSizeCalculator {
     # Configuration
     [int] $MinPageSize = 1
-    [int] $MaxPageSize = 25
+    [int] $MaxPageSize = 50 # Increased from 25 to maximize use of screen space
     [int] $DefaultPageSize = 15
     [int] $FooterAndSafetyLines = 7  # Footer(4) + Gap(1) + Safety(2)
     
