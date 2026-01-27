@@ -8,7 +8,6 @@ class IntegrationFlowRenderer {
     }
 
     [void] RenderDashboard([hashtable]$flowState) {
-        $this.Console.ClearScreen()
         $this.Renderer.RenderHeader("INTEGRATION FLOW DASHBOARD")
         $this.Console.NewLine()
         

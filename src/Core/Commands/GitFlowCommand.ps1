@@ -185,6 +185,7 @@ class GitFlowCommand : INavigationCommand {
 
         # 3. Dashboard Loop
         while ($true) {
+            $context.Console.ClearScreen()
             $flowRenderer.RenderDashboard($flowState)
             
             $canExecute = $flowState.TargetBranchValid -and $flowState.NewBranchNameValid -and $flowState.SourceBranchValid
@@ -196,12 +197,16 @@ class GitFlowCommand : INavigationCommand {
             $options += @{ DisplayText = "3. Set Source Branch (Local)";  Value = "SetSource" }
             
             if ($canExecute) {
+                # Add extra newline for separation before execution option
+                # Logic: OptionSelector doesn't easily support separators in options array without custom logic
                 $options += @{ DisplayText = "4. EXECUTE INTEGRATION";    Value = "Execute" }
             }
             
+            # Add separator logic? No, just keep it simple
             $options += @{ DisplayText = "Exit / Cancel"; Value = "Cancel" }
             
-            $selection = $context.OptionSelector.ShowSelection("Select Action", $options, $false, $null, $false, "")
+            # Do NOT clear screen, so Dashboard remains visible above
+            $selection = $context.OptionSelector.ShowSelection("Select Action", $options, $false, $null, $false, "", $false)
             
             if ($null -eq $selection -or $selection -eq "Cancel") {
                 return

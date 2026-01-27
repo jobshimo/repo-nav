@@ -58,11 +58,11 @@ class OptionSelector {
     #>
     # Overload for backward compatibility (4 arguments)
     [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText) {
-        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "")
+        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "", $true)
     }
 
     # Main method with all options
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description) {
+    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [bool]$clearScreen = $true) {
         if ($options.Count -eq 0) {
             return $null
         }
@@ -84,7 +84,9 @@ class OptionSelector {
             
             # Clear screen once and render header
             # Clear screen once and render header
-            $this.Console.ClearScreen()
+            if ($clearScreen) {
+                $this.Console.ClearScreen()
+            }
             $this.Renderer.RenderHeader($title)
             
             # If headers are hidden, we must still show the "Title" (Prompt/Question) 
