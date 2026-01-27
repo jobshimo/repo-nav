@@ -294,10 +294,7 @@ class GitFlowCommand : INavigationCommand {
         if ($npmService.HasPackageJson($repo.FullPath)) {
              $currentVersion = $npmService.GetVersion($repo.FullPath)
              
-             $context.Console.ClearScreen()
-             $title = $this.GetLoc($context, "Flow.VersionCheckTitle", "INTEGRATION FLOW: VERSION CHECK")
-             $context.Renderer.RenderHeader($title)
-             $context.Console.NewLine()
+             $currentVersion = $npmService.GetVersion($repo.FullPath)
              
              $promptTitle = $this.GetLoc($context, "Flow.UpdateVersionPrompt", "Do you want to update the version?")
              $vFmt = $this.GetLoc($context, "Flow.CurrentVersion", "Current Version: {0}")
@@ -312,7 +309,8 @@ class GitFlowCommand : INavigationCommand {
                  @{ DisplayText = $noText;  Value = $false }
              )
              
-             $updateChoice = $context.OptionSelector.ShowSelection($promptTitle, $yesNoOptions, $false, $cancelText, $false, $desc)
+             # Pass $true for clearScreen explicitly
+             $updateChoice = $context.OptionSelector.ShowSelection($promptTitle, $yesNoOptions, $false, $cancelText, $false, $desc, $true)
              
              if ($true -eq $updateChoice) {
                  $context.Console.NewLine()
