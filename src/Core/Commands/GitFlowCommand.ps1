@@ -184,73 +184,89 @@ class GitFlowCommand : INavigationCommand {
         $remoteBranches = $null # Lazy load cache
 
         # 3. Dashboard Loop
+        $selectedIndex = 0
+        
         while ($true) {
             $context.Console.ClearScreen()
-            $flowRenderer.RenderDashboard($flowState)
+            $flowRenderer.RenderInteractiveDashboard($flowState, $selectedIndex)
             
             $canExecute = $flowState.TargetBranchValid -and $flowState.NewBranchNameValid -and $flowState.SourceBranchValid
+            $maxIndex = if ($canExecute) { 4 } else { 3 }
             
-            # Build Options
-            $options = @()
-            $options += @{ DisplayText = "1. Set Target Branch (Remote)"; Value = "SetTarget" }
-            $options += @{ DisplayText = "2. Set New Branch Name";        Value = "SetName" }
-            $options += @{ DisplayText = "3. Set Source Branch (Local)";  Value = "SetSource" }
+            # Input Handling
+            $key = $context.Console.ReadKey()
+            $keyCode = $key.VirtualKeyCode
             
-            if ($canExecute) {
-                # Add extra newline for separation before execution option
-                # Logic: OptionSelector doesn't easily support separators in options array without custom logic
-                $options += @{ DisplayText = "4. EXECUTE INTEGRATION";    Value = "Execute" }
+            # Navigation
+            if ($keyCode -eq [Constants]::KEY_UP_ARROW) {
+                if ($selectedIndex -gt 0) { $selectedIndex-- }
+                else { $selectedIndex = $maxIndex }
+                continue
+            }
+            if ($keyCode -eq [Constants]::KEY_DOWN_ARROW) {
+                if ($selectedIndex -lt $maxIndex) { $selectedIndex++ }
+                else { $selectedIndex = 0 }
+                continue
             }
             
-            # Add separator logic? No, just keep it simple
-            $options += @{ DisplayText = "Exit / Cancel"; Value = "Cancel" }
-            
-            # Do NOT clear screen, so Dashboard remains visible above
-            $selection = $context.OptionSelector.ShowSelection("Select Action", $options, $false, $null, $false, "", $false)
-            
-            if ($null -eq $selection -or $selection -eq "Cancel") {
+            # Cancel/Exit
+            if ($keyCode -eq [Constants]::KEY_Q -or $keyCode -eq [Constants]::KEY_ESC) {
                 return
             }
             
-            switch ($selection) {
-                "SetTarget" {
-                    if ($null -eq $remoteBranches) {
-                        $context.Console.WriteColored("Loading remote branches...", [Constants]::ColorHint)
-                        $remoteBranches = $gitService.GetRemoteBranches($repo.FullPath)
+            # Selection/Action
+            if ($keyCode -eq [Constants]::KEY_ENTER) {
+                $action = ""
+                
+                # Mapper logic
+                # 0: Target, 1: Name, 2: Source
+                # If canExecute: 3=Execute, 4=Exit
+                # Else: 3=Exit
+                
+                if ($selectedIndex -eq 0) { $action = "SetTarget" }
+                elseif ($selectedIndex -eq 1) { $action = "SetName" }
+                elseif ($selectedIndex -eq 2) { $action = "SetSource" }
+                elseif ($canExecute -and $selectedIndex -eq 3) { $action = "Execute" }
+                else { return } # Exit/Cancel case
+                
+                switch ($action) {
+                    "SetTarget" {
+                        if ($null -eq $remoteBranches) {
+                            $context.Console.WriteColored("Loading remote branches...", [Constants]::ColorHint)
+                            $remoteBranches = $gitService.GetRemoteBranches($repo.FullPath)
+                        }
+                        # Use selector for submenu
+                        $sel = $selector.ShowSelection("Select TARGET Branch", $remoteBranches, @{ Prompt="Select Remote Branch"; InitialFocus=[Constants]::FocusInput })
+                        if ($null -ne $sel -and $sel.Type -eq "Item") {
+                            $flowState.TargetBranch = "$($sel.Value)".Trim()
+                            $flowState.TargetBranchValid = $true
+                        }
                     }
-                    $sel = $selector.ShowSelection("Select TARGET Branch", $remoteBranches, @{ Prompt="Select Remote Branch"; InitialFocus=[Constants]::FocusInput })
-                    if ($null -ne $sel -and $sel.Type -eq "Item") {
-                        # Explicitly cast to string and trim to be safe
-                        $flowState.TargetBranch = "$($sel.Value)".Trim()
-                        $flowState.TargetBranchValid = $true
+                    "SetName" {
+                        $context.Console.NewLine()
+                        $context.Console.WriteColored("  Enter New Branch Name: ", [Constants]::ColorMenuText)
+                        $context.Console.ShowCursor()
+                        $inputName = Read-Host
+                        $context.Console.HideCursor()
+                        if (-not [string]::IsNullOrWhiteSpace($inputName)) {
+                            $flowState.NewBranchName = $inputName.Trim()
+                            $flowState.NewBranchNameValid = $true
+                        }
                     }
-                }
-                "SetName" {
-                    $context.Console.NewLine()
-                    $context.Console.WriteColored("  Enter New Branch Name: ", [Constants]::ColorMenuText)
-                    $context.Console.ShowCursor()
-                    $inputName = Read-Host
-                    $context.Console.HideCursor()
-                    if (-not [string]::IsNullOrWhiteSpace($inputName)) {
-                        $flowState.NewBranchName = $inputName.Trim()
-                        $flowState.NewBranchNameValid = $true
+                    "SetSource" {
+                        $localBranches = $gitService.GetBranches($repo.FullPath)
+                        $sel = $selector.ShowSelection("Select SOURCE Branch", $localBranches, @{ Prompt="Select Local Branch"; CurrentItem=$flowState.SourceBranch; InitialFocus=[Constants]::FocusInput })
+                        if ($null -ne $sel -and $sel.Type -eq "Item") {
+                            $flowState.SourceBranch = "$($sel.Value)".Trim()
+                            $flowState.SourceBranchValid = $true
+                        }
                     }
-                }
-                "SetSource" {
-                    $localBranches = $gitService.GetBranches($repo.FullPath)
-                    $sel = $selector.ShowSelection("Select SOURCE Branch", $localBranches, @{ Prompt="Select Local Branch"; CurrentItem=$flowState.SourceBranch; InitialFocus=[Constants]::FocusInput })
-                    if ($null -ne $sel -and $sel.Type -eq "Item") {
-                        $flowState.SourceBranch = "$($sel.Value)".Trim()
-                        $flowState.SourceBranchValid = $true
-                    }
-                }
-                "Execute" {
-                    if ($canExecute) {
-                       $success = $this.PerformIntegration($context, $repo, $gitService, $flowState)
-                       if ($success) { return }
-                       # If failed, pause and loop
-                       $context.Console.WriteLine("Press any key to return...")
-                       $context.Console.ReadKey()
+                    "Execute" {
+                        $success = $this.PerformIntegration($context, $repo, $gitService, $flowState)
+                        if ($success) { return }
+                        # If failed, pause to show error
+                        $context.Console.WriteLine("Press any key to continue...")
+                        $context.Console.ReadKey()
                     }
                 }
             }
