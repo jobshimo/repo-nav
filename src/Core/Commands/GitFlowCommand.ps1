@@ -135,10 +135,16 @@ class GitFlowCommand : INavigationCommand {
                 elseif ($selection.Type -eq "Header") {
                     $flow = $selection.Value
                     if ($flow -eq "Integrate") {
-                        $this.InvokeIntegrationFlow($context, $repo, $gitService, $selector)
-                        # After flow, we might want to refresh branches list or status
-                        $statusMessage = "Integration Flow Completed."
-                        $statusColor = [Constants]::ColorSuccess
+                        $integrationResult = $this.InvokeIntegrationFlow($context, $repo, $gitService, $selector)
+                        # After flow, show result
+                        $statusMessage = $integrationResult
+                        if ($statusMessage -match "^Error") {
+                             $statusColor = [Constants]::ColorError
+                        } elseif ($statusMessage -eq "Integration Cancelled") {
+                             $statusColor = [Constants]::ColorWarning
+                        } else {
+                             $statusColor = [Constants]::ColorSuccess
+                        }
                     } else {
                         $statusMessage = "Selected Flow: $flow (Not implemented)"
                         $statusColor = [Constants]::ColorWarning
@@ -154,7 +160,7 @@ class GitFlowCommand : INavigationCommand {
         }
     }
 
-    hidden [void] InvokeIntegrationFlow($context, $repo, $gitService, $selector) {
+    hidden [string] InvokeIntegrationFlow($context, $repo, $gitService, $selector) {
         $flowRenderer = [IntegrationFlowRenderer]::new($context.Console, $context.Renderer)
         
         # 1. Fetch Remotes (Initial Setup)
@@ -211,7 +217,7 @@ class GitFlowCommand : INavigationCommand {
             
             # Cancel/Exit
             if ($keyCode -eq [Constants]::KEY_Q -or $keyCode -eq [Constants]::KEY_ESC) {
-                return
+                return "Integration Cancelled"
             }
             
             # Selection/Action
@@ -227,7 +233,7 @@ class GitFlowCommand : INavigationCommand {
                 elseif ($selectedIndex -eq 1) { $action = "SetName" }
                 elseif ($selectedIndex -eq 2) { $action = "SetSource" }
                 elseif ($canExecute -and $selectedIndex -eq 3) { $action = "Execute" }
-                else { return } # Exit/Cancel case
+                else { return "Integration Cancelled" } # Exit/Cancel case
                 
                 switch ($action) {
                     "SetTarget" {
@@ -262,18 +268,24 @@ class GitFlowCommand : INavigationCommand {
                         }
                     }
                     "Execute" {
-                        $success = $this.PerformIntegration($context, $repo, $gitService, $flowState)
-                        if ($success) { return }
-                        # If failed, pause to show error
-                        $context.Console.WriteLine("Press any key to continue...")
+                        $result = $this.PerformIntegration($context, $repo, $gitService, $flowState)
+                        if ($result.Success) {
+                           return $result.Message
+                        }
+                        
+                        # Failure Case
+                        $context.Console.NewLine()
+                        $context.Console.WriteLineColored("Press any key to return to menu...", [Constants]::ColorMenuText)
                         $context.Console.ReadKey()
+                        return "Error: " + $result.Message
                     }
                 }
             }
         }
+        return "Integration Cancelled"
     }
 
-    hidden [bool] PerformIntegration($context, $repo, $gitService, $flowState) {
+    hidden [hashtable] PerformIntegration($context, $repo, $gitService, $flowState) {
         $newBranchName = $flowState.NewBranchName
         $targetBranch = $flowState.TargetBranch
         $sourceBranch = $flowState.SourceBranch
@@ -288,7 +300,7 @@ class GitFlowCommand : INavigationCommand {
         if (-not $createRes.Success) {
              $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
              $context.Console.WriteLineColored("  $($createRes.Output)", [Constants]::ColorError)
-             return $false
+             return @{ Success = $false; Message = "Failed to create branch '$newBranchName': $($createRes.Output)" }
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
         
@@ -301,7 +313,7 @@ class GitFlowCommand : INavigationCommand {
              if ($mergeRes.Output -match "CONFLICT") {
                  $context.Console.WriteLineColored("  [!] Please resolve conflicts in IDE and finish manually.", [Constants]::ColorWarning)
              }
-             return $false
+             return @{ Success = $false; Message = "Merge failed: $($mergeRes.Output)" }
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
 
@@ -310,7 +322,8 @@ class GitFlowCommand : INavigationCommand {
         if ($npmService.HasPackageJson($repo.FullPath)) {
              $currentVersion = $npmService.GetVersion($repo.FullPath)
              
-             $currentVersion = $npmService.GetVersion($repo.FullPath)
+             # Re-fetch version? Redundant calls removed
+             # $currentVersion = $npmService.GetVersion($repo.FullPath)
              
              $promptTitle = $this.GetLoc($context, "Flow.UpdateVersionPrompt", "Do you want to update the version?")
              $vFmt = $this.GetLoc($context, "Flow.CurrentVersion", "Current Version: {0}")
@@ -372,7 +385,7 @@ class GitFlowCommand : INavigationCommand {
         if (-not $pushRes.Success) {
              $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
              $context.Console.WriteLineColored("  $($pushRes.Output)", [Constants]::ColorError)
-             return $false
+             return @{ Success = $false; Message = "Push failed: $($pushRes.Output)" }
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
         
@@ -396,6 +409,6 @@ class GitFlowCommand : INavigationCommand {
             $context.Console.WriteLineColored("  [i] Could not determine Pull Request URL.", [Constants]::ColorHint)
         }
         
-        return $true
+        return @{ Success = $true; Message = "Integration Flow Completed." }
     }
 }
