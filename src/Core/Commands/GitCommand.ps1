@@ -37,7 +37,7 @@ class GitCommand : INavigationCommand {
                 
                 # Show animated dots during git fetch (synchronous animation + action)
                 $progressIndicator.ShowLoadingDots("Loading git status", {
-                    $repoManager.LoadGitStatus($currentRepo)
+                    $repoManager.LoadGitStatus($currentRepo, $true)
                 })
                 
                 # Only trigger selection change (partial redraw - just current item + footer)
@@ -58,8 +58,10 @@ class GitCommand : INavigationCommand {
                 # Load missing status ONLY for repositories in the current view (passed from state)
                 # This ensures we don't accidentally load global repos if RepoManager state drifts,
                 # and satisfies the requirement "only repositories in the current folder".
-                $visibleRepos = $repos | Where-Object { -not $_.IsContainer -and -not $_.HasGitStatusLoaded() }
-                $repoManager.LoadGitStatusForRepos($visibleRepos, $progressCallback)
+                $visibleRepos = $repos | Where-Object { -not $_.IsContainer }
+                
+                # Force refresh all visible repos when G is pressed
+                $repoManager.LoadGitStatusForRepos($visibleRepos, $progressCallback, $true)
             }
             finally {
                 $progressIndicator.CompleteProgressBar()

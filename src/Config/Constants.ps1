@@ -57,6 +57,7 @@ class Constants {
     static [string] $GitSymbolUncommitted = [char]0x25CF # ●
     static [string] $GitSymbolUnpushed = [char]0x2191    # ↑
     static [string] $GitSymbolUnknown = "?"
+    static [string] $GitSymbolNotRepo = "-"
     
     # Favorite Symbol
     static [string] $FavoriteSymbol = [char]0x2605      # ★

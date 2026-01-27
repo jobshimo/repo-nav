@@ -240,7 +240,7 @@ class UIRenderer {
     [hashtable] GetGitStatusDisplay([GitStatusModel]$gitStatus) {
         if (-not $gitStatus -or -not $gitStatus.IsGitRepo) {
             return @{
-                Symbol = "?"
+                Symbol = [Constants]::GitSymbolNotRepo
                 Color = ([Constants]::ColorGitUnknown)
                 Description = "Not a git repository"
             }
