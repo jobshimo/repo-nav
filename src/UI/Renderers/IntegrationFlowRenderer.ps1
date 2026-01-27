@@ -27,7 +27,7 @@ class IntegrationFlowRenderer {
         $this.Console.WriteColored("  $labelPad : ", [Constants]::ColorLabel)
         
         if ([string]::IsNullOrWhiteSpace($value)) {
-            $this.Console.WriteLineColored("<Not Selected>", [Constants]::ColorDarkGray)
+            $this.Console.WriteLineColored("<Not Selected>", [Constants]::ColorHint)
         } else {
             $color = if ($isValid) { [Constants]::ColorValue } else { [Constants]::ColorWarning }
             $this.Console.WriteLineColored($value, $color)
