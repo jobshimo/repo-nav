@@ -241,7 +241,12 @@ class RepositoryManager {
     
     # Load git status for a specific repository (and cache it)
     # Load git status for a specific repository (and cache it)
-    [void] LoadGitStatus([RepositoryModel]$repository, [bool]$force = $false) {
+    # Load git status for a specific repository (and cache it)
+    [void] LoadGitStatus([RepositoryModel]$repository) {
+        $this.LoadGitStatus($repository, $false)
+    }
+
+    [void] LoadGitStatus([RepositoryModel]$repository, [bool]$force) {
         # Skip containers - they don't have git status
         if ($repository.IsContainer) {
             return
@@ -277,7 +282,19 @@ class RepositoryManager {
     }
     
     # Load git status for specified repositories (delegates to ParallelGitLoader)
-    [void] LoadGitStatusForRepos([array]$repos, [scriptblock]$progressCallback = $null, [bool]$force = $false) {
+    # Load git status for specified repositories (delegates to ParallelGitLoader)
+    # Overload 1: Only repos
+    [void] LoadGitStatusForRepos([array]$repos) {
+        $this.LoadGitStatusForRepos($repos, $null, $false)
+    }
+
+    # Overload 2: Repos + Callback
+    [void] LoadGitStatusForRepos([array]$repos, [scriptblock]$progressCallback) {
+        $this.LoadGitStatusForRepos($repos, $progressCallback, $false)
+    }
+
+    # Overload 3: All parameters
+    [void] LoadGitStatusForRepos([array]$repos, [scriptblock]$progressCallback, [bool]$force) {
         # Filter out containers
         $reposToLoad = @($repos | Where-Object { -not $_.IsContainer })
         
