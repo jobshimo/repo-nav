@@ -276,17 +276,36 @@ class GitFlowCommand : INavigationCommand {
              $context.Console.ClearScreen()
              $context.Renderer.RenderHeader("INTEGRATION FLOW: VERSION CHECK")
              $context.Console.NewLine()
-             $context.Console.WriteColored("  Current Version: ", [Constants]::ColorLabel)
-             $context.Console.WriteLineColored($currentVersion, [Constants]::ColorValue)
-             $context.Console.NewLine()
+             # Prepare prompt with clear version info
+             $promptTitle = "Do you want to update the version?"
+             $desc = "Current Version: $currentVersion"
              
-             if ($context.OptionSelector.SelectYesNo("Do you want to update the version?")) {
+             # Manually construct Yes/No selection to include Description (which persists)
+             $yesNoOptions = @(
+                 @{ DisplayText = "Yes"; Value = $true },
+                 @{ DisplayText = "No";  Value = $false }
+             )
+             
+             # Using ShowSelection directly to use 'Description' parameter
+             # ShowSelection($title, $options, $currentValue, $cancelText, $showCurrentMarker, $description)
+             $updateChoice = $context.OptionSelector.ShowSelection($promptTitle, $yesNoOptions, $false, "Cancel", $false, $desc)
+             
+             if ($true -eq $updateChoice) {
+                 $context.Console.NewLine()
+                 $context.Console.WriteColored("  Current Version: ", [Constants]::ColorLabel)
+                 $context.Console.WriteLineColored($currentVersion, [Constants]::ColorValue)
+                 
                  $context.Console.WriteColored("  Enter new version: ", [Constants]::ColorMenuText)
                  $context.Console.ShowCursor()
                  $newVersion = Read-Host
                  $context.Console.HideCursor()
                  
-                 if (-not [string]::IsNullOrWhiteSpace($newVersion)) {
+                 if ([string]::IsNullOrWhiteSpace($newVersion)) {
+                     # If user enters nothing, maybe they changed their mind? allow cancel or keep current?
+                     # For now, let's just abort the update part
+                     $context.Console.WriteLineColored("  [!] Validation skipped / No version entered.", [Constants]::ColorWarning)
+                 }
+                 else {
                      $context.Console.WriteColored("  Updating version...", [Constants]::ColorHint)
                      $setRes = $npmService.SetVersion($repo.FullPath, $newVersion)
                      
