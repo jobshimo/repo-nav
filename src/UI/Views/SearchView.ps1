@@ -332,6 +332,7 @@ class SearchView {
         
         # Search input (1 line)
         $this.RenderSearchInput($searchText, ($focusMode -eq "input"))
+        $this.Console.NewLine() # Add newline explicitly
         # Removed extra newline and count block as per user request to maximize list space
         
         # Separator before list
@@ -361,9 +362,9 @@ class SearchView {
         $this.Console.WriteColored("$label`: ", [Constants]::ColorLabel)
         
         if ([string]::IsNullOrEmpty($searchText)) {
-            $this.Console.WriteLineColored($placeholder, [Constants]::ColorHint)
+            $this.Console.WriteColored($placeholder, [Constants]::ColorHint)
         } else {
-            $this.Console.WriteLineColored($searchText, [Constants]::ColorValue)
+            $this.Console.WriteColored($searchText, [Constants]::ColorValue)
         }
     }
     
