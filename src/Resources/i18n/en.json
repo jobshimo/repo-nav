@@ -239,5 +239,6 @@
     "Flow.EnterNewVersion": "Enter new version: ",
     "Flow.ValidationSkipped": "Validation skipped / No version entered.",
     "Flow.UpdatingVersion": "Updating version...",
-    "Flow.CommitVersionBump": "Committing version bump..."
+    "Flow.CommitVersionBump": "Committing version bump...",
+    "Pref.Hint": "↑↓/Home/End:Nav Enter:Change Q/←:Back"
 }
