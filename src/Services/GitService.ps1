@@ -379,4 +379,48 @@ class GitService {
             Pop-Location
         }
     }
+    # Stage files
+    [object] Add([string]$repoPath, [string]$filePattern) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @{ Success = $false; Output = "Not a git repository" }
+        }
+        
+        Push-Location $repoPath
+        try {
+            $output = git add $filePattern 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch {
+             return @{ Success = $false; Output = $_.ToString() }
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    # Commit changes
+    [object] Commit([string]$repoPath, [string]$message) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @{ Success = $false; Output = "Not a git repository" }
+        }
+        
+        Push-Location $repoPath
+        try {
+            # Use --no-verify to skip hooks if necessary, but standard is better
+            $output = git commit -m $message 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch {
+             return @{ Success = $false; Output = $_.ToString() }
+        }
+        finally {
+            Pop-Location
+        }
+    }
 }

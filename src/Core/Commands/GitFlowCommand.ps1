@@ -268,6 +268,58 @@ class GitFlowCommand : INavigationCommand {
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
 
+        # Version Check Step
+        $npmService = $context.RepoManager.NpmService
+        if ($npmService.HasPackageJson($repo.FullPath)) {
+             $currentVersion = $npmService.GetVersion($repo.FullPath)
+             
+             $context.Console.ClearScreen()
+             $context.Renderer.RenderHeader("INTEGRATION FLOW: VERSION CHECK")
+             $context.Console.NewLine()
+             $context.Console.WriteColored("  Current Version: ", [Constants]::ColorLabel)
+             $context.Console.WriteLineColored($currentVersion, [Constants]::ColorValue)
+             $context.Console.NewLine()
+             
+             if ($context.OptionSelector.SelectYesNo("Do you want to update the version?")) {
+                 $context.Console.WriteColored("  Enter new version: ", [Constants]::ColorMenuText)
+                 $context.Console.ShowCursor()
+                 $newVersion = Read-Host
+                 $context.Console.HideCursor()
+                 
+                 if (-not [string]::IsNullOrWhiteSpace($newVersion)) {
+                     $context.Console.WriteColored("  Updating version...", [Constants]::ColorHint)
+                     $setRes = $npmService.SetVersion($repo.FullPath, $newVersion)
+                     
+                     if ($setRes.Success) {
+                         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
+                         $context.Console.WriteLineColored("  $($setRes.Output)", [Constants]::ColorSuccess)
+                         Start-Sleep -Milliseconds 500
+                         
+                         # Commit the version bump
+                         $context.Console.WriteColored("  Committing version bump...", [Constants]::ColorHint)
+                         
+                         [void]$gitService.Add($repo.FullPath, "package.json")
+                         if ($npmService.HasPackageLock($repo.FullPath)) {
+                             [void]$gitService.Add($repo.FullPath, "package-lock.json")
+                         }
+                         
+                         $commitRes = $gitService.Commit($repo.FullPath, "chore: bump version to $newVersion")
+                         if ($commitRes.Success) {
+                             $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
+                         } else {
+                             $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
+                             $context.Console.WriteLineColored("  $($commitRes.Output)", [Constants]::ColorError)
+                             Start-Sleep -Seconds 2
+                         }
+                     } else {
+                         $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
+                         $context.Console.WriteLineColored("  $($setRes.Output)", [Constants]::ColorError)
+                         Start-Sleep -Seconds 2
+                     }
+                 }
+             }
+        }
+
         # Push
         $context.Console.WriteColored("  Pushing to origin...", [Constants]::ColorHint)
         $pushRes = $gitService.Push($repo.FullPath, $newBranchName)
