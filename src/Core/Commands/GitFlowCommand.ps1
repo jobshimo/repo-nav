@@ -177,8 +177,8 @@ class GitFlowCommand : INavigationCommand {
             TargetBranchValid = $false
             NewBranchName     = ""
             NewBranchNameValid= $false
-            SourceBranch      = $currentBranch
-            SourceBranchValid = $true
+            SourceBranch      = ""
+            SourceBranchValid = $false
         }
         
         $remoteBranches = $null # Lazy load cache
