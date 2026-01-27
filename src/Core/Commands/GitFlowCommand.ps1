@@ -369,8 +369,8 @@ class GitFlowCommand : INavigationCommand {
             $prUrl = "{0}/compare/{1}?expand=1" -f $repoUrl, $newBranchName
             
             $context.Console.NewLine()
-            # Pass $false for clearScreen to keep context
-            $openPr = $context.OptionSelector.SelectYesNo("Open Pull Request in Browser?", $false)
+            # Default behavior clears screen which is what user wants for this step
+            $openPr = $context.OptionSelector.SelectYesNo("Open Pull Request in Browser?")
             if ($openPr) {
                 Start-Process $prUrl
             }
