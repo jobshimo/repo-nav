@@ -213,16 +213,19 @@ class GitFlowCommand : INavigationCommand {
                         $context.Console.WriteColored("Loading remote branches...", [Constants]::ColorHint)
                         $remoteBranches = $gitService.GetRemoteBranches($repo.FullPath)
                     }
-                    $sel = $selector.ShowSelection("Select TARGET Branch", $remoteBranches, @{ Prompt="Select Remote Branch" })
+                    $sel = $selector.ShowSelection("Select TARGET Branch", $remoteBranches, @{ Prompt="Select Remote Branch"; InitialFocus=[Constants]::FocusInput })
                     if ($null -ne $sel -and $sel.Type -eq "Item") {
-                        $flowState.TargetBranch = $sel.Value
+                        # Explicitly cast to string and trim to be safe
+                        $flowState.TargetBranch = "$($sel.Value)".Trim()
                         $flowState.TargetBranchValid = $true
                     }
                 }
                 "SetName" {
                     $context.Console.NewLine()
                     $context.Console.WriteColored("  Enter New Branch Name: ", [Constants]::ColorMenuText)
+                    $context.Console.ShowCursor()
                     $inputName = Read-Host
+                    $context.Console.HideCursor()
                     if (-not [string]::IsNullOrWhiteSpace($inputName)) {
                         $flowState.NewBranchName = $inputName.Trim()
                         $flowState.NewBranchNameValid = $true
@@ -230,9 +233,9 @@ class GitFlowCommand : INavigationCommand {
                 }
                 "SetSource" {
                     $localBranches = $gitService.GetBranches($repo.FullPath)
-                    $sel = $selector.ShowSelection("Select SOURCE Branch", $localBranches, @{ Prompt="Select Local Branch"; CurrentItem=$flowState.SourceBranch })
+                    $sel = $selector.ShowSelection("Select SOURCE Branch", $localBranches, @{ Prompt="Select Local Branch"; CurrentItem=$flowState.SourceBranch; InitialFocus=[Constants]::FocusInput })
                     if ($null -ne $sel -and $sel.Type -eq "Item") {
-                        $flowState.SourceBranch = $sel.Value
+                        $flowState.SourceBranch = "$($sel.Value)".Trim()
                         $flowState.SourceBranchValid = $true
                     }
                 }
