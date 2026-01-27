@@ -306,20 +306,26 @@ class GitFlowCommand : INavigationCommand {
         $context.Console.NewLine()
         
         # 1. Create Branch from Target
-        $msgCreate = $context.LocalizationService.Get("Flow.Op.Creating", @($newBranchName, $targetBranch))
+        $fmtCreate = $context.LocalizationService.Get("Flow.Op.Creating", "Creating '{0}' from '{1}'...")
+        $msgCreate = [string]::Format($fmtCreate, $newBranchName, $targetBranch)
         $context.Console.WriteColored("  $msgCreate", [Constants]::ColorHint)
+        
         $createRes = $gitService.CreateBranch($repo.FullPath, $newBranchName, $targetBranch)
         if (-not $createRes.Success) {
              $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
              $context.Console.WriteLineColored("  $($createRes.Output)", [Constants]::ColorError)
-             $err = $context.LocalizationService.Get("Flow.Error.CreateFailed", @($newBranchName, $createRes.Output))
+             
+             $fmtErr = $context.LocalizationService.Get("Flow.Error.CreateFailed", "Failed to create branch '{0}': {1}")
+             $err = [string]::Format($fmtErr, $newBranchName, $createRes.Output)
              return @{ Success = $false; Message = $err }
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
         
         # 2. Merge Source
-        $msgMerge = $context.LocalizationService.Get("Flow.Op.Merging", @($sourceBranch))
+        $fmtMerge = $context.LocalizationService.Get("Flow.Op.Merging", "Merging '{0}'...")
+        $msgMerge = [string]::Format($fmtMerge, $sourceBranch)
         $context.Console.WriteColored("  $msgMerge", [Constants]::ColorHint)
+        
         $mergeRes = $gitService.Merge($repo.FullPath, $sourceBranch)
         if (-not $mergeRes.Success) {
              $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
@@ -328,7 +334,8 @@ class GitFlowCommand : INavigationCommand {
                  $msgConflict = $context.LocalizationService.Get("Flow.Error.Conflict", "Please resolve conflicts in IDE.")
                  $context.Console.WriteLineColored("  [!] $msgConflict", [Constants]::ColorWarning)
              }
-             $err = $context.LocalizationService.Get("Flow.Error.MergeFailed", @($mergeRes.Output))
+             $fmtErr = $context.LocalizationService.Get("Flow.Error.MergeFailed", "Merge failed: {0}")
+             $err = [string]::Format($fmtErr, $mergeRes.Output)
              return @{ Success = $false; Message = $err }
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
@@ -339,8 +346,8 @@ class GitFlowCommand : INavigationCommand {
              $currentVersion = $npmService.GetVersion($repo.FullPath)
              
              $promptTitle = $context.LocalizationService.Get("Flow.UpdateVersionPrompt", "Do you want to update the version?")
-             $vFmt = $context.LocalizationService.Get("Flow.CurrentVersion", "Current Version: {0}")
-             $desc = $vFmt -f $currentVersion
+             $fmtV = $context.LocalizationService.Get("Flow.CurrentVersion", "Current Version: {0}")
+             $desc = [string]::Format($fmtV, $currentVersion)
              
              $yesText = $context.LocalizationService.Get("Prompt.Yes", "Yes")
              $noText = $context.LocalizationService.Get("Prompt.No", "No")
@@ -399,7 +406,9 @@ class GitFlowCommand : INavigationCommand {
         if (-not $pushRes.Success) {
              $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
              $context.Console.WriteLineColored("  $($pushRes.Output)", [Constants]::ColorError)
-             $err = $context.LocalizationService.Get("Flow.Error.PushFailed", @($pushRes.Output))
+             
+             $fmtErr = $context.LocalizationService.Get("Flow.Error.PushFailed", "Push failed: {0}")
+             $err = [string]::Format($fmtErr, $pushRes.Output)
              return @{ Success = $false; Message = $err }
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
