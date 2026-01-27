@@ -139,9 +139,11 @@ class SearchView {
                 # Handle Escape - context-aware
                 if ($keyCode -eq [Constants]::KEY_ESCAPE -or $keyCode -eq [Constants]::KEY_ESC) {
                     if ($focusMode -eq "list") {
-                        # Return to input
+                        # Return to input - partial update only
                         $focusMode = "input"
-                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                        $this.UpdateSearchInput($searchText, $true)
+                        $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
+                        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine, $pageSize)
                     } else {
                         # Exit search
                         $running = $false
@@ -161,22 +163,31 @@ class SearchView {
                 # Handle Tab - toggle focus
                 if ($keyCode -eq [Constants]::KEY_TAB) {
                     if ($focusMode -eq "input" -and $filteredRepos.Count -gt 0) {
+                        # Switch to list - partial update only
                         $focusMode = "list"
+                        $this.UpdateSearchInput($searchText, $false)
+                        $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
+                        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine, $pageSize)
                     } else {
+                        # Switch to input - partial update only
                         $focusMode = "input"
+                        $this.UpdateSearchInput($searchText, $true)
+                        $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
+                        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine, $pageSize)
                     }
-                    $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
                     continue
                 }
                 
                 # Handle navigation
                 if ($keyCode -eq [Constants]::KEY_DOWN_ARROW) {
                     if ($focusMode -eq "input" -and $filteredRepos.Count -gt 0) {
-                        # Move from input to list - select first item
+                        # Move from input to list - select first item - partial update
                         $focusMode = "list"
                         $selectedIndex = 0
                         $viewportStart = 0
-                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                        $this.UpdateSearchInput($searchText, $false)
+                        $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
+                        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine, $pageSize)
                     } elseif ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
                         $prevIndex = $selectedIndex
                         $prevViewport = $viewportStart
@@ -220,9 +231,11 @@ class SearchView {
                                 $viewportStart = $selectedIndex
                             }
                         } else {
-                            # Move back to input when at top
+                            # Move back to input when at top - partial update
                             $focusMode = "input"
-                            $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                            $this.UpdateSearchInput($searchText, $true)
+                            $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
+                            $this.RenderFooter($selectedIndex, $filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine, $pageSize)
                             continue
                         }
                         
@@ -360,6 +373,17 @@ class SearchView {
         } else {
             $this.Console.WriteLineColored($searchText, [Constants]::ColorValue)
         }
+    }
+    
+    <#
+    .SYNOPSIS
+        Updates only the search input line (partial render)
+    #>
+    hidden [void] UpdateSearchInput([string]$searchText, [bool]$hasFocus) {
+        $searchInputLine = $this.HeaderLines
+        $this.Console.SetCursorPosition(0, $searchInputLine)
+        $this.Console.ClearCurrentLine()
+        $this.RenderSearchInput($searchText, $hasFocus)
     }
     
     <#

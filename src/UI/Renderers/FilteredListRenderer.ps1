@@ -140,4 +140,51 @@ class FilteredListRenderer {
         # Render List and Footer
         $this.RenderList($items, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $headerLines, $totalCount, $currentItem, $currentMarker, $statusMessage, $statusColor)
     }
+    
+    <#
+    .SYNOPSIS
+        Updates only the header options line (for header navigation)
+    #>
+    [void] UpdateHeaderOptions([string[]]$headerOptions, [int]$headerIndex, [string]$focusMode, [int]$headerLines) {
+        if ($headerOptions.Count -eq 0) { return }
+        
+        $headerLine = $headerLines
+        $this.Console.SetCursorPosition(0, $headerLine)
+        $this.Console.ClearCurrentLine()
+        
+        $this.Console.WriteColored("  ", [Constants]::ColorMenuText)
+        for ($i = 0; $i -lt $headerOptions.Count; $i++) {
+            $isHeaderSelected = ($focusMode -eq [Constants]::FocusHeader -and $i -eq $headerIndex)
+            $opt = $headerOptions[$i]
+            $currentOpt = if ($isHeaderSelected) { " > $opt " } else { "   $opt " }
+            $hColor = if ($isHeaderSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+            $this.Console.WriteColored($currentOpt, $hColor)
+            $this.Console.WriteColored("  ", [Constants]::ColorMenuText)
+        }
+    }
+    
+    <#
+    .SYNOPSIS
+        Updates only the search input line (for focus changes)
+    #>
+    [void] UpdateSearchInput([string]$searchText, [string]$focusMode, [int]$headerLines, [int]$headerOptionCount, [string]$prompt) {
+        $hLines = if ($headerOptionCount -gt 0) { 1 } else { 0 }
+        $inputLine = $headerLines + $hLines
+        
+        $this.Console.SetCursorPosition(0, $inputLine)
+        $this.Console.ClearCurrentLine()
+        
+        $focusIndicator = if ($focusMode -eq [Constants]::FocusInput) { ">" } else { " " }
+        $inputColor = if ($focusMode -eq [Constants]::FocusInput) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+        $this.Console.WriteColored("  $focusIndicator ", $inputColor)
+        $this.Console.WriteColored("$prompt`: ", [Constants]::ColorLabel)
+        
+        if ([string]::IsNullOrEmpty($searchText)) {
+            $placeholder = $this.UIRenderer.GetLoc("Search.TypeToFilter", "Type to filter...")
+            $this.Console.WriteColored($placeholder, [Constants]::ColorHint)
+        } else {
+            $this.Console.WriteColored($searchText, [Constants]::ColorValue)
+        }
+    }
 }
+
