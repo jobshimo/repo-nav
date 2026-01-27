@@ -66,6 +66,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Models\GitStatusModel.ps1"
 . "$srcPath\Models\AliasInfo.ps1"
 . "$srcPath\Models\RepositoryModel.ps1"
+. "$srcPath\Models\IntegrationFlowModel.ps1"
 
 # Services - WindowSizeCalculator needed by NavigationState
 . "$srcPath\Services\WindowSizeCalculator.ps1"
@@ -97,6 +98,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\Renderers\FilteredListRenderer.ps1"
 . "$srcPath\UI\Renderers\IntegrationFlowRenderer.ps1"
 . "$srcPath\UI\Components\FilteredListSelector.ps1"
+. "$srcPath\UI\Dashboards\IntegrationFlowDashboard.ps1"
 # RepositoryManager (Depends on Services AND UI Components like ProgressIndicator)
 . "$srcPath\Core\RepositoryManager.ps1"
 
@@ -110,6 +112,9 @@ $srcPath = Join-Path $scriptRoot "src"
 
 # Core Context (Depends on RepositoryManager and UI)
 . "$srcPath\Core\State\CommandContext.ps1"
+
+# Controllers (Depend on CommandContext)
+. "$srcPath\Core\Flows\IntegrationFlowController.ps1"
 
 # Commands (Interfaces and Implementations)
 . "$srcPath\Core\Commands\INavigationCommand.ps1"
