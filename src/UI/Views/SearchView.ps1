@@ -380,6 +380,9 @@ class SearchView {
         Updates only the search input line (partial render)
     #>
     hidden [void] UpdateSearchInput([string]$searchText, [bool]$hasFocus) {
+        # Hide cursor to prevent flickering
+        $this.Console.HideCursor()
+        
         $searchInputLine = $this.HeaderLines
         $this.Console.SetCursorPosition(0, $searchInputLine)
         $this.Console.ClearCurrentLine()
@@ -391,6 +394,9 @@ class SearchView {
         Renders the results list with viewport
     #>
     hidden [void] RenderList([array]$repos, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$startLine) {
+        # Hide cursor to prevent flickering during list update
+        $this.Console.HideCursor()
+        
         $listHasFocus = ($focusMode -eq "list")
         $total = $repos.Count
         

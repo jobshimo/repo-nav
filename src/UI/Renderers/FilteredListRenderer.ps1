@@ -51,6 +51,9 @@ class FilteredListRenderer {
     }
 
     [void] RenderList([array]$items, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$headerOptionCount, [int]$headerLines, [int]$totalCount, [string]$currentItem, [string]$currentMarker, [string]$statusMessage, [ConsoleColor]$statusColor) {
+        # Hide cursor to prevent flickering during list update
+        $this.Console.HideCursor()
+        
         $hLines = if ($headerOptionCount -gt 0) { 1 } else { 0 }
         
         # Consistent Layout Calc:
@@ -148,6 +151,9 @@ class FilteredListRenderer {
     [void] UpdateHeaderOptions([string[]]$headerOptions, [int]$headerIndex, [string]$focusMode, [int]$headerLines) {
         if ($headerOptions.Count -eq 0) { return }
         
+        # Hide cursor to prevent flickering
+        $this.Console.HideCursor()
+        
         $headerLine = $headerLines
         $this.Console.SetCursorPosition(0, $headerLine)
         $this.Console.ClearCurrentLine()
@@ -168,6 +174,9 @@ class FilteredListRenderer {
         Updates only the search input line (for focus changes)
     #>
     [void] UpdateSearchInput([string]$searchText, [string]$focusMode, [int]$headerLines, [int]$headerOptionCount, [string]$prompt) {
+        # Hide cursor to prevent flickering
+        $this.Console.HideCursor()
+        
         $hLines = if ($headerOptionCount -gt 0) { 1 } else { 0 }
         $inputLine = $headerLines + $hLines
         
