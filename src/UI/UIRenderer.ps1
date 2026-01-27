@@ -406,6 +406,9 @@ class UIRenderer {
             & $RenderAliasBlock
         }
         # Explicitly NO newline at the end. Caller handles positioning.
+        
+        # Ensure the rest of the line is cleared (prevents artifacts without full line clear)
+        $this.Console.ClearRestOfLine()
     }
 
     # Render visible repository list based on Viewport
@@ -418,7 +421,10 @@ class UIRenderer {
         for ($i = 0; $i -lt $limit; $i++) {
              $currentLine = $startLine + $i
              $this.Console.SetCursorPosition(0, $currentLine)
-             $this.Console.ClearCurrentLine()
+             $this.Console.SetCursorPosition(0, $currentLine)
+             # Optimized: Removed ClearCurrentLine() to prevent flickering. 
+             # RenderRepositoryItem now handles clearing the tail.
+
              
              $repoIndex = $start + $i
              if ($repoIndex -lt $total) {
@@ -432,7 +438,9 @@ class UIRenderer {
     # Render repository item at specific line (optimized update)
     [void] UpdateRepositoryItemAt([int]$lineNumber, [RepositoryModel]$repo, [bool]$isSelected) {
         $this.Console.SetCursorPosition(0, $lineNumber)
-        $this.Console.ClearCurrentLine()
+        $this.Console.SetCursorPosition(0, $lineNumber)
+        # Optimized: Removed ClearCurrentLine()
+
         $this.RenderRepositoryItem($repo, $isSelected)
     }
     
@@ -461,12 +469,18 @@ class UIRenderer {
             $this.Console.Write("    ")
             $this.Console.WriteLineColored($displayColor, $color)
         }
+        # Ensure tail is cleared (if not using WriteLine logic, but here we do?)
+        # Actually RenderColorItem uses WriteLineColored which adds newline.
+        # We should change it to WriteColored + ClearRestOfLine + NewLine if we want to support non-clearing updates.
+        # For now, let's just leave it but UpdateColorItemAt needs care.
     }
     
     # Update color item at specific line
     [void] UpdateColorItemAt([int]$lineNumber, [string]$color, [bool]$isSelected) {
         $this.Console.SetCursorPosition(0, $lineNumber)
-        $this.Console.ClearCurrentLine()
+        $this.Console.SetCursorPosition(0, $lineNumber)
+        $this.Console.ClearCurrentLine() # Verify if we can remove this for ColorItems too
+
         $this.RenderColorItem($color, $isSelected)
     }
     
@@ -501,7 +515,11 @@ class UIRenderer {
         $counterColor = if ($loadedRepos -eq $totalRepos) { [Constants]::ColorCounterComplete } 
                        elseif ($loadedRepos -eq 0) { [Constants]::ColorCounterEmpty } 
                        else { [Constants]::ColorCounterPartial }
-        $this.Console.WriteLineColored("$loadedRepos/$totalRepos", $counterColor)
+        
+        # Write last part and clear rest of line
+        $this.Console.WriteColored("$loadedRepos/$totalRepos", $counterColor)
+        $this.Console.ClearRestOfLine()
+        $this.Console.NewLine()
         
         $lblStatus = $this.GetLoc("UI.Status", "Status")
         $lblBranch = $this.GetLoc("UI.Branch", "Branch")
@@ -512,7 +530,9 @@ class UIRenderer {
         # Handle empty/null repo case (empty folder)
         if ($null -eq $repo) {
             $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
-            $this.Console.WriteLineColored("Folder is empty", [Constants]::ColorHint)
+            $this.Console.WriteColored("Folder is empty", [Constants]::ColorHint)
+            $this.Console.ClearRestOfLine()
+            $this.Console.NewLine()
             return
         }
 
@@ -520,18 +540,24 @@ class UIRenderer {
         # If it's a container, show that it's a folder, not a repo
         if ($repo.IsContainer) {
             $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
-            $this.Console.WriteLineColored($lblContainer, [Constants]::ColorHighlight)
+            $this.Console.WriteColored($lblContainer, [Constants]::ColorHighlight)
+            $this.Console.ClearRestOfLine()
+            $this.Console.NewLine()
         }
         elseif (-not $repo.HasGitStatusLoaded()) {
             $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
             $this.Console.WriteColored("${lblNotLoaded} ", [Constants]::ColorHint)
-            $this.Console.WriteLineColored(("(" + $this.GetLoc("Cmd.Desc.Git", "press L to load current or G for all") + ")"), [Constants]::ColorWarning)
+            $this.Console.WriteColored(("(" + $this.GetLoc("Cmd.Desc.Git", "press L to load current or G for all") + ")"), [Constants]::ColorWarning)
+            $this.Console.ClearRestOfLine()
+            $this.Console.NewLine()
         } else {
             $gitStatus = $repo.GitStatus
             
             if (-not $gitStatus.IsGitRepo) {
                 $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
-                $this.Console.WriteLineColored($lblNoGit, [Constants]::ColorHint)
+                $this.Console.WriteColored($lblNoGit, [Constants]::ColorHint)
+                $this.Console.ClearRestOfLine()
+                $this.Console.NewLine()
             } else {
                 $this.Console.WriteColored("${lblStatus}: ", [Constants]::ColorLabel)
                 $this.Console.WriteColored("${lblBranch}: ", [Constants]::ColorHighlight)
@@ -539,7 +565,9 @@ class UIRenderer {
                 $this.Console.WriteColored(" | ", [Constants]::ColorLabel)
                 
                 $gitDisplay = $this.GetGitStatusDisplay($gitStatus)
-                $this.Console.WriteLineColored("$($gitDisplay.Symbol) $($gitDisplay.Description)", $gitDisplay.Color)
+                $this.Console.WriteColored("$($gitDisplay.Symbol) $($gitDisplay.Description)", $gitDisplay.Color)
+                $this.Console.ClearRestOfLine()
+                $this.Console.NewLine()
             }
         }
         

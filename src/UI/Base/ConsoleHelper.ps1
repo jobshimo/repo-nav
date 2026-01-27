@@ -159,4 +159,38 @@ class ConsoleHelper {
     [void] NewLine() {
         Write-Host ""
     }
+
+    # Write text padded to window width (avoids clearing line first)
+    [void] WritePadded([string]$text, [System.ConsoleColor]$foregroundColor, [System.ConsoleColor]$backgroundColor = [ConsoleColor]::Black) {
+        $width = $this.GetWindowWidth()
+        $targetLength = $width - 1
+        
+        # Truncate if too long (safety)
+        if ($text.Length -ge $targetLength) {
+            $text = $text.Substring(0, $targetLength)
+        }
+        
+        $padded = $text.PadRight($targetLength)
+        
+        if ($backgroundColor -ne [ConsoleColor]::Black) {
+            Write-Host $padded -NoNewline -ForegroundColor $foregroundColor -BackgroundColor $backgroundColor
+        } else {
+            # If no background specified, explicit black background ensures we "erase" underlying content
+            Write-Host $padded -NoNewline -ForegroundColor $foregroundColor -BackgroundColor Black
+        }
+    }
+
+    # Clear the rest of the current line (from cursor to end)
+    [void] ClearRestOfLine() {
+        $rawUI = $global:Host.UI.RawUI
+        $currentX = $rawUI.CursorPosition.X
+        $width = $rawUI.WindowSize.Width
+        
+        # Max index is width - 1
+        $remaining = $width - $currentX - 1
+        
+        if ($remaining -gt 0) {
+            Write-Host (" " * $remaining) -NoNewline
+        }
+    }
 }

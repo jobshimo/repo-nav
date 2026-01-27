@@ -76,6 +76,7 @@ class RenderOrchestrator {
     #>
     [void] RenderFull([object]$state) {
         $this.Console.ClearScreen()
+        $this.Console.HideCursor() # Hide cursor for seamless redraw
         
         # Load preferences to check MenuMode
         $prefs = $this.PreferencesService.LoadPreferences()
@@ -131,6 +132,7 @@ class RenderOrchestrator {
         Partial redraw: only affected items or viewport scroll
     #>
     [void] RenderPartial([object]$state) {
+        $this.Console.HideCursor()
         $startLine = $this.CursorStartLine
         $pageSize = $state.PageSize
         
@@ -196,11 +198,9 @@ class RenderOrchestrator {
         $this.Console.SetCursorPosition(0, $footerLine - 1)
         $this.Console.ClearCurrentLine()
         
-        # Clear line 2 (counters) and line 3 (git status) to avoid residuals
-        $this.Console.SetCursorPosition(0, $footerLine + 1)
-        $this.Console.ClearCurrentLine()
-        $this.Console.SetCursorPosition(0, $footerLine + 2)
-        $this.Console.ClearCurrentLine()
+        # Helper clears removed: UIRenderer now handles overwriting lines without clearing
+        # Line 2 and 3 clears were causing flickering
+
         
         # Position at footer start and render
         $this.Console.SetCursorPosition(0, $footerLine)

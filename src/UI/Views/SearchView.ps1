@@ -377,8 +377,10 @@ class SearchView {
         
         $searchInputLine = $this.HeaderLines
         $this.Console.SetCursorPosition(0, $searchInputLine)
-        $this.Console.ClearCurrentLine()
+        $this.Console.SetCursorPosition(0, $searchInputLine)
+        # Optimized: Removed ClearCurrentLine
         $this.RenderSearchInput($searchText, $hasFocus)
+        $this.Console.ClearRestOfLine() # Ensure tail is cleared
     }
     
     <#
@@ -395,13 +397,17 @@ class SearchView {
         for ($i = 0; $i -lt $pageSize; $i++) {
             $currentLine = $startLine + $i
             $this.Console.SetCursorPosition(0, $currentLine)
-            $this.Console.ClearCurrentLine()
+            $this.Console.SetCursorPosition(0, $currentLine)
+            # Optimized: Removed ClearCurrentLine
             
             $repoIndex = $viewportStart + $i
             if ($repoIndex -lt $total) {
                 $repo = $repos[$repoIndex]
                 $isSelected = ($repoIndex -eq $selectedIndex) -and $listHasFocus
                 $this.RenderListItem($repo, $isSelected, $listHasFocus)
+            } else {
+                 # Clear empty lines
+                 $this.Console.ClearRestOfLine()
             }
         }
     }
@@ -420,7 +426,8 @@ class SearchView {
         $currentLine = $startLine + $lineOffset
         
         $this.Console.SetCursorPosition(0, $currentLine)
-        $this.Console.ClearCurrentLine()
+        $this.Console.SetCursorPosition(0, $currentLine)
+        # Optimized: Removed ClearCurrentLine
         
         if ($repoIndex -lt $repos.Count) {
             $repo = $repos[$repoIndex]
@@ -459,6 +466,9 @@ class SearchView {
             $aliasText = " [$($repo.AliasInfo.Alias)]"
             $this.Console.WriteColored($aliasText, $repo.AliasInfo.Color)
         }
+        
+        # Ensure tail is cleared
+        $this.Console.ClearRestOfLine()
     }
     
     <#
@@ -472,11 +482,11 @@ class SearchView {
         $footerLine = $listStartLine + $pageSize
         $this.Console.SetCursorPosition(0, $footerLine)
         
-        # Clear footer area (4 lines)
-        for ($i = 0; $i -lt $this.FooterLines; $i++) {
-            $this.Console.ClearCurrentLine()
-            $this.Console.SetCursorPosition(0, $footerLine + $i)
-        }
+        $this.Console.SetCursorPosition(0, $footerLine)
+        
+        # Optimized: Removed pre-clearing loop. We will clear line-by-line using ClearRestOfLine or Separator
+        # for ($i = 0; $i -lt $this.FooterLines; $i++) { ... }
+        
         $this.Console.SetCursorPosition(0, $footerLine)
         
         # Separator
@@ -492,11 +502,17 @@ class SearchView {
             $this.Console.WriteColored("  $lblItem`: ", [Constants]::ColorLabel)
             $this.Console.WriteColored("$currentPos/$filteredCount", [Constants]::ColorValue)
             $this.Console.WriteColored(" | $lblFiltered`: ", [Constants]::ColorLabel)
-            $this.Console.WriteLineColored("$filteredCount $lblOf $totalCount", [Constants]::ColorHint)
+            $this.Console.WriteColored("$filteredCount $lblOf $totalCount", [Constants]::ColorHint)
+            $this.Console.ClearRestOfLine()
+            $this.Console.NewLine()
         } else {
             $noResults = $this.GetLoc("Search.NoResults", "No repositories found")
-            $this.Console.WriteLineColored("  $noResults", [Constants]::ColorWarning)
+            $this.Console.WriteColored("  $noResults", [Constants]::ColorWarning)
+            $this.Console.ClearRestOfLine()
+            $this.Console.NewLine()
         }
+        # Previously added buggy clear block removed here by this replacement
+
         
         # Hints
         $this.RenderHints($focusMode)
@@ -512,11 +528,16 @@ class SearchView {
     hidden [void] RenderHints([string]$focusMode) {
         if ($focusMode -eq "input") {
             $hint1 = $this.GetLoc("Search.Hint.Input", "Type to filter | Down/Tab=Go to list | Esc=Close")
-            $this.Console.WriteLineColored("  $hint1", [Constants]::ColorHint)
+            $this.Console.WriteColored("  $hint1", [Constants]::ColorHint)
+            $this.Console.ClearRestOfLine()
+            $this.Console.NewLine()
         } else {
             $hint2 = $this.GetLoc("Search.Hint.List", "Up/Down=Navigate | Enter=Open | Up(top)/Tab=Back to search | Esc=Close")
-            $this.Console.WriteLineColored("  $hint2", [Constants]::ColorHint)
+            $this.Console.WriteColored("  $hint2", [Constants]::ColorHint)
+            $this.Console.ClearRestOfLine()
+            $this.Console.NewLine()
         }
+        # Removed previous buggy clear block optimization
     }
     
     #endregion
