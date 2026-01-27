@@ -95,6 +95,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\Components\ColorSelector.ps1"
 . "$srcPath\UI\Components\OptionSelector.ps1"
 . "$srcPath\UI\Renderers\FilteredListRenderer.ps1"
+. "$srcPath\UI\Renderers\IntegrationFlowRenderer.ps1"
 . "$srcPath\UI\Components\FilteredListSelector.ps1"
 # RepositoryManager (Depends on Services AND UI Components like ProgressIndicator)
 . "$srcPath\Core\RepositoryManager.ps1"

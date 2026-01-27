@@ -155,106 +155,120 @@ class GitFlowCommand : INavigationCommand {
     }
 
     hidden [void] InvokeIntegrationFlow($context, $repo, $gitService, $selector) {
-        # Initialize variables to satisfy strict parser analysis
-        $newBranchName = ""
-        $targetBranch = ""
-        $sourceBranch = ""
+        $flowRenderer = [IntegrationFlowRenderer]::new($context.Console, $context.Renderer)
         
-        # 1. Fetch Remotes
+        # 1. Fetch Remotes (Initial Setup)
         $context.Console.ClearScreen()
         $context.Renderer.RenderHeader("INTEGRATION FLOW: INITIALIZING")
         $context.Console.NewLine()
         $context.Console.WriteColored("  Fetching remotes...", [Constants]::ColorMenuText)
-        
-        # Force redraw before blocking operation
-        # (PowerShell might buffer output, but Write-Host usually flushes. 
-        # Using WriteColored which wraps output, should be fine)
-        
         $fetchRes = $gitService.Fetch($repo.FullPath)
-        
-        if (-not $fetchRes.Success) {
-            $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
-            $context.Console.WriteLineColored("  $($fetchRes.Output)", [Constants]::ColorError)
-            Start-Sleep -Seconds 2
-            return
+        if ($fetchRes.Success) {
+            $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
+        } else {
+            $context.Console.WriteLineColored(" WARNING: Fetch failed", [Constants]::ColorWarning)
         }
-        $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
         Start-Sleep -Milliseconds 300
-
-        # 2. Select Target Branch (Remote)
-        $remoteBranches = $gitService.GetRemoteBranches($repo.FullPath)
-        if ($remoteBranches.Count -eq 0) {
-            $context.Console.WriteError("No remote branches found.")
-            Start-Sleep -Seconds 2
-            return
-        }
         
-        $targetOpts = @{
-            Prompt = "Select TARGET (Environment) Branch"
-            HeaderOptions = @()
-            InitialFocus = [Constants]::FocusInput
-        }
-        # Passing $null as currentItem so no pre-selection or maybe 'origin/develop'?
-        $targetSelection = $selector.ShowSelection("INTEGRATION FLOW: STEP 1/3", $remoteBranches, $targetOpts)
-        if ($null -eq $targetSelection) { return }
-        $targetBranch = $targetSelection.Value
-
-        # 3. Input New Branch Name
-        $context.Console.ClearScreen()
-        $context.Renderer.RenderHeader("INTEGRATION FLOW: STEP 2/3")
-        $context.Console.NewLine()
-        $context.Console.WriteColored("  Target Branch: ", [Constants]::ColorLabel)
-        $context.Console.WriteLineColored($targetBranch, [Constants]::ColorValue)
-        $context.Console.NewLine()
-        
-        $context.Console.WriteColored("  Enter Name for Intermediate Branch: ", [Constants]::ColorMenuText)
-        $inputName = Read-Host
-        if ([string]::IsNullOrWhiteSpace($inputName)) { return }
-        $newBranchName = $inputName
-
-        # 4. Select Source Branch (Local)
-        $localBranches = $gitService.GetBranches($repo.FullPath)
+        # 2. Initialize State
         $currentBranch = $gitService.GetCurrentBranch($repo.FullPath)
-        
-        $sourceOpts = @{
-            Prompt = "Select SOURCE (Feature) Branch"
-            HeaderOptions = @()
-            CurrentItem = $currentBranch
-            CurrentMarker = "(current)"
-            InitialFocus = [Constants]::FocusInput
+        $flowState = @{
+            TargetBranch      = ""
+            TargetBranchValid = $false
+            NewBranchName     = ""
+            NewBranchNameValid= $false
+            SourceBranch      = $currentBranch
+            SourceBranchValid = $true
         }
-        $sourceSelection = $selector.ShowSelection("INTEGRATION FLOW: STEP 3/3", $localBranches, $sourceOpts)
-        if ($null -eq $sourceSelection) { return }
-        $sourceBranch = $sourceSelection.Value
+        
+        $remoteBranches = $null # Lazy load cache
 
-        # 5. Confirmation
+        # 3. Dashboard Loop
+        while ($true) {
+            $flowRenderer.RenderDashboard($flowState)
+            
+            $canExecute = $flowState.TargetBranchValid -and $flowState.NewBranchNameValid -and $flowState.SourceBranchValid
+            
+            # Build Options
+            $options = @()
+            $options += @{ DisplayText = "1. Set Target Branch (Remote)"; Value = "SetTarget" }
+            $options += @{ DisplayText = "2. Set New Branch Name";        Value = "SetName" }
+            $options += @{ DisplayText = "3. Set Source Branch (Local)";  Value = "SetSource" }
+            
+            if ($canExecute) {
+                $options += @{ DisplayText = "4. EXECUTE INTEGRATION";    Value = "Execute" }
+            }
+            
+            $options += @{ DisplayText = "Exit / Cancel"; Value = "Cancel" }
+            
+            $selection = $context.OptionSelector.ShowSelection("Select Action", $options, $false, $null, $false)
+            
+            if ($null -eq $selection -or $selection.Value -eq "Cancel") {
+                return
+            }
+            
+            switch ($selection.Value) {
+                "SetTarget" {
+                    if ($null -eq $remoteBranches) {
+                        $context.Console.WriteColored("Loading remote branches...", [Constants]::ColorHint)
+                        $remoteBranches = $gitService.GetRemoteBranches($repo.FullPath)
+                    }
+                    $sel = $selector.ShowSelection("Select TARGET Branch", $remoteBranches, @{ Prompt="Select Remote Branch" })
+                    if ($null -ne $sel -and $sel.Type -eq "Item") {
+                        $flowState.TargetBranch = $sel.Value
+                        $flowState.TargetBranchValid = $true
+                    }
+                }
+                "SetName" {
+                    $context.Console.NewLine()
+                    $context.Console.WriteColored("  Enter New Branch Name: ", [Constants]::ColorMenuText)
+                    $inputName = Read-Host
+                    if (-not [string]::IsNullOrWhiteSpace($inputName)) {
+                        $flowState.NewBranchName = $inputName.Trim()
+                        $flowState.NewBranchNameValid = $true
+                    }
+                }
+                "SetSource" {
+                    $localBranches = $gitService.GetBranches($repo.FullPath)
+                    $sel = $selector.ShowSelection("Select SOURCE Branch", $localBranches, @{ Prompt="Select Local Branch"; CurrentItem=$flowState.SourceBranch })
+                    if ($null -ne $sel -and $sel.Type -eq "Item") {
+                        $flowState.SourceBranch = $sel.Value
+                        $flowState.SourceBranchValid = $true
+                    }
+                }
+                "Execute" {
+                    if ($canExecute) {
+                       $success = $this.PerformIntegration($context, $repo, $gitService, $flowState)
+                       if ($success) { return }
+                       # If failed, pause and loop
+                       $context.Console.WriteLine("Press any key to return...")
+                       $context.Console.ReadKey()
+                    }
+                }
+            }
+        }
+    }
+
+    hidden [bool] PerformIntegration($context, $repo, $gitService, $flowState) {
+        $newBranchName = $flowState.NewBranchName
+        $targetBranch = $flowState.TargetBranch
+        $sourceBranch = $flowState.SourceBranch
+        
         $context.Console.ClearScreen()
-        $context.Renderer.RenderHeader("CONFIRM INTEGRATION")
-        $context.Console.NewLine()
-        $context.Console.WriteColored("  1. Create Branch: ", [Constants]::ColorLabel); $context.Console.WriteLineColored($newBranchName, [Constants]::ColorValue)
-        $context.Console.WriteColored("     From (Base):   ", [Constants]::ColorLabel); $context.Console.WriteLineColored($targetBranch, [Constants]::ColorValue)
-        $context.Console.WriteColored("  2. Merge Source:  ", [Constants]::ColorLabel); $context.Console.WriteLineColored($sourceBranch, [Constants]::ColorValue)
-        $context.Console.WriteColored("  3. Push & PR:     ", [Constants]::ColorLabel); $context.Console.WriteLineColored("YES", [Constants]::ColorValue)
+        $context.Renderer.RenderHeader("EXECUTING INTEGRATION")
         $context.Console.NewLine()
         
-        $confirm = $context.OptionSelector.SelectYesNo("Proceed with Integration?")
-        if (-not $confirm) { return }
-
-        # 6. Execution
-        $context.Console.NewLine()
-        
-        # Create Branch from Target
+        # 1. Create Branch from Target
         $context.Console.WriteColored("  Creating '$newBranchName' from '$targetBranch'...", [Constants]::ColorHint)
         $createRes = $gitService.CreateBranch($repo.FullPath, $newBranchName, $targetBranch)
         if (-not $createRes.Success) {
              $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
              $context.Console.WriteLineColored("  $($createRes.Output)", [Constants]::ColorError)
-             Start-Sleep -Seconds 3
-             return
+             return $false
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
         
-        # Merge Source
+        # 2. Merge Source
         $context.Console.WriteColored("  Merging '$sourceBranch'...", [Constants]::ColorHint)
         $mergeRes = $gitService.Merge($repo.FullPath, $sourceBranch)
         if (-not $mergeRes.Success) {
@@ -263,12 +277,11 @@ class GitFlowCommand : INavigationCommand {
              if ($mergeRes.Output -match "CONFLICT") {
                  $context.Console.WriteLineColored("  [!] Please resolve conflicts in IDE and finish manually.", [Constants]::ColorWarning)
              }
-             Start-Sleep -Seconds 4
-             return
+             return $false
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
 
-        # Version Check Step
+        # 3. Version Check Step
         $npmService = $context.RepoManager.NpmService
         if ($npmService.HasPackageJson($repo.FullPath)) {
              $currentVersion = $npmService.GetVersion($repo.FullPath)
@@ -278,12 +291,10 @@ class GitFlowCommand : INavigationCommand {
              $context.Renderer.RenderHeader($title)
              $context.Console.NewLine()
              
-             # Prepare prompt with clear version info
              $promptTitle = $this.GetLoc($context, "Flow.UpdateVersionPrompt", "Do you want to update the version?")
              $vFmt = $this.GetLoc($context, "Flow.CurrentVersion", "Current Version: {0}")
              $desc = $vFmt -f $currentVersion
              
-             # Manually construct Yes/No selection to include Description
              $yesText = $this.GetLoc($context, "Prompt.Yes", "Yes")
              $noText = $this.GetLoc($context, "Prompt.No", "No")
              $cancelText = $this.GetLoc($context, "Prompt.Cancel", "Cancel")
@@ -297,27 +308,19 @@ class GitFlowCommand : INavigationCommand {
              
              if ($true -eq $updateChoice) {
                  $context.Console.NewLine()
-                 $context.Console.WriteColored("  $desc", [Constants]::ColorValue) # Re-print version confirmation
-                 
                  $enterPrompt = $this.GetLoc($context, "Flow.EnterNewVersion", "Enter new version: ")
                  $context.Console.WriteColored("  $enterPrompt", [Constants]::ColorMenuText)
                  $context.Console.ShowCursor()
                  $newVersion = Read-Host
                  $context.Console.HideCursor()
                  
-                 if ([string]::IsNullOrWhiteSpace($newVersion)) {
-                     $msgSkip = $this.GetLoc($context, "Flow.ValidationSkipped", "Validation skipped.")
-                     $context.Console.WriteLineColored("  [!] $msgSkip", [Constants]::ColorWarning)
-                 }
-                 else {
+                 if (-not [string]::IsNullOrWhiteSpace($newVersion)) {
                      $msgUpdating = $this.GetLoc($context, "Flow.UpdatingVersion", "Updating version...")
                      $context.Console.WriteColored("  $msgUpdating", [Constants]::ColorHint)
                      $setRes = $npmService.SetVersion($repo.FullPath, $newVersion)
                      
                      if ($setRes.Success) {
                          $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
-                         $context.Console.WriteLineColored("  $($setRes.Output)", [Constants]::ColorSuccess)
-                         Start-Sleep -Milliseconds 500
                          
                          $msgCommitting = $this.GetLoc($context, "Flow.CommitVersionBump", "Committing version bump...")
                          $context.Console.WriteColored("  $msgCommitting", [Constants]::ColorHint)
@@ -332,36 +335,28 @@ class GitFlowCommand : INavigationCommand {
                              $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
                          } else {
                              $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
-                             $context.Console.WriteLineColored("  $($commitRes.Output)", [Constants]::ColorError)
-                             Start-Sleep -Seconds 2
+                             $context.Console.WriteLineColored("  Running without commit...", [Constants]::ColorWarning)
                          }
                      } else {
                          $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
-                         $context.Console.WriteLineColored("  $($setRes.Output)", [Constants]::ColorError)
-                         Start-Sleep -Seconds 2
                      }
                  }
              }
         }
 
-        # Push
+        # 4. Push
         $context.Console.WriteColored("  Pushing to origin...", [Constants]::ColorHint)
         $pushRes = $gitService.Push($repo.FullPath, $newBranchName)
         if (-not $pushRes.Success) {
              $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
              $context.Console.WriteLineColored("  $($pushRes.Output)", [Constants]::ColorError)
-             Start-Sleep -Seconds 3
-             return
+             return $false
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
         
-        # PR URL
+        # 5. PR URL
         $repoUrl = $gitService.GetRepoUrl($repo.FullPath)
         if ($repoUrl) {
-            # GitHub: /compare/target...new?expand=1
-            # But target is often 'origin/main', we need 'main'
-            # Simplify: Just open /compare/new_branch
-            # GitHub usually redirects to a PR creation page
             $prUrl = "{0}/compare/{1}?expand=1" -f $repoUrl, $newBranchName
             
             $context.Console.NewLine()
@@ -370,5 +365,6 @@ class GitFlowCommand : INavigationCommand {
                 Start-Process $prUrl
             }
         }
+        return $true
     }
 }
