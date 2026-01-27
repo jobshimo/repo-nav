@@ -161,18 +161,21 @@ class GitFlowCommand : INavigationCommand {
     }
 
     hidden [string] InvokeIntegrationFlow($context, $repo, $gitService, $selector) {
-        $flowRenderer = [IntegrationFlowRenderer]::new($context.Console, $context.Renderer)
+        $flowRenderer = [IntegrationFlowRenderer]::new($context.Console, $context.Renderer, $context.LocalizationService)
         
         # 1. Fetch Remotes (Initial Setup)
         $context.Console.ClearScreen()
-        $context.Renderer.RenderHeader("INTEGRATION FLOW: INITIALIZING")
+        $title = $context.LocalizationService.Get("Flow.Init.Title", "INTEGRATION FLOW: INITIALIZING")
+        $context.Renderer.RenderHeader($title)
         $context.Console.NewLine()
-        $context.Console.WriteColored("  Fetching remotes...", [Constants]::ColorMenuText)
+        $msgFetch = $context.LocalizationService.Get("Flow.Init.Fetching", "Fetching remotes...")
+        $context.Console.WriteColored("  $msgFetch", [Constants]::ColorMenuText)
         $fetchRes = $gitService.Fetch($repo.FullPath)
         if ($fetchRes.Success) {
             $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
         } else {
-            $context.Console.WriteLineColored(" WARNING: Fetch failed", [Constants]::ColorWarning)
+            $msgFail = $context.LocalizationService.Get("Flow.Warning.FetchFailed", "WARNING: Fetch failed")
+            $context.Console.WriteLineColored(" $msgFail", [Constants]::ColorWarning)
         }
         Start-Sleep -Milliseconds 300
         
@@ -217,7 +220,7 @@ class GitFlowCommand : INavigationCommand {
             
             # Cancel/Exit
             if ($keyCode -eq [Constants]::KEY_Q -or $keyCode -eq [Constants]::KEY_ESC) {
-                return "Integration Cancelled"
+                return $context.LocalizationService.Get("Flow.Status.Cancelled", "Integration Cancelled")
             }
             
             # Selection/Action
@@ -233,16 +236,19 @@ class GitFlowCommand : INavigationCommand {
                 elseif ($selectedIndex -eq 1) { $action = "SetName" }
                 elseif ($selectedIndex -eq 2) { $action = "SetSource" }
                 elseif ($canExecute -and $selectedIndex -eq 3) { $action = "Execute" }
-                else { return "Integration Cancelled" } # Exit/Cancel case
+                else { return $context.LocalizationService.Get("Flow.Status.Cancelled", "Integration Cancelled") } # Exit/Cancel case
                 
                 switch ($action) {
                     "SetTarget" {
                         if ($null -eq $remoteBranches) {
-                            $context.Console.WriteColored("Loading remote branches...", [Constants]::ColorHint)
+                            $msgLoad = $context.LocalizationService.Get("Flow.Status.LoadingRemotes", "Loading remote branches...")
+                            $context.Console.WriteColored($msgLoad, [Constants]::ColorHint)
                             $remoteBranches = $gitService.GetRemoteBranches($repo.FullPath)
                         }
                         # Use selector for submenu
-                        $sel = $selector.ShowSelection("Select TARGET Branch", $remoteBranches, @{ Prompt="Select Remote Branch"; InitialFocus=[Constants]::FocusInput })
+                        $title = $context.LocalizationService.Get("Flow.Action.SetTarget", "Select TARGET Branch")
+                        $prompt = $context.LocalizationService.Get("Flow.Prompt.RemoteBranch", "Select Remote Branch")
+                        $sel = $selector.ShowSelection($title, $remoteBranches, @{ Prompt=$prompt; InitialFocus=[Constants]::FocusInput })
                         if ($null -ne $sel -and $sel.Type -eq "Item") {
                             $flowState.TargetBranch = "$($sel.Value)".Trim()
                             $flowState.TargetBranchValid = $true
@@ -250,7 +256,8 @@ class GitFlowCommand : INavigationCommand {
                     }
                     "SetName" {
                         $context.Console.NewLine()
-                        $context.Console.WriteColored("  Enter New Branch Name: ", [Constants]::ColorMenuText)
+                        $prompt = $context.LocalizationService.Get("Flow.Prompt.EnterName", "Enter New Branch Name: ")
+                        $context.Console.WriteColored("  $prompt", [Constants]::ColorMenuText)
                         $context.Console.ShowCursor()
                         $inputName = Read-Host
                         $context.Console.HideCursor()
@@ -261,7 +268,9 @@ class GitFlowCommand : INavigationCommand {
                     }
                     "SetSource" {
                         $localBranches = $gitService.GetBranches($repo.FullPath)
-                        $sel = $selector.ShowSelection("Select SOURCE Branch", $localBranches, @{ Prompt="Select Local Branch"; CurrentItem=$flowState.SourceBranch; InitialFocus=[Constants]::FocusInput })
+                        $title = $context.LocalizationService.Get("Flow.Action.SetSource", "Select SOURCE Branch")
+                        $prompt = $context.LocalizationService.Get("Flow.Prompt.LocalBranch", "Select Local Branch")
+                        $sel = $selector.ShowSelection($title, $localBranches, @{ Prompt=$prompt; CurrentItem=$flowState.SourceBranch; InitialFocus=[Constants]::FocusInput })
                         if ($null -ne $sel -and $sel.Type -eq "Item") {
                             $flowState.SourceBranch = "$($sel.Value)".Trim()
                             $flowState.SourceBranchValid = $true
@@ -275,14 +284,15 @@ class GitFlowCommand : INavigationCommand {
                         
                         # Failure Case
                         $context.Console.NewLine()
-                        $context.Console.WriteLineColored("Press any key to return to menu...", [Constants]::ColorMenuText)
+                        $msgPress = $context.LocalizationService.Get("Flow.Status.PressAnyKey", "Press any key to return to menu...")
+                        $context.Console.WriteLineColored($msgPress, [Constants]::ColorMenuText)
                         $context.Console.ReadKey()
                         return "Error: " + $result.Message
                     }
                 }
             }
         }
-        return "Integration Cancelled"
+        return $context.LocalizationService.Get("Flow.Status.Cancelled", "Integration Cancelled")
     }
 
     hidden [hashtable] PerformIntegration($context, $repo, $gitService, $flowState) {
@@ -291,29 +301,35 @@ class GitFlowCommand : INavigationCommand {
         $sourceBranch = $flowState.SourceBranch
         
         $context.Console.ClearScreen()
-        $context.Renderer.RenderHeader("EXECUTING INTEGRATION")
+        $title = $context.LocalizationService.Get("Flow.Dashboard.Execute", "EXECUTING INTEGRATION")
+        $context.Renderer.RenderHeader($title)
         $context.Console.NewLine()
         
         # 1. Create Branch from Target
-        $context.Console.WriteColored("  Creating '$newBranchName' from '$targetBranch'...", [Constants]::ColorHint)
+        $msgCreate = $context.LocalizationService.Get("Flow.Op.Creating", @($newBranchName, $targetBranch))
+        $context.Console.WriteColored("  $msgCreate", [Constants]::ColorHint)
         $createRes = $gitService.CreateBranch($repo.FullPath, $newBranchName, $targetBranch)
         if (-not $createRes.Success) {
              $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
              $context.Console.WriteLineColored("  $($createRes.Output)", [Constants]::ColorError)
-             return @{ Success = $false; Message = "Failed to create branch '$newBranchName': $($createRes.Output)" }
+             $err = $context.LocalizationService.Get("Flow.Error.CreateFailed", @($newBranchName, $createRes.Output))
+             return @{ Success = $false; Message = $err }
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
         
         # 2. Merge Source
-        $context.Console.WriteColored("  Merging '$sourceBranch'...", [Constants]::ColorHint)
+        $msgMerge = $context.LocalizationService.Get("Flow.Op.Merging", @($sourceBranch))
+        $context.Console.WriteColored("  $msgMerge", [Constants]::ColorHint)
         $mergeRes = $gitService.Merge($repo.FullPath, $sourceBranch)
         if (-not $mergeRes.Success) {
              $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
              $context.Console.WriteLineColored("  $($mergeRes.Output)", [Constants]::ColorError)
              if ($mergeRes.Output -match "CONFLICT") {
-                 $context.Console.WriteLineColored("  [!] Please resolve conflicts in IDE and finish manually.", [Constants]::ColorWarning)
+                 $msgConflict = $context.LocalizationService.Get("Flow.Error.Conflict", "Please resolve conflicts in IDE.")
+                 $context.Console.WriteLineColored("  [!] $msgConflict", [Constants]::ColorWarning)
              }
-             return @{ Success = $false; Message = "Merge failed: $($mergeRes.Output)" }
+             $err = $context.LocalizationService.Get("Flow.Error.MergeFailed", @($mergeRes.Output))
+             return @{ Success = $false; Message = $err }
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
 
@@ -322,16 +338,13 @@ class GitFlowCommand : INavigationCommand {
         if ($npmService.HasPackageJson($repo.FullPath)) {
              $currentVersion = $npmService.GetVersion($repo.FullPath)
              
-             # Re-fetch version? Redundant calls removed
-             # $currentVersion = $npmService.GetVersion($repo.FullPath)
-             
-             $promptTitle = $this.GetLoc($context, "Flow.UpdateVersionPrompt", "Do you want to update the version?")
-             $vFmt = $this.GetLoc($context, "Flow.CurrentVersion", "Current Version: {0}")
+             $promptTitle = $context.LocalizationService.Get("Flow.UpdateVersionPrompt", "Do you want to update the version?")
+             $vFmt = $context.LocalizationService.Get("Flow.CurrentVersion", "Current Version: {0}")
              $desc = $vFmt -f $currentVersion
              
-             $yesText = $this.GetLoc($context, "Prompt.Yes", "Yes")
-             $noText = $this.GetLoc($context, "Prompt.No", "No")
-             $cancelText = $this.GetLoc($context, "Prompt.Cancel", "Cancel")
+             $yesText = $context.LocalizationService.Get("Prompt.Yes", "Yes")
+             $noText = $context.LocalizationService.Get("Prompt.No", "No")
+             $cancelText = $context.LocalizationService.Get("Prompt.Cancel", "Cancel")
              
              $yesNoOptions = @(
                  @{ DisplayText = $yesText; Value = $true },
@@ -343,21 +356,21 @@ class GitFlowCommand : INavigationCommand {
              
              if ($true -eq $updateChoice) {
                  $context.Console.NewLine()
-                 $enterPrompt = $this.GetLoc($context, "Flow.EnterNewVersion", "Enter new version: ")
+                 $enterPrompt = $context.LocalizationService.Get("Flow.EnterNewVersion", "Enter new version: ")
                  $context.Console.WriteColored("  $enterPrompt", [Constants]::ColorMenuText)
                  $context.Console.ShowCursor()
                  $newVersion = Read-Host
                  $context.Console.HideCursor()
                  
                  if (-not [string]::IsNullOrWhiteSpace($newVersion)) {
-                     $msgUpdating = $this.GetLoc($context, "Flow.UpdatingVersion", "Updating version...")
+                     $msgUpdating = $context.LocalizationService.Get("Flow.UpdatingVersion", "Updating version...")
                      $context.Console.WriteColored("  $msgUpdating", [Constants]::ColorHint)
                      $setRes = $npmService.SetVersion($repo.FullPath, $newVersion)
                      
                      if ($setRes.Success) {
                          $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
                          
-                         $msgCommitting = $this.GetLoc($context, "Flow.CommitVersionBump", "Committing version bump...")
+                         $msgCommitting = $context.LocalizationService.Get("Flow.CommitVersionBump", "Committing version bump...")
                          $context.Console.WriteColored("  $msgCommitting", [Constants]::ColorHint)
                          
                          [void]$gitService.Add($repo.FullPath, "package.json")
@@ -380,17 +393,20 @@ class GitFlowCommand : INavigationCommand {
         }
 
         # 4. Push
-        $context.Console.WriteColored("  Pushing to origin...", [Constants]::ColorHint)
+        $msgPush = $context.LocalizationService.Get("Flow.Status.Pushing", "Pushing to origin...")
+        $context.Console.WriteColored("  $msgPush", [Constants]::ColorHint)
         $pushRes = $gitService.Push($repo.FullPath, $newBranchName)
         if (-not $pushRes.Success) {
              $context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
              $context.Console.WriteLineColored("  $($pushRes.Output)", [Constants]::ColorError)
-             return @{ Success = $false; Message = "Push failed: $($pushRes.Output)" }
+             $err = $context.LocalizationService.Get("Flow.Error.PushFailed", @($pushRes.Output))
+             return @{ Success = $false; Message = $err }
         }
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
         
         # 5. PR URL
-        $context.Console.WriteColored("  Checking PR capability...", [Constants]::ColorHint)
+        $msgCheck = $context.LocalizationService.Get("Flow.Status.CheckingPR", "Checking PR capability...")
+        $context.Console.WriteColored("  $msgCheck", [Constants]::ColorHint)
         $repoUrl = $gitService.GetRepoUrl($repo.FullPath)
         
         if (-not [string]::IsNullOrWhiteSpace($repoUrl)) {
@@ -398,17 +414,19 @@ class GitFlowCommand : INavigationCommand {
             $prUrl = "{0}/compare/{1}?expand=1" -f $repoUrl, $newBranchName
             
             $context.Console.NewLine()
-            # Default behavior clears screen which is what user wants for this step
-            $openPr = $context.OptionSelector.SelectYesNo("Open Pull Request in Browser?")
+            $promptPr = $context.LocalizationService.Get("Flow.OpenPrPrompt", "Open Pull Request on GitHub?")
+            $openPr = $context.OptionSelector.SelectYesNo($promptPr)
             if ($openPr) {
                 Start-Process $prUrl
             }
         } else {
             $context.Console.WriteLineColored(" SKIP (No URL)", [Constants]::ColorWarning)
             $context.Console.NewLine()
-            $context.Console.WriteLineColored("  [i] Could not determine Pull Request URL.", [Constants]::ColorHint)
+            $msgNoUrl = $context.LocalizationService.Get("Flow.Error.PrUrlNotFound", "[i] Could not determine Pull Request URL.")
+            $context.Console.WriteLineColored("  $msgNoUrl", [Constants]::ColorHint)
         }
         
-        return @{ Success = $true; Message = "Integration Flow Completed." }
+        $msgDone = $context.LocalizationService.Get("Flow.Status.Completed", "Integration Flow Completed.")
+        return @{ Success = $true; Message = $msgDone }
     }
 }
