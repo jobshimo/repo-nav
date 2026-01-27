@@ -3,8 +3,10 @@ class CommandContext {
     [RepositoryManager] $RepoManager
     [UIRenderer] $Renderer
     [ConsoleHelper] $Console
+    [LoggerService] $Logger
     [ColorSelector] $ColorSelector
     [OptionSelector] $OptionSelector
     [LocalizationService] $LocalizationService
+    [UserPreferencesService] $PreferencesService
     [string] $BasePath
 }

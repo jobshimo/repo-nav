@@ -23,8 +23,8 @@ class SearchView {
     
     # Layout constants
     [int] $HeaderLines = 3          # Title separator lines
-    [int] $SearchInputLines = 3     # Search label + input + blank
-    [int] $CounterLines = 2         # Result count + blank
+    [int] $SearchInputLines = 1     # Search label + input (no blank line)
+    [int] $CounterLines = 0         # Result count removed
     [int] $SeparatorLines = 1       # Separator before list
     [int] $FooterLines = 4          # Separator + hints + blank + separator
     
@@ -91,8 +91,7 @@ class SearchView {
         $cancelled = $false
         
         # Check Header Preference
-        $preferences = $this.Renderer.PreferencesService.LoadPreferences()
-        $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+        $showHeaders = $this.Renderer.ShouldShowHeaders()
         
         # Adjust layout based on preference
         $headerOffset = if ($showHeaders) { 3 } else { 0 }
@@ -326,20 +325,9 @@ class SearchView {
         $title = $this.GetLoc("Search.Title", "SEARCH REPOSITORIES")
         $this.Renderer.RenderHeader($title)
         
-        # Search input (3 lines: label+input, blank)
+        # Search input (1 line)
         $this.RenderSearchInput($searchText, ($focusMode -eq "input"))
-        $this.Console.NewLine()
-        
-        # Results count (2 lines)
-        $resultCount = $filteredRepos.Count
-        # "Search.ResultCount" is "{0} of {1} repositories" in en.json
-        # But we added UI.Label.Repositories? No.
-        # Check if Search.ResultCount is okay. It is "{0} of {1} repositories" in en.json.
-        # In es.json it is "{0} de {1} repositorios".
-        # This seems fine as a full sentence/phrase.
-        $countText = $this.GetLoc("Search.ResultCount", "{0} of {1} repositories") -f $resultCount, $totalCount
-        $this.Console.WriteLineColored("  $countText", [Constants]::ColorHint)
-        $this.Console.NewLine()
+        # Removed extra newline and count block as per user request to maximize list space
         
         # Separator before list
         $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)

@@ -240,14 +240,28 @@ class RepositoryManager {
     }
     
     # Load git status for a specific repository (and cache it)
+    # Load git status for a specific repository (and cache it)
+    # Load git status for a specific repository (and cache it)
     [void] LoadGitStatus([RepositoryModel]$repository) {
+        $this.LoadGitStatus($repository, $false)
+    }
+
+    [void] LoadGitStatus([RepositoryModel]$repository, [bool]$force) {
         # Skip containers - they don't have git status
         if ($repository.IsContainer) {
             return
         }
         
+        # Smart Caching: Skip if recently checked (within 10s) and not forced
+        $now = Get-Date
+        if (-not $force -and $repository.HasGitStatusLoaded() -and 
+            ($now - $repository.LastStatusCheck).TotalSeconds -lt 10) {
+            return
+        }
+        
         $gitStatus = $this.GitService.GetGitStatus($repository)
         $repository.SetGitStatus($gitStatus)
+        $repository.LastStatusCheck = $now
         
         # Cache the git status by full path
         $this.GitStatusCache[$repository.FullPath] = $gitStatus
@@ -268,9 +282,29 @@ class RepositoryManager {
     }
     
     # Load git status for specified repositories (delegates to ParallelGitLoader)
-    [void] LoadGitStatusForRepos([array]$repos, [scriptblock]$progressCallback = $null) {
+    # Load git status for specified repositories (delegates to ParallelGitLoader)
+    # Overload 1: Only repos
+    [void] LoadGitStatusForRepos([array]$repos) {
+        $this.LoadGitStatusForRepos($repos, $null, $false)
+    }
+
+    # Overload 2: Repos + Callback
+    [void] LoadGitStatusForRepos([array]$repos, [scriptblock]$progressCallback) {
+        $this.LoadGitStatusForRepos($repos, $progressCallback, $false)
+    }
+
+    # Overload 3: All parameters
+    [void] LoadGitStatusForRepos([array]$repos, [scriptblock]$progressCallback, [bool]$force) {
         # Filter out containers
         $reposToLoad = @($repos | Where-Object { -not $_.IsContainer })
+        
+        # Smart Caching for batch: Filter out recently checked
+        if (-not $force) {
+            $now = Get-Date
+            $reposToLoad = @($reposToLoad | Where-Object { 
+                -not $_.HasGitStatusLoaded() -or ($now - $_.LastStatusCheck).TotalSeconds -ge 10
+            })
+        }
         $total = $reposToLoad.Count
         
         if ($total -eq 0) { return }
@@ -389,7 +423,7 @@ class RepositoryManager {
         
         # Reload git status
         if ($repository.HasGitStatusLoaded()) {
-            $this.LoadGitStatus($repository)
+            $this.LoadGitStatus($repository, $true)
         }
     }
 

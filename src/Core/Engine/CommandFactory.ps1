@@ -39,6 +39,12 @@ class CommandFactory {
         if ($null -ne $gitFlowType) {
             $this.RegisterOneCommand($gitFlowType)
         }
+        
+        # Explicitly attempt to register PreferencesCommand
+        $prefType = "PreferencesCommand" -as [type]
+        if ($null -ne $prefType) {
+            $this.RegisterOneCommand($prefType)
+        }
     }
 
     hidden [System.Collections.ArrayList] FindCommandTypes() {

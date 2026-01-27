@@ -106,8 +106,9 @@ class RenderOrchestrator {
         $menuLines = $this.Renderer.RenderMenu($menuMode)
         
         # Calculate cursor start line dynamically
-        # Header (3) + Breadcrumb (0 or 1) + Menu (menuLines)
-        $this.CursorStartLine = 3 + $breadcrumbLines + $menuLines
+        $headerLines = if ($this.Renderer.ShouldShowHeaders()) { 3 } else { 0 }
+        # Header + Breadcrumb (0 or 1) + Menu (menuLines)
+        $this.CursorStartLine = $headerLines + $breadcrumbLines + $menuLines
         
         # Calculate correct PageSize based on NEW CursorStartLine
         # This prevents scrolling artifacts when switching between Menu Modes

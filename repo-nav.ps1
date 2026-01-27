@@ -71,7 +71,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Services\WindowSizeCalculator.ps1"
 
 # Core - Navigation State (Accessed by UI and Services)
-. "$srcPath\Core\NavigationState.ps1"
+. "$srcPath\Core\State\NavigationState.ps1"
 
 # Services (depend on models)
 . "$srcPath\Services\ConfigurationService.ps1"
@@ -85,17 +85,22 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Services\FavoriteService.ps1"
 . "$srcPath\Services\SearchService.ps1"
 . "$srcPath\Services\RenderOrchestrator.ps1"
+. "$srcPath\Services\LoggerService.ps1"
 
 # UI (depend on models and config)
-. "$srcPath\UI\ConsoleHelper.ps1"
-. "$srcPath\UI\ProgressIndicator.ps1"
+# UI (depend on models and config)
+. "$srcPath\UI\Base\ConsoleHelper.ps1"
+. "$srcPath\UI\Components\ProgressIndicator.ps1"
 . "$srcPath\UI\UIRenderer.ps1"
-. "$srcPath\UI\ColorSelector.ps1"
-. "$srcPath\UI\OptionSelector.ps1"
-. "$srcPath\UI\FilteredListSelector.ps1"
-
+. "$srcPath\UI\Components\ColorSelector.ps1"
+. "$srcPath\UI\Components\OptionSelector.ps1"
+. "$srcPath\UI\Renderers\FilteredListRenderer.ps1"
+. "$srcPath\UI\Components\FilteredListSelector.ps1"
 # RepositoryManager (Depends on Services AND UI Components like ProgressIndicator)
 . "$srcPath\Core\RepositoryManager.ps1"
+
+# Controllers (Depend on RepositoryManager and UI)
+. "$srcPath\UI\Controllers\PreferencesMenuController.ps1"
 
 # Views (depend on UI components)
 . "$srcPath\UI\Views\RepositoryManagementView.ps1"
@@ -103,7 +108,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\Views\SearchView.ps1"
 
 # Core Context (Depends on RepositoryManager and UI)
-. "$srcPath\Core\CommandContext.ps1"
+. "$srcPath\Core\State\CommandContext.ps1"
 
 # Commands (Interfaces and Implementations)
 . "$srcPath\Core\Commands\INavigationCommand.ps1"
@@ -121,9 +126,13 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Core\Commands\GitFlowCommand.ps1"
 
 # Core Components
-. "$srcPath\Core\CommandFactory.ps1"
-. "$srcPath\Core\InputHandler.ps1"
-. "$srcPath\Core\NavigationLoop.ps1"
+# Core Components
+. "$srcPath\Core\Engine\CommandFactory.ps1"
+. "$srcPath\Core\Engine\InputHandler.ps1"
+. "$srcPath\Core\Engine\NavigationLoop.ps1"
+
+# App Builder (Manual DI Container)
+. "$srcPath\App\AppBuilder.ps1"
 #endregion
 
 #region Main Entry Point
@@ -143,53 +152,9 @@ function Start-RepositoryNavigator {
     )
     
     try {
-        # Create service layer (no dependencies)
-        $gitService = [GitService]::new()
-        $npmService = [NpmService]::new()
-        $configService = [ConfigurationService]::new()
-        $preferencesService = [UserPreferencesService]::new()
-        
-        # Initialize Localization
-        $localizationService = [LocalizationService]::new()
-        $language = $preferencesService.GetPreference("general", "language")
-        $localizationService.SetLanguage($language)
-
-        # Create managers (depend on services)
-        $aliasManager = [AliasManager]::new($configService)
-        $favoriteService = [FavoriteService]::new($configService)
-        $parallelGitLoader = [ParallelGitLoader]::new()
-        $repoOperationsService = [RepositoryOperationsService]::new($gitService)
-        
-        # Create repository coordinator (Facade pattern)
-        $repoManager = [RepositoryManager]::new(
-            $gitService,
-            $npmService,
-            $aliasManager,
-            $configService,
-            $preferencesService,
-            $favoriteService,
-            $parallelGitLoader,
-            $repoOperationsService
-        )
-        
-        # Create UI layer
-        $consoleHelper = [ConsoleHelper]::new()
-        $renderer = [UIRenderer]::new($consoleHelper, $preferencesService, $localizationService)
-        $colorSelector = [ColorSelector]::new($renderer, $consoleHelper)
-        $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
-        
-        # Create Application Context (Composition Root)
-        # Bundles all services and dependencies into a single object
-        $appContext = [PSCustomObject]@{
-            RepoManager         = $repoManager
-            Renderer            = $renderer
-            Console             = $consoleHelper
-            ColorSelector       = $colorSelector
-            OptionSelector      = $optionSelector
-            LocalizationService = $localizationService
-            PreferencesService  = $preferencesService
-            BasePath            = $BasePath
-        }
+        # Build Application Context using Manual DI Container
+        # This keeps the entry point clean and allows for easier testing/swapping in the future
+        $appContext = [AppBuilder]::Build($BasePath)
 
         # Start navigation loop
         Start-NavigationLoop -Context $appContext

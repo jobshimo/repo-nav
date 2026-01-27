@@ -25,6 +25,7 @@ class RepositoryModel {
     
     # Git properties (lazy-loaded, can be null)
     [GitStatusModel] $GitStatus
+    [DateTime] $LastStatusCheck
     
     # Additional metadata
     [bool] $HasNodeModules
@@ -45,6 +46,7 @@ class RepositoryModel {
         $this.HasAlias = $false
         $this.AliasInfo = $null
         $this.GitStatus = $null
+        $this.LastStatusCheck = [DateTime]::MinValue
         $this.HasNodeModules = $false
         $this.IsFavorite = $false
         

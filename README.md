@@ -183,6 +183,28 @@ Este proyecto sigue **principios SOLID** adaptados para PowerShell:
 
 ---
 
+---
+
+## Enfoque de Ingeniería
+
+El objetivo de este proyecto ha sido aplicar buenas prácticas de desarrollo de software para crear una herramienta robusta y mantenible, yendo más allá de un script convencional.
+
+### Aspectos Destacados
+
+1. **Estructura Modular**:
+   El código evita el diseño monolítico. Cada funcionalidad está encapsulada en su propia clase y archivo, facilitando el mantenimiento y la lectura.
+
+2. **Inyección de Dependencias**:
+   Se utiliza un patrón de inyección de dependencias manual (gestionado en `AppBuilder.ps1`). Los servicios no instancian sus dependencias internamente, lo que reduce el acoplamiento entre componentes.
+
+3. **Claridad del Código (AI Friendly)**:
+   El uso de tipado fuerte, nombres descriptivos y contextos claros facilita que tanto humanos como asistentes de IA entiendan la lógica sin ambigüedades.
+
+4. **Optimización**:
+   Se implementan estrategias como caché inteligente para el estado de Git y renderizado parcial de la interfaz para asegurar una respuesta rápida y fluida.
+
+---
+
 ## Solución de Problemas
 
 ### Comando no encontrado tras setup
