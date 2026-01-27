@@ -361,16 +361,29 @@ class GitFlowCommand : INavigationCommand {
         $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
         
         # 5. PR URL
+        $context.Console.WriteColored("  Checking PR capability...", [Constants]::ColorHint)
         $repoUrl = $gitService.GetRepoUrl($repo.FullPath)
-        if ($repoUrl) {
+        
+        if (-not [string]::IsNullOrWhiteSpace($repoUrl)) {
+            $context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
             $prUrl = "{0}/compare/{1}?expand=1" -f $repoUrl, $newBranchName
             
             $context.Console.NewLine()
-            $openPr = $context.OptionSelector.SelectYesNo("Open Pull Request in Browser?")
+            # Pass $false for clearScreen to keep context
+            $openPr = $context.OptionSelector.SelectYesNo("Open Pull Request in Browser?", $false)
             if ($openPr) {
                 Start-Process $prUrl
             }
+        } else {
+            $context.Console.WriteLineColored(" SKIP (No URL)", [Constants]::ColorWarning)
+            $context.Console.NewLine()
+            $context.Console.WriteLineColored("  [i] Could not determine Pull Request URL.", [Constants]::ColorHint)
         }
+        
+        $context.Console.NewLine()
+        $context.Console.WriteLineColored("Integration Flow Completed. Press any key to return...", [Constants]::ColorMenuText)
+        $context.Console.ReadKey()
+        
         return $true
     }
 }

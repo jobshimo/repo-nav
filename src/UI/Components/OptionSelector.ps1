@@ -202,7 +202,7 @@ class OptionSelector {
     .RETURNS
         $true if Yes selected, $false if No or cancelled
     #>
-    [bool] SelectYesNo([string]$question, [object]$localizationService) {
+    [bool] SelectYesNo([string]$question, [object]$localizationService, [bool]$clearScreen = $true) {
         # Get localized texts or use defaults
         $yesText = "Yes"
         $noText = "No"
@@ -219,7 +219,8 @@ class OptionSelector {
             @{ DisplayText = $noText; Value = $false }
         )
         
-        $result = $this.ShowSelection($question, $options, $false, $cancelText, $false, "")
+        # Pass clearScreen
+        $result = $this.ShowSelection($question, $options, $false, $cancelText, $false, "", $clearScreen)
         
         if ($null -eq $result) {
             return $false
@@ -230,6 +231,11 @@ class OptionSelector {
     
     # Overload without localization for backward compatibility
     [bool] SelectYesNo([string]$question) {
-        return $this.SelectYesNo($question, $null)
+        return $this.SelectYesNo($question, $null, $true)
+    }
+    
+    # Overload with just clearScreen
+    [bool] SelectYesNo([string]$question, [bool]$clearScreen) {
+        return $this.SelectYesNo($question, $null, $clearScreen)
     }
 }
