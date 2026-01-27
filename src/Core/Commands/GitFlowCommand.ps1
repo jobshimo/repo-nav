@@ -201,13 +201,13 @@ class GitFlowCommand : INavigationCommand {
             
             $options += @{ DisplayText = "Exit / Cancel"; Value = "Cancel" }
             
-            $selection = $context.OptionSelector.ShowSelection("Select Action", $options, $false, $null, $false)
+            $selection = $context.OptionSelector.ShowSelection("Select Action", $options, $false, $null, $false, "")
             
-            if ($null -eq $selection -or $selection.Value -eq "Cancel") {
+            if ($null -eq $selection -or $selection -eq "Cancel") {
                 return
             }
             
-            switch ($selection.Value) {
+            switch ($selection) {
                 "SetTarget" {
                     if ($null -eq $remoteBranches) {
                         $context.Console.WriteColored("Loading remote branches...", [Constants]::ColorHint)
