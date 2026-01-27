@@ -229,5 +229,11 @@
     "Flow.OpenPrTitle": "ABRIENDO PR",
     "Flow.Opening": "Abriendo: {0}",
     "Flow.Error.Conflict": "Por favor resuelve los conflictos en tu IDE.",
-    "Pref.Hint": "↑↓/Inic/Fin:Nav Enter:Cambiar Q/←:Volver"
+    "Flow.VersionCheckTitle": "COMPROBACIÓN DE VERSIÓN",
+    "Flow.UpdateVersionPrompt": "¿Deseas actualizar la versión?",
+    "Flow.CurrentVersion": "Versión Actual: {0}",
+    "Flow.EnterNewVersion": "Introduce nueva versión: ",
+    "Flow.ValidationSkipped": "Validación omitida / Sin versión.",
+    "Flow.UpdatingVersion": "Actualizando versión...",
+    "Flow.CommitVersionBump": "Confirmando subida de versión..."
 }

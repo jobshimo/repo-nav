@@ -274,39 +274,44 @@ class GitFlowCommand : INavigationCommand {
              $currentVersion = $npmService.GetVersion($repo.FullPath)
              
              $context.Console.ClearScreen()
-             $context.Renderer.RenderHeader("INTEGRATION FLOW: VERSION CHECK")
+             $title = $this.GetLoc($context, "Flow.VersionCheckTitle", "INTEGRATION FLOW: VERSION CHECK")
+             $context.Renderer.RenderHeader($title)
              $context.Console.NewLine()
-             # Prepare prompt with clear version info
-             $promptTitle = "Do you want to update the version?"
-             $desc = "Current Version: $currentVersion"
              
-             # Manually construct Yes/No selection to include Description (which persists)
+             # Prepare prompt with clear version info
+             $promptTitle = $this.GetLoc($context, "Flow.UpdateVersionPrompt", "Do you want to update the version?")
+             $vFmt = $this.GetLoc($context, "Flow.CurrentVersion", "Current Version: {0}")
+             $desc = $vFmt -f $currentVersion
+             
+             # Manually construct Yes/No selection to include Description
+             $yesText = $this.GetLoc($context, "Prompt.Yes", "Yes")
+             $noText = $this.GetLoc($context, "Prompt.No", "No")
+             $cancelText = $this.GetLoc($context, "Prompt.Cancel", "Cancel")
+             
              $yesNoOptions = @(
-                 @{ DisplayText = "Yes"; Value = $true },
-                 @{ DisplayText = "No";  Value = $false }
+                 @{ DisplayText = $yesText; Value = $true },
+                 @{ DisplayText = $noText;  Value = $false }
              )
              
-             # Using ShowSelection directly to use 'Description' parameter
-             # ShowSelection($title, $options, $currentValue, $cancelText, $showCurrentMarker, $description)
-             $updateChoice = $context.OptionSelector.ShowSelection($promptTitle, $yesNoOptions, $false, "Cancel", $false, $desc)
+             $updateChoice = $context.OptionSelector.ShowSelection($promptTitle, $yesNoOptions, $false, $cancelText, $false, $desc)
              
              if ($true -eq $updateChoice) {
                  $context.Console.NewLine()
-                 $context.Console.WriteColored("  Current Version: ", [Constants]::ColorLabel)
-                 $context.Console.WriteLineColored($currentVersion, [Constants]::ColorValue)
+                 $context.Console.WriteColored("  $desc", [Constants]::ColorValue) # Re-print version confirmation
                  
-                 $context.Console.WriteColored("  Enter new version: ", [Constants]::ColorMenuText)
+                 $enterPrompt = $this.GetLoc($context, "Flow.EnterNewVersion", "Enter new version: ")
+                 $context.Console.WriteColored("  $enterPrompt", [Constants]::ColorMenuText)
                  $context.Console.ShowCursor()
                  $newVersion = Read-Host
                  $context.Console.HideCursor()
                  
                  if ([string]::IsNullOrWhiteSpace($newVersion)) {
-                     # If user enters nothing, maybe they changed their mind? allow cancel or keep current?
-                     # For now, let's just abort the update part
-                     $context.Console.WriteLineColored("  [!] Validation skipped / No version entered.", [Constants]::ColorWarning)
+                     $msgSkip = $this.GetLoc($context, "Flow.ValidationSkipped", "Validation skipped.")
+                     $context.Console.WriteLineColored("  [!] $msgSkip", [Constants]::ColorWarning)
                  }
                  else {
-                     $context.Console.WriteColored("  Updating version...", [Constants]::ColorHint)
+                     $msgUpdating = $this.GetLoc($context, "Flow.UpdatingVersion", "Updating version...")
+                     $context.Console.WriteColored("  $msgUpdating", [Constants]::ColorHint)
                      $setRes = $npmService.SetVersion($repo.FullPath, $newVersion)
                      
                      if ($setRes.Success) {
@@ -314,8 +319,8 @@ class GitFlowCommand : INavigationCommand {
                          $context.Console.WriteLineColored("  $($setRes.Output)", [Constants]::ColorSuccess)
                          Start-Sleep -Milliseconds 500
                          
-                         # Commit the version bump
-                         $context.Console.WriteColored("  Committing version bump...", [Constants]::ColorHint)
+                         $msgCommitting = $this.GetLoc($context, "Flow.CommitVersionBump", "Committing version bump...")
+                         $context.Console.WriteColored("  $msgCommitting", [Constants]::ColorHint)
                          
                          [void]$gitService.Add($repo.FullPath, "package.json")
                          if ($npmService.HasPackageLock($repo.FullPath)) {

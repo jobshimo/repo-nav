@@ -232,5 +232,12 @@
     "Flow.OpenPrPrompt": "Open Pull Request on GitHub?",
     "Flow.OpenPrTitle": "OPENING PR",
     "Flow.Opening": "Opening: {0}",
-    "Flow.Error.Conflict": "Please resolve conflicts in your IDE."
+    "Flow.Error.Conflict": "Please resolve conflicts in your IDE.",
+    "Flow.VersionCheckTitle": "VERSION CHECK",
+    "Flow.UpdateVersionPrompt": "Do you want to update the version?",
+    "Flow.CurrentVersion": "Current Version: {0}",
+    "Flow.EnterNewVersion": "Enter new version: ",
+    "Flow.ValidationSkipped": "Validation skipped / No version entered.",
+    "Flow.UpdatingVersion": "Updating version...",
+    "Flow.CommitVersionBump": "Committing version bump..."
 }
