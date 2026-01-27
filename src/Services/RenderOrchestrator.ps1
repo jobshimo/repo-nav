@@ -39,19 +39,12 @@ class RenderOrchestrator {
         Initializes the screen and adjusts layout to fit window
     #>
     [void] Initialize([object]$state) {
-        # First render to establish the layout components (Header, Menu height, etc.)
-        # This calculates the properties like CursorStartLine
+        # Single render that establishes layout and calculates viewport
+        # RenderFull already calls UpdateWindowSize internally, so no double rendering needed
         $this.RenderFull($state)
         
-        # Now that we know the interface height, calculate the correct Viewport size (PageSize)
-        $state.UpdateWindowSize($this.CursorStartLine)
-        
-        # If the window size calculation changed the PageSize, we need to redraw
-        # to fill the empty space or trim the list
-        if ($state.RequiresFullRedraw) {
-            $this.RenderFull($state)
-            $state.RequiresFullRedraw = $false
-        }
+        # Clear any flags set during initialization
+        $state.RequiresFullRedraw = $false
     }
     
     <#

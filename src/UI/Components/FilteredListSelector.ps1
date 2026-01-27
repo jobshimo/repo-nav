@@ -126,12 +126,11 @@ class FilteredListSelector {
                 if ($keyCode -eq [Constants]::KEY_ESCAPE -or $keyCode -eq [Constants]::KEY_ESC) {
                     if ($focusMode -eq [Constants]::FocusList -or $focusMode -eq [Constants]::FocusHeader) {
                         $focusMode = [Constants]::FocusInput
-                        # Partial update - header (if any), input, and list
+                        # Only update header (if any) and input - no need to redraw list
                         if ($headerOptions.Count -gt 0) {
                             $this.ListRenderer.UpdateHeaderOptions($headerOptions, $headerIndex, $focusMode, $this.HeaderLines)
                         }
                         $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
-                        $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
                     } else {
                         $running = $false
                     }
@@ -156,24 +155,21 @@ class FilteredListSelector {
                     if ($focusMode -eq [Constants]::FocusInput) {
                         if ($filteredItems.Count -gt 0) { 
                             $focusMode = [Constants]::FocusList 
-                            # Partial update - only input line and list
+                            # Only update input line - list stays the same
                             $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
-                            $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
                         }
                         # Default is stay in input if list empty
                     } 
                     elseif ($focusMode -eq [Constants]::FocusList) {
                         $focusMode = [Constants]::FocusInput
-                        # Partial update - only input line and list
+                        # Only update input line - list stays the same
                         $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
-                        $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
                     }
                     elseif ($focusMode -eq [Constants]::FocusHeader) {
                         $focusMode = [Constants]::FocusInput
-                        # Partial update - header options, input line and list
+                        # Update header options and input line only
                         $this.ListRenderer.UpdateHeaderOptions($headerOptions, $headerIndex, $focusMode, $this.HeaderLines)
                         $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
-                        $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
                     }
                     
                     continue
@@ -204,19 +200,18 @@ class FilteredListSelector {
                 # Down Arrow
                 if ($keyCode -eq [Constants]::KEY_DOWN_ARROW) {
                     if ($focusMode -eq [Constants]::FocusHeader) {
-                        # Down goes to input - partial update
+                        # Down goes to input - only update header and input, no list
                         $this.LastHeaderIndex = $headerIndex # Remember
                         $focusMode = [Constants]::FocusInput
                         $this.ListRenderer.UpdateHeaderOptions($headerOptions, $headerIndex, $focusMode, $this.HeaderLines)
                         $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
-                        $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
                     }
                     elseif ($focusMode -eq [Constants]::FocusInput) {
                         if ($filteredItems.Count -gt 0) {
                             $focusMode = [Constants]::FocusList
                             $selectedIndex = 0
                             $viewportStart = 0
-                            # Partial update - input and list
+                            # Only update input - list will show selection with focus
                             $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
                             $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
                         }
