@@ -30,6 +30,7 @@ class RepositoryManager {
     [RepositoryOperationsService] $RepoOperationsService
     [IProgressReporter] $ProgressReporter
     [GitStatusManager] $GitStatusManager
+    [RepositorySorter] $Sorter
     
     # Cache for loaded repositories
     [System.Collections.ArrayList] $Repositories
@@ -47,7 +48,8 @@ class RepositoryManager {
         [ParallelGitLoader]$parallelGitLoader,
         [RepositoryOperationsService]$repoOperationsService,
         [IProgressReporter]$progressReporter,
-        [GitStatusManager]$gitStatusManager
+        [GitStatusManager]$gitStatusManager,
+        [RepositorySorter]$sorter
     ) {
         $this.GitService = $gitService
         $this.NpmService = $npmService
@@ -59,6 +61,7 @@ class RepositoryManager {
         $this.RepoOperationsService = $repoOperationsService
         $this.ProgressReporter = $progressReporter
         $this.GitStatusManager = $gitStatusManager
+        $this.Sorter = $sorter
         $this.Repositories = [System.Collections.ArrayList]::new()
     }
     
@@ -164,14 +167,8 @@ class RepositoryManager {
         # Get user preference for favorites position
         [bool]$favoritesOnTop = $this.PreferencesService.GetPreference("display", "favoritesOnTop")
         
-        # Sort based on user preference
-        if ($favoritesOnTop) {
-            # Favorites first, then alphabetically
-            $sorted = @($this.Repositories | Sort-Object @{Expression = {-$_.IsFavorite}}, Name)
-        } else {
-            # Just alphabetically (favorites stay in their position)
-            $sorted = @($this.Repositories | Sort-Object Name)
-        }
+        # Delegate sorting to RepositorySorter (SRP)
+        $sorted = $this.Sorter.Sort($this.Repositories, $favoritesOnTop)
         
         $this.Repositories.Clear()
         $this.Repositories.AddRange($sorted)

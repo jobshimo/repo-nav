@@ -47,6 +47,9 @@ class AppBuilder {
         # Depends on GitService, ParallelGitLoader, Preferences, and ProgressReporter
         $gitStatusManager = [GitStatusManager]::new($gitService, $parallelGitLoader, $preferencesService, $progressReporter)
         
+        # 3d. Repository Sorter (SRP - extracted sorting logic)
+        $repoSorter = [RepositorySorter]::new()
+        
         # 4. Core Facade (Depends on everything above)
         $repoManager = [RepositoryManager]::new(
             $gitService,
@@ -58,7 +61,8 @@ class AppBuilder {
             $parallelGitLoader,
             $repoOpsService,
             $progressReporter,
-            $gitStatusManager
+            $gitStatusManager,
+            $repoSorter
         )
         
         # 5. UI Layer
