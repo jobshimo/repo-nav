@@ -92,6 +92,8 @@ $srcPath = Join-Path $scriptRoot "src"
 # UI (depend on models and config)
 . "$srcPath\UI\Base\ConsoleHelper.ps1"
 . "$srcPath\UI\Components\ProgressIndicator.ps1"
+# ViewModels (Must be loaded before Renderer)
+. "$srcPath\UI\ViewModels\RepositoryViewModel.ps1"
 . "$srcPath\UI\UIRenderer.ps1"
 . "$srcPath\UI\Components\ColorSelector.ps1"
 . "$srcPath\UI\Components\OptionSelector.ps1"
@@ -99,11 +101,17 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\UI\Renderers\IntegrationFlowRenderer.ps1"
 . "$srcPath\UI\Components\FilteredListSelector.ps1"
 . "$srcPath\UI\Dashboards\IntegrationFlowDashboard.ps1"
-# RepositoryManager (Depends on Services AND UI Components like ProgressIndicator)
+# RepositoryManager (Depends on Services, IProgressReporter)
+. "$srcPath\Core\Interfaces\IProgressReporter.ps1"
+. "$srcPath\UI\Services\ConsoleProgressReporter.ps1"
 . "$srcPath\Core\RepositoryManager.ps1"
+
+
 
 # Controllers (Depend on RepositoryManager and UI)
 . "$srcPath\UI\Controllers\PreferencesMenuController.ps1"
+
+
 
 # Views (depend on UI components)
 . "$srcPath\UI\Views\RepositoryManagementView.ps1"

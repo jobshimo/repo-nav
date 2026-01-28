@@ -28,6 +28,7 @@ class RepositoryManager {
     [FavoriteService] $FavoriteService
     [ParallelGitLoader] $ParallelGitLoader
     [RepositoryOperationsService] $RepoOperationsService
+    [IProgressReporter] $ProgressReporter
     
     # Cache for loaded repositories
     [System.Collections.ArrayList] $Repositories
@@ -44,7 +45,9 @@ class RepositoryManager {
         [UserPreferencesService]$preferencesService,
         [FavoriteService]$favoriteService,
         [ParallelGitLoader]$parallelGitLoader,
-        [RepositoryOperationsService]$repoOperationsService
+
+        [RepositoryOperationsService]$repoOperationsService,
+        [IProgressReporter]$progressReporter
     ) {
         $this.GitService = $gitService
         $this.NpmService = $npmService
@@ -54,6 +57,7 @@ class RepositoryManager {
         $this.FavoriteService = $favoriteService
         $this.ParallelGitLoader = $parallelGitLoader
         $this.RepoOperationsService = $repoOperationsService
+        $this.ProgressReporter = $progressReporter
         $this.Repositories = [System.Collections.ArrayList]::new()
         $this.GitStatusCache = @{}
     }
@@ -346,16 +350,16 @@ class RepositoryManager {
                  $msg = "all"
              }
              
-             if ($toLoad.Count -gt 0) {
-                  $progressIndicator = [ProgressIndicator]::new($console)
+              if ($toLoad.Count -gt 0) {
+                  $reporter = $this.ProgressReporter
                   $progressCallback = {
                      param([int]$c, [int]$t)
-                     $progressIndicator.RenderProgressBar("Loading git status ($msg)", $c, $t)
+                     $reporter.Report("Loading git status ($msg)", $c, $t)
                   }
                   
                   $this.LoadGitStatusForRepos($toLoad, $progressCallback)
-                  $progressIndicator.CompleteProgressBar()
-             }
+                  $reporter.Complete()
+              }
          }
     }
     

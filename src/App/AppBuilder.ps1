@@ -39,6 +39,10 @@ class AppBuilder {
         $parallelGitLoader = [ParallelGitLoader]::new()
         $repoOpsService    = [RepositoryOperationsService]::new($gitService)
         
+        # 3b. Infrastructure / UI Abstractions
+        $consoleHelper     = [ConsoleHelper]::new()
+        $progressReporter  = [ConsoleProgressReporter]::new($consoleHelper)
+        
         # 4. Core Facade (Depends on everything above)
         $repoManager = [RepositoryManager]::new(
             $gitService,
@@ -48,11 +52,12 @@ class AppBuilder {
             $preferencesService,
             $favoriteService,
             $parallelGitLoader,
-            $repoOpsService
+            $repoOpsService,
+            $progressReporter
         )
         
         # 5. UI Layer
-        $consoleHelper  = [ConsoleHelper]::new()
+        # $consoleHelper already created
         $renderer       = [UIRenderer]::new($consoleHelper, $preferencesService, $localizationService)
         $colorSelector  = [ColorSelector]::new($renderer, $consoleHelper)
         $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
