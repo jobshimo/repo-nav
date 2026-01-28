@@ -236,39 +236,7 @@ class UIRenderer {
         return 1
     }
 
-    # Get git status display info
-    [hashtable] GetGitStatusDisplay([GitStatusModel]$gitStatus) {
-        if (-not $gitStatus -or -not $gitStatus.IsGitRepo) {
-            return @{
-                Symbol = [Constants]::GitSymbolNotRepo
-                Color = ([Constants]::ColorGitUnknown)
-                Description = "Not a git repository"
-            }
-        }
-        
-        # Priority: Uncommitted > Unpushed > Clean
-        if ($gitStatus.HasUncommittedChanges) {
-            return @{
-                Symbol = [Constants]::GitSymbolUncommitted
-                Color = ([Constants]::ColorGitUncommitted)
-                Description = "Uncommitted changes"
-            }
-        }
-        
-        if ($gitStatus.HasUnpushedCommits) {
-            return @{
-                Symbol = [Constants]::GitSymbolUnpushed
-                Color = ([Constants]::ColorGitUnpushed)
-                Description = "Unpushed commits"
-            }
-        }
-        
-        return @{
-            Symbol = [Constants]::GitSymbolClean
-            Color = ([Constants]::ColorGitClean)
-            Description = "Clean repository"
-        }
-    }
+
     
     # Render a single repository list item
     [void] RenderRepositoryItem([RepositoryModel]$repo, [bool]$isSelected) {
@@ -299,18 +267,16 @@ class UIRenderer {
             }
         }
         
-        # Determine name color - containers use Cyan, repos use normal logic
-        $nameColor = if ($repo.IsContainer) {
-            [Constants]::ColorHighlight  # Cyan for containers
-        } elseif (-not $repo.HasNodeModules) { 
-            [Constants]::ColorRepoWithoutModules  # Red si no tiene node_modules
-        } elseif ($isSelected) { 
-            $selectedTextColor  # Color optimizado según fondo
-        } else { 
-            [Constants]::ColorUnselected  # Blanco cuando no está seleccionado
-        }
+
         
-        $prefix = if ($isSelected) { "  > " } else { "    " }
+        # Instantiate ViewModel
+        $vm = [RepositoryViewModel]::new($repo, $preferences)
+        
+        # Get color from ViewModel
+        $nameColor = $vm.GetNameColor($isSelected)
+        
+        # Get prefix from ViewModel
+        $prefix = $vm.GetPrefix($isSelected)
         
         # Render prefix - usar color optimizado
         $this.Console.WriteColored($prefix, $(if ($isSelected) { $selectedTextColor } else { [Constants]::ColorUnselected }))
@@ -329,7 +295,7 @@ class UIRenderer {
         if ($repo.IsContainer) {
             $this.Console.Write("  ")  # No git status for containers
         } else {
-            $gitDisplay = $this.GetGitStatusDisplay($repo.GitStatus)
+            $gitDisplay = $vm.GetGitStatusDisplay()
             $this.Console.WriteColored("$($gitDisplay.Symbol) ", $gitDisplay.Color)
         }
         
@@ -536,6 +502,7 @@ class UIRenderer {
             return
         }
 
+
         # Line 3: Git status details
         # If it's a container, show that it's a folder, not a repo
         if ($repo.IsContainer) {
@@ -551,6 +518,8 @@ class UIRenderer {
             $this.Console.ClearRestOfLine()
             $this.Console.NewLine()
         } else {
+            # Use ViewModel for consistent display logic
+            $vm = [RepositoryViewModel]::new($repo, $this.PreferencesService.LoadPreferences())
             $gitStatus = $repo.GitStatus
             
             if (-not $gitStatus.IsGitRepo) {
@@ -564,7 +533,7 @@ class UIRenderer {
                 $this.Console.WriteColored($gitStatus.CurrentBranch, [Constants]::ColorValue)
                 $this.Console.WriteColored(" | ", [Constants]::ColorLabel)
                 
-                $gitDisplay = $this.GetGitStatusDisplay($gitStatus)
+                $gitDisplay = $vm.GetGitStatusDisplay()
                 $this.Console.WriteColored("$($gitDisplay.Symbol) $($gitDisplay.Description)", $gitDisplay.Color)
                 $this.Console.ClearRestOfLine()
                 $this.Console.NewLine()
