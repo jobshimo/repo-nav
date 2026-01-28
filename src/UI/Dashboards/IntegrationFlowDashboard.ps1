@@ -97,6 +97,8 @@ class IntegrationFlowDashboard {
             $this.Console.WriteColored($notSel, [Constants]::ColorHint)
         } else {
             $color = if ($isValid) { [Constants]::ColorValue } else { [Constants]::ColorWarning }
+            # Override color if selected to Green as requested
+            if ($isSelected) { $color = [ConsoleColor]::Green }
             $this.Console.WriteColored($value, $color)
         }
     }
@@ -114,7 +116,7 @@ class IntegrationFlowDashboard {
             $isSel = ($selectedIndex -eq 3)
             $prefix = if ($isSel) { "  > " } else { "    " }
             $this.Console.WriteColored($prefix, [Constants]::ColorHighlight)
-            $color = if ($isSel) { [Constants]::ColorSelected } else { [Constants]::ColorSuccess }
+            $color = if ($isSel) { [ConsoleColor]::Green } else { [Constants]::ColorSuccess }
             $this.Console.WriteLineColored($executeText, $color)
         } else {
             # Placeholder to keep layout stable
@@ -131,7 +133,7 @@ class IntegrationFlowDashboard {
         
         $prefixExit = if ($isSelExit) { "  > " } else { "    " }
         $this.Console.WriteColored($prefixExit, [Constants]::ColorHighlight)
-        $colorExit = if ($isSelExit) { [Constants]::ColorSelected } else { [Constants]::ColorHint }
+        $colorExit = if ($isSelExit) { [ConsoleColor]::Green } else { [Constants]::ColorHint }
         $this.Console.WriteLineColored($exitText, $colorExit)
     }
 

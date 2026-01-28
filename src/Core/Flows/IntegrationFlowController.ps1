@@ -147,7 +147,7 @@ class IntegrationFlowController {
                 # Clear line for input to avoid artifacts
                 $this.Context.Console.ClearCurrentLine()
                 
-                $this.Context.Console.WriteColored("  $prompt", [Constants]::ColorMenuText)
+                $this.Context.Console.WriteColored("  $prompt", [ConsoleColor]::Yellow)
                 
                 $this.Context.Console.ShowCursor()
                 $inputName = Read-Host
