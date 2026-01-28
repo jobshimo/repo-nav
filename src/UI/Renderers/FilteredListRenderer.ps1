@@ -87,7 +87,7 @@ class FilteredListRenderer {
         $this.Console.HideCursor()
         
         $hLines = if ($headerOptionCount -gt 0) { 1 } else { 0 }
-        $startLine = $headerLines + $hLines + 1 + 1 + 1
+        $startLine = $headerLines + $hLines + 1 + 1
         
         # Redraw Old Item (to unselect)
         if ($oldIndex -ge $viewportStart -and $oldIndex -lt ($viewportStart + $pageSize)) {
@@ -111,8 +111,8 @@ class FilteredListRenderer {
         $hLines = if ($headerOptionCount -gt 0) { 1 } else { 0 }
         
         # Consistent Layout Calc:
-        # Header($headerLines) + Opts(hLines) + Input(1) + Count(1) + Sep(1) = StartLine
-        $startLine = $headerLines + $hLines + 1 + 1 + 1
+        # Header($headerLines) + Opts(hLines) + Input(1) + Sep(1) = StartLine
+        $startLine = $headerLines + $hLines + 1 + 1
         
         # Draw items
         for ($i = 0; $i -lt $pageSize; $i++) {
@@ -166,14 +166,6 @@ class FilteredListRenderer {
         } else {
             $this.Console.WriteLineColored($searchText, [Constants]::ColorValue)
         }
-        
-        # Count
-        if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
-        $lblOf = $this.UIRenderer.GetLoc("UI.Label.Of", "of")
-        $lblItems = $this.UIRenderer.GetLoc("UI.Label.Items", "items")
-        # "{0} of {1} items"
-        $countText = "{0} $lblOf {1} $lblItems" -f $items.Count, $totalCount
-        $this.Console.WriteLineColored("  $countText", [Constants]::ColorHint)
         
         # Separator (Before List)
         if (-not $clearScreen) { $this.Console.ClearCurrentLine() }

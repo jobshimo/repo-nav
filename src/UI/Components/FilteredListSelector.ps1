@@ -33,14 +33,13 @@ class FilteredListSelector {
         # Header($this.HeaderLines) 
         # HeaderOptions (1 line horizontal if > 0)
         # Input (1)
-        # Count (1)
         # Separator (1)
         # Footer: Sep(1) + Info(1) + Hints(1) + Sep(1) = 4
         
         $optsHeight = if ($headerOptionCount -gt 0) { 1 } else { 0 }
         
         $footerLines = 4
-        $reservedLines = $this.HeaderLines + $optsHeight + 1 + 1 + 1 + $footerLines
+        $reservedLines = $this.HeaderLines + $optsHeight + 1 + 1 + $footerLines
         
         $windowHeight = $this.WindowCalculator.GetWindowHeight()
         $available = $windowHeight - $reservedLines
@@ -223,7 +222,7 @@ class FilteredListSelector {
                             # We can treat this as "Old Index = -1 (none), New Index = 0"
                             # But since UpdateListSelection handles range checks, we can just pass an invalid old index
                             $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
-                            $startLine = $this.HeaderLines + $hLines + 1 + 1 + 1
+                            $startLine = $this.HeaderLines + $hLines + 1 + 1
                             $this.ListRenderer.RenderSingleItem($filteredItems, 0, $viewportStart, $startLine, $selectedIndex, $focusMode, $currentItem, $currentMarker)
                             
                             # Footer update is fast
@@ -280,7 +279,7 @@ class FilteredListSelector {
                             
                             # We need to un-highlight the first item (it was at 0)
                             $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
-                            $startLine = $this.HeaderLines + $hLines + 1 + 1 + 1
+                            $startLine = $this.HeaderLines + $hLines + 1 + 1
                             # Render item 0 with new focus mode (which is Input, so it will be unselected)
                             $this.ListRenderer.RenderSingleItem($filteredItems, 0, $viewportStart, $startLine, 0, $focusMode, $currentItem, $currentMarker)
                         }
