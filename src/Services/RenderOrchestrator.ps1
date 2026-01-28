@@ -76,6 +76,7 @@ class RenderOrchestrator {
     #>
     [void] RenderFull([object]$state) {
         $this.Console.ClearScreen()
+        $this.Console.SetCursorPosition(0, 0) # Ensure we start at top
         $this.Console.HideCursor() # Hide cursor for seamless redraw
         
         # Load preferences to check MenuMode
