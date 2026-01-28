@@ -210,7 +210,7 @@ class NpmCommand : INavigationCommand {
             return
         }
 
-        # 2. Confirmation (Uses OptionSelector internally)
+        # 2. Confirmation
         $view.ClearAndRenderHeader("Removing", $repo)
         if (-not ($view.ConfirmRemoval("node_modules"))) {
             $view.ShowOperationCancelled()
@@ -220,28 +220,87 @@ class NpmCommand : INavigationCommand {
         # Check for package-lock.json
         $removeLock = $false
         if ($service.HasPackageLock($repo.FullPath)) {
-             # Re-render header to keep context (OptionSelector might clear below it)
              $view.ClearAndRenderHeader("Removing", $repo)
              if ($view.ConfirmRemovePackageLock()) {
                  $removeLock = $true
              }
         }
 
-        # 3. Execution (Synchronous - No Animation/Job complications)
+        # 3. Execution with Animation
         $view.ClearAndRenderHeader("Removing", $repo)
         Write-Host ""
-        $view.ShowExecuting("Msg.Npm.Removing", "Removing node_modules")
         
-        # Synchronous removal
-        $result = $service.RemoveNodeModules($repo.FullPath, $removeLock)
+        # Define scriptblock for background job
+        $jobScript = {
+            param($path, $removeLock)
+            try {
+                $nm = Join-Path $path "node_modules"
+                if (Test-Path $nm) {
+                    Remove-Item -Path $nm -Recurse -Force -ErrorAction Stop
+                }
+                
+                if ($removeLock) {
+                    $pl = Join-Path $path "package-lock.json"
+                    if (Test-Path $pl) {
+                        Remove-Item -Path $pl -Force -ErrorAction Stop
+                    }
+                }
+                return $true
+            }
+            catch {
+                throw $_
+            }
+        }
+
+        # Start Job
+        $job = Start-Job -ScriptBlock $jobScript -ArgumentList $repo.FullPath, $removeLock
         
-        if ($result) {
-             $view.ShowSuccess("Msg.Npm.RemovedSuccess", "node_modules removed successfully!")
-             if ($removeLock) {
-                 $view.ShowSuccess("Msg.Npm.RemovedLockSuccess", "package-lock.json removed successfully!")
-             }
-        } else {
-             $view.ShowError("Error.Npm.RemoveFailed", "Error removing files.", $null)
+        # Animation Loop
+        try {
+            # Hide cursor
+            try { [Console]::CursorVisible = $false } catch {}
+            
+            $msgBase = $view.GetLoc("Msg.Npm.Removing", "Removing node_modules")
+            # Remove trailing dots if present in localization
+            $msgBase = $msgBase.TrimEnd('.')
+            $dots = ""
+            $counter = 0
+            
+            while ($job.State -eq 'Running') {
+                # Animation: 0=., 1=.., 2=..., 3=spaces
+                $step = $counter % 4
+                if ($step -eq 3) { $dots = "   " } # Clear dots
+                else { $dots = "." * ($step + 1) + " " * (2 - $step) }
+                
+                # Use CR (`r) to overwrite line
+                Write-Host "`r$msgBase$dots" -NoNewline -ForegroundColor ([Constants]::ColorWarning)
+                
+                Start-Sleep -Milliseconds 400
+                $counter++
+            }
+            
+            # Clear animation line
+            Write-Host "`r" -NoNewline
+            $context.Console.ClearCurrentLine()
+            
+            # Get Job Result
+            $results = Receive-Job -Job $job
+            $jobError = $job.ChildJobs[0].Error
+            
+            if ($job.State -eq 'Completed' -and -not $jobError) {
+                 $view.ShowSuccess("Msg.Npm.RemovedSuccess", "node_modules removed successfully!")
+                 if ($removeLock) {
+                     $view.ShowSuccess("Msg.Npm.RemovedLockSuccess", "package-lock.json removed successfully!")
+                 }
+            } else {
+                 # Extract error message
+                 $errStr = if ($jobError) { $jobError[0].ToString() } else { "Unknown error" }
+                 $view.ShowError("Error.Npm.RemoveFailed", "Error removing files.", $errStr)
+            }
+        }
+        finally {
+            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+            try { [Console]::CursorVisible = $true } catch {}
         }
         
         Start-Sleep -Seconds 2
