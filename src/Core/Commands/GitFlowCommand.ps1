@@ -138,7 +138,7 @@ class GitFlowCommand : INavigationCommand {
                         $integrationResult = $this.InvokeIntegrationFlow($context, $repo, $gitService, $selector)
                         # After flow, show result
                         $statusMessage = $integrationResult
-                        if ($statusMessage -match "^Error") {
+                        if ($statusMessage -like "Error*") {
                              $statusColor = [Constants]::ColorError
                         } elseif ($statusMessage -eq "Integration Cancelled") {
                              $statusColor = [Constants]::ColorWarning

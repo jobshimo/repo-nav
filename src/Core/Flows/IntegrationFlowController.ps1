@@ -144,10 +144,10 @@ class IntegrationFlowController {
             "SetName" {
                 $this.Context.Console.NewLine()
                 $prompt = $this.Context.LocalizationService.Get("Flow.Prompt.EnterName", "Enter New Branch Name: ")
-                $this.Context.Console.WriteColored("  $prompt", [Constants]::ColorMenuText)
-                
                 # Clear line for input to avoid artifacts
                 $this.Context.Console.ClearCurrentLine()
+                
+                $this.Context.Console.WriteColored("  $prompt", [Constants]::ColorMenuText)
                 
                 $this.Context.Console.ShowCursor()
                 $inputName = Read-Host
@@ -205,6 +205,7 @@ class IntegrationFlowController {
               $fmtErr = $this.Context.LocalizationService.Get("Flow.Error.CreateFailed", "Failed to create branch '{0}': {1}")
               
               # Pause for user to see error
+              $this.Context.Console.WriteLineColored("  Press any key to continue...", [Constants]::ColorHint)
               $this.Context.Console.ReadKey()
               
               return "Error: " + [string]::Format($fmtErr, $newBranchName, $createRes.Output)
@@ -227,6 +228,7 @@ class IntegrationFlowController {
              $fmtErr = $this.Context.LocalizationService.Get("Flow.Error.MergeFailed", "Merge failed: {0}")
              
              # Pause for user to see error
+             $this.Context.Console.WriteLineColored("  Press any key to continue...", [Constants]::ColorHint)
              $this.Context.Console.ReadKey()
              
              return "Error: " + [string]::Format($fmtErr, $mergeRes.Output)
@@ -246,6 +248,7 @@ class IntegrationFlowController {
              $fmtErr = $this.Context.LocalizationService.Get("Flow.Error.PushFailed", "Push failed: {0}")
              
              # Pause for user to see error
+             $this.Context.Console.WriteLineColored("  Press any key to continue...", [Constants]::ColorHint)
              $this.Context.Console.ReadKey()
              
              return "Error: " + [string]::Format($fmtErr, $pushRes.Output)
