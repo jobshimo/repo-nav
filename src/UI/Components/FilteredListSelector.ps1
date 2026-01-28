@@ -211,9 +211,24 @@ class FilteredListSelector {
                             $focusMode = [Constants]::FocusList
                             $selectedIndex = 0
                             $viewportStart = 0
-                            # Only update input - list will show selection with focus
+                            $focusMode = [Constants]::FocusList
+                            $selectedIndex = 0
+                            $viewportStart = 0
+                            
+                            # Optimized transition:
+                            # 1. Update Input Line (Unhighlight)
                             $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
-                            $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                            
+                            # 2. Update First Item (Highlight) - Use RenderSingleItem directly or via UpdateListSelection logic
+                            # We can treat this as "Old Index = -1 (none), New Index = 0"
+                            # But since UpdateListSelection handles range checks, we can just pass an invalid old index
+                            $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
+                            $startLine = $this.HeaderLines + $hLines + 1 + 1 + 1
+                            $this.ListRenderer.RenderSingleItem($filteredItems, 0, $viewportStart, $startLine, $selectedIndex, $focusMode, $currentItem, $currentMarker)
+                            
+                            # Footer update is fast
+                            $footerStart = $startLine + $pageSize
+                            $this.ListRenderer.RenderFooter($selectedIndex, $items.Count, $items.Count, $statusMessage, $statusColor, $footerStart, $false, $true)
                         }
                     }
                     elseif ($focusMode -eq [Constants]::FocusList -and $filteredItems.Count -gt 0) {
@@ -262,10 +277,12 @@ class FilteredListSelector {
                             # Go to Input - partial update
                             $focusMode = [Constants]::FocusInput
                             $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
-                            # We need to un-highlight the first item
-                            $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
-                            # Actually RenderList is fine here as it will just draw items without selection. 
-                            # Partial optimization for this case is possible but RenderList is safe.
+                            
+                            # We need to un-highlight the first item (it was at 0)
+                            $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
+                            $startLine = $this.HeaderLines + $hLines + 1 + 1 + 1
+                            # Render item 0 with new focus mode (which is Input, so it will be unselected)
+                            $this.ListRenderer.RenderSingleItem($filteredItems, 0, $viewportStart, $startLine, 0, $focusMode, $currentItem, $currentMarker)
                         }
                     }
                     elseif ($focusMode -eq [Constants]::FocusInput) {
