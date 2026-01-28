@@ -90,15 +90,16 @@ class IntegrationFlowDashboard {
         
         $prefix = if ($isSelected) { "  > " } else { "    " }
         $this.Console.WriteColored($prefix, [Constants]::ColorHighlight)
-        $this.Console.WriteColored("$label : ", [Constants]::ColorLabel)
+        
+        # Label turns Green if selected
+        $labelColor = if ($isSelected) { [ConsoleColor]::Green } else { [Constants]::ColorLabel }
+        $this.Console.WriteColored("$label : ", $labelColor)
         
         if ([string]::IsNullOrWhiteSpace($value)) {
             $notSel = $this.GetLoc("Flow.Dashboard.NotSelected", "<Not Selected>")
             $this.Console.WriteColored($notSel, [Constants]::ColorHint)
         } else {
             $color = if ($isValid) { [Constants]::ColorValue } else { [Constants]::ColorWarning }
-            # Override color if selected to Green as requested
-            if ($isSelected) { $color = [ConsoleColor]::Green }
             $this.Console.WriteColored($value, $color)
         }
     }
