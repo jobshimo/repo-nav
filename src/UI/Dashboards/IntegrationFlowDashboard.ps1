@@ -85,8 +85,8 @@ class IntegrationFlowDashboard {
     
     hidden [void] RenderItemLine([int]$index, [string]$label, [string]$value, [bool]$isValid, [bool]$isSelected) {
         $line = $this.StartLine + $index
+        # Optimization: Don't clear line, just overwrite.
         $this.Console.SetCursorPosition(0, $line)
-        $this.Console.ClearCurrentLine()
         
         $prefix = if ($isSelected) { "  > " } else { "    " }
         $this.Console.WriteColored($prefix, [Constants]::ColorHighlight)
@@ -98,9 +98,13 @@ class IntegrationFlowDashboard {
         if ([string]::IsNullOrWhiteSpace($value)) {
             $notSel = $this.GetLoc("Flow.Dashboard.NotSelected", "<Not Selected>")
             $this.Console.WriteColored($notSel, [Constants]::ColorHint)
+            # Pad remaining to clear potential old long text
+            $this.Console.WriteColored(" " * 20, [Constants]::ColorHint) 
         } else {
             $color = if ($isValid) { [Constants]::ColorValue } else { [Constants]::ColorWarning }
             $this.Console.WriteColored($value, $color)
+            # Pad remaining to clear potential old long text
+            $this.Console.WriteColored(" " * 20, [Constants]::ColorHint)
         }
     }
 
