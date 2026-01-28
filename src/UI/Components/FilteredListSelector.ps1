@@ -33,14 +33,13 @@ class FilteredListSelector {
         # Header($this.HeaderLines) 
         # HeaderOptions (1 line horizontal if > 0)
         # Input (1)
-        # Count (1)
         # Separator (1)
         # Footer: Sep(1) + Info(1) + Hints(1) + Sep(1) = 4
         
         $optsHeight = if ($headerOptionCount -gt 0) { 1 } else { 0 }
         
         $footerLines = 4
-        $reservedLines = $this.HeaderLines + $optsHeight + 1 + 1 + 1 + $footerLines
+        $reservedLines = $this.HeaderLines + $optsHeight + 1 + 1 + $footerLines
         
         $windowHeight = $this.WindowCalculator.GetWindowHeight()
         $available = $windowHeight - $reservedLines
@@ -126,7 +125,11 @@ class FilteredListSelector {
                 if ($keyCode -eq [Constants]::KEY_ESCAPE -or $keyCode -eq [Constants]::KEY_ESC) {
                     if ($focusMode -eq [Constants]::FocusList -or $focusMode -eq [Constants]::FocusHeader) {
                         $focusMode = [Constants]::FocusInput
-                        $this.ListRenderer.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $this.HeaderLines, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
+                        # Only update header (if any) and input - no need to redraw list
+                        if ($headerOptions.Count -gt 0) {
+                            $this.ListRenderer.UpdateHeaderOptions($headerOptions, $headerIndex, $focusMode, $this.HeaderLines)
+                        }
+                        $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
                     } else {
                         $running = $false
                     }
@@ -149,17 +152,25 @@ class FilteredListSelector {
                 # Tab (Cycle Input <-> List)
                 if ($keyCode -eq [Constants]::KEY_TAB) {
                     if ($focusMode -eq [Constants]::FocusInput) {
-                        if ($filteredItems.Count -gt 0) { $focusMode = [Constants]::FocusList }
+                        if ($filteredItems.Count -gt 0) { 
+                            $focusMode = [Constants]::FocusList 
+                            # Only update input line - list stays the same
+                            $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
+                        }
                         # Default is stay in input if list empty
                     } 
                     elseif ($focusMode -eq [Constants]::FocusList) {
                         $focusMode = [Constants]::FocusInput
+                        # Only update input line - list stays the same
+                        $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
                     }
                     elseif ($focusMode -eq [Constants]::FocusHeader) {
                         $focusMode = [Constants]::FocusInput
+                        # Update header options and input line only
+                        $this.ListRenderer.UpdateHeaderOptions($headerOptions, $headerIndex, $focusMode, $this.HeaderLines)
+                        $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
                     }
                     
-                    $this.ListRenderer.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $this.HeaderLines, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
                     continue
                 }
                 
@@ -169,7 +180,8 @@ class FilteredListSelector {
                         if ($headerIndex -gt 0) {
                             $headerIndex--
                             $this.LastHeaderIndex = $headerIndex
-                            $this.ListRenderer.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $this.HeaderLines, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
+                            # Partial update - only header options line
+                            $this.ListRenderer.UpdateHeaderOptions($headerOptions, $headerIndex, $focusMode, $this.HeaderLines)
                         }
                         continue
                     }
@@ -177,7 +189,8 @@ class FilteredListSelector {
                         if ($headerIndex -lt ($headerOptions.Count - 1)) {
                             $headerIndex++
                             $this.LastHeaderIndex = $headerIndex
-                            $this.ListRenderer.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $this.HeaderLines, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
+                            # Partial update - only header options line
+                            $this.ListRenderer.UpdateHeaderOptions($headerOptions, $headerIndex, $focusMode, $this.HeaderLines)
                         }
                         continue
                     }
@@ -186,20 +199,41 @@ class FilteredListSelector {
                 # Down Arrow
                 if ($keyCode -eq [Constants]::KEY_DOWN_ARROW) {
                     if ($focusMode -eq [Constants]::FocusHeader) {
-                        # Down goes to input
+                        # Down goes to input - only update header and input, no list
                         $this.LastHeaderIndex = $headerIndex # Remember
                         $focusMode = [Constants]::FocusInput
-                        $this.ListRenderer.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $this.HeaderLines, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
+                        $this.ListRenderer.UpdateHeaderOptions($headerOptions, $headerIndex, $focusMode, $this.HeaderLines)
+                        $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
                     }
                     elseif ($focusMode -eq [Constants]::FocusInput) {
                         if ($filteredItems.Count -gt 0) {
                             $focusMode = [Constants]::FocusList
                             $selectedIndex = 0
                             $viewportStart = 0
-                            $this.ListRenderer.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $this.HeaderLines, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
+                            $focusMode = [Constants]::FocusList
+                            $selectedIndex = 0
+                            $viewportStart = 0
+                            
+                            # Optimized transition:
+                            # 1. Update Input Line (Unhighlight)
+                            $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
+                            
+                            # 2. Update First Item (Highlight) - Use RenderSingleItem directly or via UpdateListSelection logic
+                            # We can treat this as "Old Index = -1 (none), New Index = 0"
+                            # But since UpdateListSelection handles range checks, we can just pass an invalid old index
+                            $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
+                            $startLine = $this.HeaderLines + $hLines + 1 + 1
+                            $this.ListRenderer.RenderSingleItem($filteredItems, 0, $viewportStart, $startLine, $selectedIndex, $focusMode, $currentItem, $currentMarker)
+                            
+                            # Footer update is fast
+                            $footerStart = $startLine + $pageSize
+                            $this.ListRenderer.RenderFooter($selectedIndex, $items.Count, $items.Count, $statusMessage, $statusColor, $footerStart, $false, $true)
                         }
                     }
                     elseif ($focusMode -eq [Constants]::FocusList -and $filteredItems.Count -gt 0) {
+                        $oldIndex = $selectedIndex
+                        $oldViewport = $viewportStart
+                        
                         if ($selectedIndex -lt ($filteredItems.Count - 1)) {
                             $selectedIndex++
                             if ($selectedIndex -ge ($viewportStart + $pageSize)) {
@@ -209,8 +243,14 @@ class FilteredListSelector {
                             $selectedIndex = 0
                             $viewportStart = 0
                         }
-                        # Pass total items count to RenderList
-                        $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                        
+                        if ($viewportStart -ne $oldViewport) {
+                             # Full redraw if viewport changed
+                             $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                        } else {
+                             # Partial update
+                             $this.ListRenderer.UpdateListSelection($filteredItems, $oldIndex, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker)
+                        }
                     }
                     continue
                 }
@@ -219,16 +259,29 @@ class FilteredListSelector {
                 if ($keyCode -eq [Constants]::KEY_UP_ARROW) {
                     if ($focusMode -eq [Constants]::FocusList) {
                          if ($selectedIndex -gt 0) {
+                            $oldIndex = $selectedIndex
+                            $oldViewport = $viewportStart
+                            
                             $selectedIndex--
                             if ($selectedIndex -lt $viewportStart) {
                                 $viewportStart = $selectedIndex
                             }
-                            # Pass total items count to RenderList
-                            $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                            
+                            if ($viewportStart -ne $oldViewport) {
+                                $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                            } else {
+                                $this.ListRenderer.UpdateListSelection($filteredItems, $oldIndex, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker)
+                            }
                         } else {
-                            # Go to Input
+                            # Go to Input - partial update
                             $focusMode = [Constants]::FocusInput
-                            $this.ListRenderer.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $this.HeaderLines, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
+                            $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
+                            
+                            # We need to un-highlight the first item (it was at 0)
+                            $hLines = if ($headerOptions.Count -gt 0) { 1 } else { 0 }
+                            $startLine = $this.HeaderLines + $hLines + 1 + 1
+                            # Render item 0 with new focus mode (which is Input, so it will be unselected)
+                            $this.ListRenderer.RenderSingleItem($filteredItems, 0, $viewportStart, $startLine, 0, $focusMode, $currentItem, $currentMarker)
                         }
                     }
                     elseif ($focusMode -eq [Constants]::FocusInput) {
@@ -236,8 +289,9 @@ class FilteredListSelector {
                             $focusMode = [Constants]::FocusHeader
                             # Restore last header index
                             $headerIndex = if ($this.LastHeaderIndex -lt $headerOptions.Count) { $this.LastHeaderIndex } else { 0 }
-                            
-                            $this.ListRenderer.RenderFull($title, $searchText, $filteredItems, $selectedIndex, $headerIndex, $focusMode, $viewportStart, $pageSize, $this.HeaderLines, $items.Count, $prompt, $headerOptions, $false, $currentItem, $currentMarker, $null, $statusColor)
+                            # Partial update - header and input
+                            $this.ListRenderer.UpdateHeaderOptions($headerOptions, $headerIndex, $focusMode, $this.HeaderLines)
+                            $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
                         }
                     }
                     continue

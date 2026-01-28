@@ -139,9 +139,9 @@ class SearchView {
                 # Handle Escape - context-aware
                 if ($keyCode -eq [Constants]::KEY_ESCAPE -or $keyCode -eq [Constants]::KEY_ESC) {
                     if ($focusMode -eq "list") {
-                        # Return to input
+                        # Return to input - only update input line
                         $focusMode = "input"
-                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                        $this.UpdateSearchInput($searchText, $true)
                     } else {
                         # Exit search
                         $running = $false
@@ -161,22 +161,27 @@ class SearchView {
                 # Handle Tab - toggle focus
                 if ($keyCode -eq [Constants]::KEY_TAB) {
                     if ($focusMode -eq "input" -and $filteredRepos.Count -gt 0) {
+                        # Switch to list - only update input line
                         $focusMode = "list"
+                        $this.UpdateSearchInput($searchText, $false)
                     } else {
+                        # Switch to input - only update input line
                         $focusMode = "input"
+                        $this.UpdateSearchInput($searchText, $true)
                     }
-                    $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
                     continue
                 }
                 
                 # Handle navigation
                 if ($keyCode -eq [Constants]::KEY_DOWN_ARROW) {
                     if ($focusMode -eq "input" -and $filteredRepos.Count -gt 0) {
-                        # Move from input to list - select first item
+                        # Move from input to list - only update input, list will show selection
                         $focusMode = "list"
                         $selectedIndex = 0
                         $viewportStart = 0
-                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                        $this.UpdateSearchInput($searchText, $false)
+                        $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
+                        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine, $pageSize)
                     } elseif ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
                         $prevIndex = $selectedIndex
                         $prevViewport = $viewportStart
@@ -220,9 +225,9 @@ class SearchView {
                                 $viewportStart = $selectedIndex
                             }
                         } else {
-                            # Move back to input when at top
+                            # Move back to input when at top - only update input
                             $focusMode = "input"
-                            $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                            $this.UpdateSearchInput($searchText, $true)
                             continue
                         }
                         
@@ -327,6 +332,7 @@ class SearchView {
         
         # Search input (1 line)
         $this.RenderSearchInput($searchText, ($focusMode -eq "input"))
+        $this.Console.NewLine() # Add newline explicitly
         # Removed extra newline and count block as per user request to maximize list space
         
         # Separator before list
@@ -356,10 +362,26 @@ class SearchView {
         $this.Console.WriteColored("$label`: ", [Constants]::ColorLabel)
         
         if ([string]::IsNullOrEmpty($searchText)) {
-            $this.Console.WriteLineColored($placeholder, [Constants]::ColorHint)
+            $this.Console.WriteColored($placeholder, [Constants]::ColorHint)
         } else {
-            $this.Console.WriteLineColored($searchText, [Constants]::ColorValue)
+            $this.Console.WriteColored($searchText, [Constants]::ColorValue)
         }
+    }
+    
+    <#
+    .SYNOPSIS
+        Updates only the search input line (partial render)
+    #>
+    hidden [void] UpdateSearchInput([string]$searchText, [bool]$hasFocus) {
+        # Hide cursor to prevent flickering
+        $this.Console.HideCursor()
+        
+        $searchInputLine = $this.HeaderLines
+        $this.Console.SetCursorPosition(0, $searchInputLine)
+        $this.Console.SetCursorPosition(0, $searchInputLine)
+        # Optimized: Removed ClearCurrentLine
+        $this.RenderSearchInput($searchText, $hasFocus)
+        $this.Console.ClearRestOfLine() # Ensure tail is cleared
     }
     
     <#
@@ -367,19 +389,26 @@ class SearchView {
         Renders the results list with viewport
     #>
     hidden [void] RenderList([array]$repos, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$startLine) {
+        # Hide cursor to prevent flickering during list update
+        $this.Console.HideCursor()
+        
         $listHasFocus = ($focusMode -eq "list")
         $total = $repos.Count
         
         for ($i = 0; $i -lt $pageSize; $i++) {
             $currentLine = $startLine + $i
             $this.Console.SetCursorPosition(0, $currentLine)
-            $this.Console.ClearCurrentLine()
+            $this.Console.SetCursorPosition(0, $currentLine)
+            # Optimized: Removed ClearCurrentLine
             
             $repoIndex = $viewportStart + $i
             if ($repoIndex -lt $total) {
                 $repo = $repos[$repoIndex]
                 $isSelected = ($repoIndex -eq $selectedIndex) -and $listHasFocus
                 $this.RenderListItem($repo, $isSelected, $listHasFocus)
+            } else {
+                 # Clear empty lines
+                 $this.Console.ClearRestOfLine()
             }
         }
     }
@@ -398,7 +427,8 @@ class SearchView {
         $currentLine = $startLine + $lineOffset
         
         $this.Console.SetCursorPosition(0, $currentLine)
-        $this.Console.ClearCurrentLine()
+        $this.Console.SetCursorPosition(0, $currentLine)
+        # Optimized: Removed ClearCurrentLine
         
         if ($repoIndex -lt $repos.Count) {
             $repo = $repos[$repoIndex]
@@ -437,6 +467,9 @@ class SearchView {
             $aliasText = " [$($repo.AliasInfo.Alias)]"
             $this.Console.WriteColored($aliasText, $repo.AliasInfo.Color)
         }
+        
+        # Ensure tail is cleared
+        $this.Console.ClearRestOfLine()
     }
     
     <#
@@ -450,11 +483,11 @@ class SearchView {
         $footerLine = $listStartLine + $pageSize
         $this.Console.SetCursorPosition(0, $footerLine)
         
-        # Clear footer area (4 lines)
-        for ($i = 0; $i -lt $this.FooterLines; $i++) {
-            $this.Console.ClearCurrentLine()
-            $this.Console.SetCursorPosition(0, $footerLine + $i)
-        }
+        $this.Console.SetCursorPosition(0, $footerLine)
+        
+        # Optimized: Removed pre-clearing loop. We will clear line-by-line using ClearRestOfLine or Separator
+        # for ($i = 0; $i -lt $this.FooterLines; $i++) { ... }
+        
         $this.Console.SetCursorPosition(0, $footerLine)
         
         # Separator
@@ -470,11 +503,17 @@ class SearchView {
             $this.Console.WriteColored("  $lblItem`: ", [Constants]::ColorLabel)
             $this.Console.WriteColored("$currentPos/$filteredCount", [Constants]::ColorValue)
             $this.Console.WriteColored(" | $lblFiltered`: ", [Constants]::ColorLabel)
-            $this.Console.WriteLineColored("$filteredCount $lblOf $totalCount", [Constants]::ColorHint)
+            $this.Console.WriteColored("$filteredCount $lblOf $totalCount", [Constants]::ColorHint)
+            $this.Console.ClearRestOfLine()
+            $this.Console.NewLine()
         } else {
             $noResults = $this.GetLoc("Search.NoResults", "No repositories found")
-            $this.Console.WriteLineColored("  $noResults", [Constants]::ColorWarning)
+            $this.Console.WriteColored("  $noResults", [Constants]::ColorWarning)
+            $this.Console.ClearRestOfLine()
+            $this.Console.NewLine()
         }
+        # Previously added buggy clear block removed here by this replacement
+
         
         # Hints
         $this.RenderHints($focusMode)
@@ -490,11 +529,16 @@ class SearchView {
     hidden [void] RenderHints([string]$focusMode) {
         if ($focusMode -eq "input") {
             $hint1 = $this.GetLoc("Search.Hint.Input", "Type to filter | Down/Tab=Go to list | Esc=Close")
-            $this.Console.WriteLineColored("  $hint1", [Constants]::ColorHint)
+            $this.Console.WriteColored("  $hint1", [Constants]::ColorHint)
+            $this.Console.ClearRestOfLine()
+            $this.Console.NewLine()
         } else {
             $hint2 = $this.GetLoc("Search.Hint.List", "Up/Down=Navigate | Enter=Open | Up(top)/Tab=Back to search | Esc=Close")
-            $this.Console.WriteLineColored("  $hint2", [Constants]::ColorHint)
+            $this.Console.WriteColored("  $hint2", [Constants]::ColorHint)
+            $this.Console.ClearRestOfLine()
+            $this.Console.NewLine()
         }
+        # Removed previous buggy clear block optimization
     }
     
     #endregion

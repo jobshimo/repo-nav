@@ -45,6 +45,12 @@ class CommandFactory {
         if ($null -ne $prefType) {
             $this.RegisterOneCommand($prefType)
         }
+
+        # Explicitly attempt to register NpmCommand
+        $npmType = "NpmCommand" -as [type]
+        if ($null -ne $npmType) {
+            $this.RegisterOneCommand($npmType)
+        }
     }
 
     hidden [System.Collections.ArrayList] FindCommandTypes() {

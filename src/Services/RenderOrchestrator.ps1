@@ -39,19 +39,12 @@ class RenderOrchestrator {
         Initializes the screen and adjusts layout to fit window
     #>
     [void] Initialize([object]$state) {
-        # First render to establish the layout components (Header, Menu height, etc.)
-        # This calculates the properties like CursorStartLine
+        # Single render that establishes layout and calculates viewport
+        # RenderFull already calls UpdateWindowSize internally, so no double rendering needed
         $this.RenderFull($state)
         
-        # Now that we know the interface height, calculate the correct Viewport size (PageSize)
-        $state.UpdateWindowSize($this.CursorStartLine)
-        
-        # If the window size calculation changed the PageSize, we need to redraw
-        # to fill the empty space or trim the list
-        if ($state.RequiresFullRedraw) {
-            $this.RenderFull($state)
-            $state.RequiresFullRedraw = $false
-        }
+        # Clear any flags set during initialization
+        $state.RequiresFullRedraw = $false
     }
     
     <#
@@ -83,6 +76,8 @@ class RenderOrchestrator {
     #>
     [void] RenderFull([object]$state) {
         $this.Console.ClearScreen()
+        $this.Console.SetCursorPosition(0, 0) # Ensure we start at top
+        $this.Console.HideCursor() # Hide cursor for seamless redraw
         
         # Load preferences to check MenuMode
         $prefs = $this.PreferencesService.LoadPreferences()
@@ -138,6 +133,7 @@ class RenderOrchestrator {
         Partial redraw: only affected items or viewport scroll
     #>
     [void] RenderPartial([object]$state) {
+        $this.Console.HideCursor()
         $startLine = $this.CursorStartLine
         $pageSize = $state.PageSize
         
@@ -203,11 +199,9 @@ class RenderOrchestrator {
         $this.Console.SetCursorPosition(0, $footerLine - 1)
         $this.Console.ClearCurrentLine()
         
-        # Clear line 2 (counters) and line 3 (git status) to avoid residuals
-        $this.Console.SetCursorPosition(0, $footerLine + 1)
-        $this.Console.ClearCurrentLine()
-        $this.Console.SetCursorPosition(0, $footerLine + 2)
-        $this.Console.ClearCurrentLine()
+        # Helper clears removed: UIRenderer now handles overwriting lines without clearing
+        # Line 2 and 3 clears were causing flickering
+
         
         # Position at footer start and render
         $this.Console.SetCursorPosition(0, $footerLine)

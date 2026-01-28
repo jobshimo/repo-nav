@@ -58,11 +58,11 @@ class OptionSelector {
     #>
     # Overload for backward compatibility (4 arguments)
     [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText) {
-        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "")
+        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "", $true)
     }
 
     # Main method with all options
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description) {
+    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [bool]$clearScreen = $true) {
         if ($options.Count -eq 0) {
             return $null
         }
@@ -84,7 +84,9 @@ class OptionSelector {
             
             # Clear screen once and render header
             # Clear screen once and render header
-            $this.Console.ClearScreen()
+            if ($clearScreen) {
+                $this.Console.ClearScreen()
+            }
             $this.Renderer.RenderHeader($title)
             
             # If headers are hidden, we must still show the "Title" (Prompt/Question) 
@@ -200,7 +202,7 @@ class OptionSelector {
     .RETURNS
         $true if Yes selected, $false if No or cancelled
     #>
-    [bool] SelectYesNo([string]$question, [object]$localizationService) {
+    [bool] SelectYesNo([string]$question, [object]$localizationService, [bool]$clearScreen = $true) {
         # Get localized texts or use defaults
         $yesText = "Yes"
         $noText = "No"
@@ -217,7 +219,8 @@ class OptionSelector {
             @{ DisplayText = $noText; Value = $false }
         )
         
-        $result = $this.ShowSelection($question, $options, $false, $cancelText, $false, "")
+        # Pass clearScreen
+        $result = $this.ShowSelection($question, $options, $false, $cancelText, $false, "", $clearScreen)
         
         if ($null -eq $result) {
             return $false
@@ -228,6 +231,11 @@ class OptionSelector {
     
     # Overload without localization for backward compatibility
     [bool] SelectYesNo([string]$question) {
-        return $this.SelectYesNo($question, $null)
+        return $this.SelectYesNo($question, $null, $true)
+    }
+    
+    # Overload with just clearScreen
+    [bool] SelectYesNo([string]$question, [bool]$clearScreen) {
+        return $this.SelectYesNo($question, $null, $clearScreen)
     }
 }

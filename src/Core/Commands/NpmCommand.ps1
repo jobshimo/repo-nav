@@ -19,7 +19,6 @@ class NpmView {
     hidden [string] GetLoc([string]$key, [string]$default) {
         if ($this.LocalizationService) { 
             $val = $this.LocalizationService.Get($key)
-            # If the service returns the key wrapped in brackets (missing translation), use our default
             if ($val -eq "[$key]") { return $default }
             return $val
         }
@@ -56,25 +55,9 @@ class NpmView {
         Start-Sleep -Seconds 4
     }
 
-    [void] ShowPreparingAnimation([string]$message) {
-        $cursorTop = $global:Host.UI.RawUI.CursorPosition.Y
-        $cursorLeft = $global:Host.UI.RawUI.CursorPosition.X
-        
-        $dotCount = 0
-        $maxIterations = 5  # Show animation for approx 2 seconds
-        
-        for ($i = 0; $i -lt $maxIterations; $i++) {
-             try { $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop } } catch {}
-             $dots = "." * $dotCount
-             Write-Host "$message$dots".PadRight(50) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
-             $dotCount = ($dotCount + 1) % 4
-             Start-Sleep -Milliseconds 400
-        }
-        
-        # Final clean state
-        try { $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop } } catch {}
-        Write-Host "$message...".PadRight(50) -ForegroundColor ([Constants]::ColorWarning)
-        Write-Host ""
+    [void] ShowExecuting([string]$messageKey, [string]$defaultMessage) {
+         $msg = $this.GetLoc($messageKey, $defaultMessage)
+         Write-Host "$msg..." -ForegroundColor ([Constants]::ColorWarning)
     }
 
     [bool] ConfirmRemoval([string]$targetName) {
@@ -89,7 +72,8 @@ class NpmView {
                 @{ DisplayText = $yes; Value = $true },
                 @{ DisplayText = $no; Value = $false }
             )
-            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $warning)
+            # Fixed: Passed explicit $true for clearScreen (7th argument)
+            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $warning, $true)
             return ($result -eq $true)
         } else {
             Write-Host $warning -ForegroundColor ([Constants]::ColorWarning)
@@ -107,7 +91,8 @@ class NpmView {
                 @{ DisplayText = $yes; Value = $true },
                 @{ DisplayText = $no; Value = $false }
             )
-            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $null)
+            # Fixed: Passed explicit $true for clearScreen (7th argument)
+            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $null, $true)
             return ($result -eq $true)
         } else {
             return $this.Console.ConfirmAction($prompt, $false)
@@ -144,6 +129,7 @@ class NpmCommand : INavigationCommand {
         $key = $keyPress.VirtualKeyCode
         
         $state.Stop() # Pause navigation loop
+        # Ensure cursor hidden/shown as needed by view methods, generally View handles it or OptionSelector
         
         try {
             $view = [NpmView]::new($context)
@@ -183,19 +169,17 @@ class NpmCommand : INavigationCommand {
         
         # 3. Process Execution
         try {
-            # Display Preparing Animation
-            $msgRunning = $view.GetLoc("Msg.Npm.RunningInstall", "Running npm install")
-            $view.ShowPreparingAnimation($msgRunning)
+            # Synchronous Execution without background jobs
+            $view.ShowExecuting("Msg.Npm.RunningInstall", "Running npm install")
             
             Push-Location $repo.FullPath
             try {
                 try { [Console]::CursorVisible = $true } catch {}
                 
-            # Use Start-Process with cmd /c to ensure native console experience (colors, progress bars)
-            # This bypasses PowerShell's stream handling which causes red text or monochrome output
-            $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$npmPath`" install" -WorkingDirectory $repo.FullPath -NoNewWindow -Wait -PassThru
+                # Use Start-Process with cmd /c for standard output streaming
+                $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$npmPath`" install" -WorkingDirectory $repo.FullPath -NoNewWindow -Wait -PassThru
             
-            $exitCode = $proc.ExitCode
+                $exitCode = $proc.ExitCode
                 
                 if ($exitCode -eq 0) {
                      Write-Host ""
@@ -208,6 +192,7 @@ class NpmCommand : INavigationCommand {
             }
             finally {
                 Pop-Location
+                try { [Console]::CursorVisible = $false } catch {}
             }
         }
         catch {
@@ -225,7 +210,7 @@ class NpmCommand : INavigationCommand {
             return
         }
 
-        # 2. Confirmation
+        # 2. Confirmation (Uses OptionSelector internally)
         $view.ClearAndRenderHeader("Removing", $repo)
         if (-not ($view.ConfirmRemoval("node_modules"))) {
             $view.ShowOperationCancelled()
@@ -234,78 +219,41 @@ class NpmCommand : INavigationCommand {
 
         # Check for package-lock.json
         $removeLock = $false
-        $lockPath = Join-Path $repo.FullPath "package-lock.json"
-        
         if ($service.HasPackageLock($repo.FullPath)) {
+             # Re-render header to keep context (OptionSelector might clear below it)
+             $view.ClearAndRenderHeader("Removing", $repo)
              if ($view.ConfirmRemovePackageLock()) {
                  $removeLock = $true
              }
         }
 
-        # 3. Execution (Background Job for Animation)
+        # 3. Execution (Synchronous - No Animation/Job complications)
         $view.ClearAndRenderHeader("Removing", $repo)
         Write-Host ""
-
-        # Using a job because deletion can take time and we want to animate
-        $scriptBlock = {
-            param($path, $remLock, $lPath)
-            Remove-Item -Path $path -Recurse -Force -ErrorAction Stop
-            if ($remLock -and (Test-Path $lPath)) {
-                Remove-Item -Path $lPath -Force -ErrorAction Stop
-            }
-        }
-
-        $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $nodeModulesPath, $removeLock, $lockPath
+        $view.ShowExecuting("Msg.Npm.Removing", "Removing node_modules")
         
-        # Run Animation while waiting
-        $msgRunning = $view.GetLoc("Msg.Npm.Removing", "Removing node_modules")
-        $this.WaitForJobWithAnimation($job, $msgRunning)
-
-        # Process Result
-        $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
+        # Synchronous removal
+        $result = $service.RemoveNodeModules($repo.FullPath, $removeLock)
         
-        # Wait-Job ensures we get the state correctly if loop exited early
-        $null = Wait-Job -Job $job -Timeout 1
-        
-        if ($job.State -eq 'Completed' -and -not $job.ChildJobs[0].Error) {
+        if ($result) {
              $view.ShowSuccess("Msg.Npm.RemovedSuccess", "node_modules removed successfully!")
              if ($removeLock) {
                  $view.ShowSuccess("Msg.Npm.RemovedLockSuccess", "package-lock.json removed successfully!")
              }
         } else {
-             $err = $job.ChildJobs[0].Error
-             $view.ShowError("Error.Npm.RemoveFailed", "Error removing files: ", "$err")
+             $view.ShowError("Error.Npm.RemoveFailed", "Error removing files.", $null)
         }
         
-        Remove-Job -Job $job
         Start-Sleep -Seconds 2
-    }
-
-    hidden [void] WaitForJobWithAnimation($job, $message) {
-        $cursorTop = $global:Host.UI.RawUI.CursorPosition.Y
-        $cursorLeft = $global:Host.UI.RawUI.CursorPosition.X
-        $dotCount = 0
-        
-        while ($job.State -eq 'Running') {
-            try { $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop } } catch {}
-            
-            $dots = "." * $dotCount
-            Write-Host "$message$dots".PadRight(50) -NoNewline -ForegroundColor ([Constants]::ColorWarning)
-            
-            $dotCount = ($dotCount + 1) % 4
-            Start-Sleep -Milliseconds 400
-        }
-
-        # Final cleanup line
-        try { $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop } } catch {}
-        Write-Host "".PadRight(60) -NoNewline
-        try { $global:Host.UI.RawUI.CursorPosition = @{ X = $cursorLeft; Y = $cursorTop } } catch {}
     }
 
     hidden [void] RefreshRepositoryState($context, $currentRepo) {
         $repoManager = $context.RepoManager
         $state = $context.State
         
+        # Clear screen to ensure no artifacts before redraw
+        $context.Console.ClearForWorkflow()
+
         if ($null -ne $repoManager) {
             $repoManager.LoadRepositories($context.BasePath)
             $updatedRepos = $repoManager.GetRepositories()
@@ -324,4 +272,3 @@ class NpmCommand : INavigationCommand {
         $state.MarkForFullRedraw()
     }
 }
-

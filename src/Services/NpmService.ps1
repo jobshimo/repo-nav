@@ -131,6 +131,7 @@ class NpmService {
     [string] GetNpmExecutablePath() {
         # 1. Try standard discovery via PATH
         if (Get-Command "npm" -ErrorAction SilentlyContinue) {
+            # Return just "npm" and let the shell resolve it (since we use cmd /c)
             return "npm"
         }
 
@@ -164,5 +165,73 @@ class NpmService {
         }
 
         return [string]::Empty
+    }
+
+    # Get package version from package.json
+    [string] GetVersion([string]$repoPath) {
+        $packageInfo = $this.GetPackageInfo($repoPath)
+        if ($packageInfo -and $packageInfo.version) {
+            return $packageInfo.version
+        }
+        return "0.0.0"
+    }
+
+    # Set package version
+    [hashtable] SetVersion([string]$repoPath, [string]$newVersion) {
+        if (-not $this.HasPackageJson($repoPath)) {
+            return @{ Success = $false; Output = "No package.json found" }
+        }
+        
+        $hasLockFile = $this.HasPackageLock($repoPath)
+        
+        # 1. Try with npm executable
+        $npmPath = $this.GetNpmExecutablePath()
+        if (-not [string]::IsNullOrWhiteSpace($npmPath)) {
+            try {
+                # Logic adapted from NpmCommand.ps1 for consistency
+                $argsList = "/c `"$npmPath`" version $newVersion --no-git-tag-version --allow-same-version"
+                
+                # Using cmd.exe wrapper significantly improves reliability on Windows
+                $proc = Start-Process -FilePath "cmd.exe" -ArgumentList $argsList -WorkingDirectory $repoPath -NoNewWindow -Wait -PassThru
+                
+                if ($proc.ExitCode -eq 0) {
+                     # Verify lock file update if it exists
+                     if ($hasLockFile) {
+                         $lockContent = Get-Content (Join-Path $repoPath "package-lock.json") -Raw
+                         if ($lockContent -notmatch """version""\s*:\s*""$newVersion""") {
+                             return @{ Success = $true; Output = "Updated package.json via npm, but package-lock.json seems outdated. Please run 'npm install' manually." }
+                         }
+                     }
+                     return @{ Success = $true; Output = "Updated to $newVersion via npm" }
+                } 
+                # If failed, fallthrough but warn if lockfile exists
+            }
+            catch {
+                Write-Warning "Error executing npm: $_"
+            }
+        }
+        
+        # 2. Fallback: Manual JSON manipulation
+        if ($hasLockFile) {
+            # If we have a lock file but couldn't use npm, we should probably STOP or WARN LOUDLY
+            # The user explicitly said: "check that package-lock.json changes... this has to be aligned"
+            return @{ Success = $false; Output = "Cannot update version: 'npm' not found or failed, and package-lock.json exists. Manual update would break sync." }
+        }
+
+        try {
+            $packageJsonPath = Join-Path $repoPath "package.json"
+            $content = Get-Content $packageJsonPath -Raw
+            
+            if ($content -match '"version"\s*:\s*"[^"]+"') {
+                $newContent = $content -replace '"version"\s*:\s*"[^"]+"', """version"": ""$newVersion"""
+                Set-Content -Path $packageJsonPath -Value $newContent -Encoding UTF8
+                return @{ Success = $true; Output = "Updated package.json manually to $newVersion" }
+            } else {
+                 return @{ Success = $false; Output = "Could not find version field in package.json" }
+            }
+        }
+        catch {
+             return @{ Success = $false; Output = "Error writing package.json: $_" }
+        }
     }
 }
