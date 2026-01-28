@@ -26,8 +26,8 @@ class IntegrationFlowController {
         $this.Initialize()
         
         # 2. Init State
-        $this.Model.SourceBranch = $this.GitService.GetCurrentBranch($this.Repo.FullPath)
-        $this.Model.SourceBranchValid = $true
+        # $this.Model.SourceBranch = $this.GitService.GetCurrentBranch($this.Repo.FullPath)
+        # $this.Model.SourceBranchValid = $true
         
         # 3. Main Loop
         $selectedIndex = 0
@@ -145,6 +145,10 @@ class IntegrationFlowController {
                 $this.Context.Console.NewLine()
                 $prompt = $this.Context.LocalizationService.Get("Flow.Prompt.EnterName", "Enter New Branch Name: ")
                 $this.Context.Console.WriteColored("  $prompt", [Constants]::ColorMenuText)
+                
+                # Clear line for input to avoid artifacts
+                $this.Context.Console.ClearCurrentLine()
+                
                 $this.Context.Console.ShowCursor()
                 $inputName = Read-Host
                 $this.Context.Console.HideCursor()
@@ -196,10 +200,14 @@ class IntegrationFlowController {
          
          $createRes = $this.GitService.CreateBranch($this.Repo.FullPath, $newBranchName, $targetBranch)
          if (-not $createRes.Success) {
-             $this.Context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
-             $this.Context.Console.WriteLineColored("  $($createRes.Output)", [Constants]::ColorError)
-             $fmtErr = $this.Context.LocalizationService.Get("Flow.Error.CreateFailed", "Failed to create branch '{0}': {1}")
-             return [string]::Format($fmtErr, $newBranchName, $createRes.Output)
+              $this.Context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
+              $this.Context.Console.WriteLineColored("  $($createRes.Output)", [Constants]::ColorError)
+              $fmtErr = $this.Context.LocalizationService.Get("Flow.Error.CreateFailed", "Failed to create branch '{0}': {1}")
+              
+              # Pause for user to see error
+              $this.Context.Console.ReadKey()
+              
+              return "Error: " + [string]::Format($fmtErr, $newBranchName, $createRes.Output)
          }
          $this.Context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
          
@@ -217,7 +225,11 @@ class IntegrationFlowController {
                  $this.Context.Console.WriteLineColored("  [!] $msgConflict", [Constants]::ColorWarning)
              }
              $fmtErr = $this.Context.LocalizationService.Get("Flow.Error.MergeFailed", "Merge failed: {0}")
-             return [string]::Format($fmtErr, $mergeRes.Output)
+             
+             # Pause for user to see error
+             $this.Context.Console.ReadKey()
+             
+             return "Error: " + [string]::Format($fmtErr, $mergeRes.Output)
          }
          $this.Context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
 
@@ -232,7 +244,11 @@ class IntegrationFlowController {
              $this.Context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
              $this.Context.Console.WriteLineColored("  $($pushRes.Output)", [Constants]::ColorError)
              $fmtErr = $this.Context.LocalizationService.Get("Flow.Error.PushFailed", "Push failed: {0}")
-             return [string]::Format($fmtErr, $pushRes.Output)
+             
+             # Pause for user to see error
+             $this.Context.Console.ReadKey()
+             
+             return "Error: " + [string]::Format($fmtErr, $pushRes.Output)
          }
          $this.Context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
          

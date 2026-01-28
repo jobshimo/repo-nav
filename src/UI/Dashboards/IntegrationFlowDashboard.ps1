@@ -45,7 +45,9 @@ class IntegrationFlowDashboard {
         $canExecute = $model.IsReadyToExecute()
         $this.RenderActions($selectedIndex, $canExecute)
         
-        $this.Console.NewLine()
+        # Explicit position for hint to avoid overlap
+        $this.Console.SetCursorPosition(0, $this.StartLine + 7)
+        $this.Console.ClearCurrentLine()
         $hintText = $this.GetLoc("Flow.Dashboard.Hint", "Use Arrows to navigate | Enter to edit/select")
         $this.Console.WriteLineColored("  $hintText", [Constants]::ColorHint)
         
