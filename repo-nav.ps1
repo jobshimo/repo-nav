@@ -104,6 +104,7 @@ $srcPath = Join-Path $scriptRoot "src"
 # RepositoryManager (Depends on Services, IProgressReporter)
 . "$srcPath\Core\Interfaces\IProgressReporter.ps1"
 . "$srcPath\UI\Services\ConsoleProgressReporter.ps1"
+. "$srcPath\Core\Services\GitStatusManager.ps1"
 . "$srcPath\Core\RepositoryManager.ps1"
 
 

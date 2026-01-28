@@ -43,6 +43,10 @@ class AppBuilder {
         $consoleHelper     = [ConsoleHelper]::new()
         $progressReporter  = [ConsoleProgressReporter]::new($consoleHelper)
         
+        # 3c. Git Status Manager
+        # Depends on GitService, ParallelGitLoader, Preferences, and ProgressReporter
+        $gitStatusManager = [GitStatusManager]::new($gitService, $parallelGitLoader, $preferencesService, $progressReporter)
+        
         # 4. Core Facade (Depends on everything above)
         $repoManager = [RepositoryManager]::new(
             $gitService,
@@ -53,7 +57,8 @@ class AppBuilder {
             $favoriteService,
             $parallelGitLoader,
             $repoOpsService,
-            $progressReporter
+            $progressReporter,
+            $gitStatusManager
         )
         
         # 5. UI Layer
