@@ -7,20 +7,28 @@ class FilteredListRenderer {
         $this.UIRenderer = $uiRenderer
     }
 
-    hidden [void] RenderFooter([int]$selectedIndex, [int]$filteredCount, [int]$totalCount, [string]$statusMessage, [ConsoleColor]$statusColor, [int]$footerStartLine, [bool]$clearScreen) {
+    hidden [void] RenderFooter([int]$selectedIndex, [int]$filteredCount, [int]$totalCount, [string]$statusMessage, [ConsoleColor]$statusColor, [int]$footerStartLine, [bool]$clearScreen, [bool]$fastUpdate) {
         # Footer area: 4 lines
-        for ($i = 0; $i -lt 4; $i++) {
-            $this.Console.SetCursorPosition(0, $footerStartLine + $i)
-            if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
+        $sep = "=" * [Constants]::UIWidth
+        
+        if (-not $fastUpdate) {
+            for ($i = 0; $i -lt 4; $i++) {
+                $this.Console.SetCursorPosition(0, $footerStartLine + $i)
+                if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
+            }
         }
         
         # 1. Separator
-        $this.Console.SetCursorPosition(0, $footerStartLine)
-        $sep = "=" * [Constants]::UIWidth
-        $this.Console.WriteColored($sep, [Constants]::ColorSeparator)
+        if (-not $fastUpdate) {
+            $this.Console.SetCursorPosition(0, $footerStartLine)
+            $this.Console.WriteColored($sep, [Constants]::ColorSeparator)
+        }
         
-        # 2. Counts
+        # 2. Counts (This changes on selection, so we redraw it)
         $this.Console.SetCursorPosition(0, $footerStartLine + 1)
+        # Clear specific line if fast update to ensure no artifacts
+        if ($fastUpdate) { $this.Console.ClearCurrentLine() }
+        
         if ($filteredCount -gt 0) {
             $currentPos = $selectedIndex + 1
             $lblItem = $this.UIRenderer.GetLoc("UI.Label.Item", "Item")
@@ -37,17 +45,63 @@ class FilteredListRenderer {
         }
         
         # 3. Message / Hints
-        $this.Console.SetCursorPosition(0, $footerStartLine + 2)
-        if (-not [string]::IsNullOrEmpty($statusMessage)) {
-             $this.Console.WriteColored("  $statusMessage", $statusColor)
-        } else {
-             $hint = $this.UIRenderer.GetLoc("Search.Hint.FilteredList", "$([char]0x2191)$([char]0x2193)=Navigate | Enter=Select | Esc=Cancel")
-             $this.Console.WriteColored("  $hint", [Constants]::ColorHint)
+        if (-not $fastUpdate) {
+            $this.Console.SetCursorPosition(0, $footerStartLine + 2)
+            if (-not [string]::IsNullOrEmpty($statusMessage)) {
+                 $this.Console.WriteColored("  $statusMessage", $statusColor)
+            } else {
+                 $hint = $this.UIRenderer.GetLoc("Search.Hint.FilteredList", "$([char]0x2191)$([char]0x2193)=Navigate | Enter=Select | Esc=Cancel")
+                 $this.Console.WriteColored("  $hint", [Constants]::ColorHint)
+            }
+            
+            # 4. Final Separator
+            $this.Console.SetCursorPosition(0, $footerStartLine + 3)
+            $this.Console.WriteColored($sep, [Constants]::ColorSeparator)
+        }
+    }
+    
+    [void] RenderSingleItem([array]$items, [int]$index, [int]$viewportStart, [int]$startLine, [int]$selectedIndex, [string]$focusMode, [string]$currentItem, [string]$currentMarker) {
+         $i = $index - $viewportStart
+         if ($i -lt 0) { return } # Should not happen if caller checks
+         
+         $this.Console.SetCursorPosition(0, $startLine + $i)
+         $this.Console.ClearCurrentLine()
+         
+         if ($index -lt $items.Count) {
+             $item = $items[$index]
+             $isSelected = ($index -eq $selectedIndex) -and ($focusMode -eq [Constants]::FocusList)
+             
+             $prefix = if ($isSelected) { ">" } else { " " }
+             $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+             
+             $this.Console.WriteColored("  $prefix ", $color)
+             $this.Console.WriteColored($item, $color)
+             
+             if ($null -ne $currentItem -and $item -eq $currentItem) {
+                 $this.Console.WriteColored(" $currentMarker", [Constants]::ColorHint)
+             }
+         }
+    }
+
+    [void] UpdateListSelection([array]$items, [int]$oldIndex, [int]$newIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$headerOptionCount, [int]$headerLines, [int]$totalCount, [string]$currentItem, [string]$currentMarker) {
+        $this.Console.HideCursor()
+        
+        $hLines = if ($headerOptionCount -gt 0) { 1 } else { 0 }
+        $startLine = $headerLines + $hLines + 1 + 1 + 1
+        
+        # Redraw Old Item (to unselect)
+        if ($oldIndex -ge $viewportStart -and $oldIndex -lt ($viewportStart + $pageSize)) {
+            $this.RenderSingleItem($items, $oldIndex, $viewportStart, $startLine, $newIndex, $focusMode, $currentItem, $currentMarker)
         }
         
-        # 4. Final Separator
-        $this.Console.SetCursorPosition(0, $footerStartLine + 3)
-        $this.Console.WriteColored($sep, [Constants]::ColorSeparator)
+        # Redraw New Item (to select)
+        if ($newIndex -ge $viewportStart -and $newIndex -lt ($viewportStart + $pageSize)) {
+             $this.RenderSingleItem($items, $newIndex, $viewportStart, $startLine, $newIndex, $focusMode, $currentItem, $currentMarker)
+        }
+        
+        # Update Footer (Counts Only) - Fast Update
+        $footerStart = $startLine + $pageSize
+        $this.RenderFooter($newIndex, $items.Count, $totalCount, $null, [ConsoleColor]::Gray, $footerStart, $false, $true)
     }
 
     [void] RenderList([array]$items, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$headerOptionCount, [int]$headerLines, [int]$totalCount, [string]$currentItem, [string]$currentMarker, [string]$statusMessage, [ConsoleColor]$statusColor) {
@@ -62,29 +116,14 @@ class FilteredListRenderer {
         
         # Draw items
         for ($i = 0; $i -lt $pageSize; $i++) {
-            $this.Console.SetCursorPosition(0, $startLine + $i)
-            $this.Console.ClearCurrentLine()
-            
             $itemIndex = $viewportStart + $i
-            if ($itemIndex -lt $items.Count) {
-                $item = $items[$itemIndex]
-                $isSelected = ($itemIndex -eq $selectedIndex) -and ($focusMode -eq [Constants]::FocusList)
-                
-                $prefix = if ($isSelected) { ">" } else { " " }
-                $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
-                
-                $this.Console.WriteColored("  $prefix ", $color)
-                $this.Console.WriteColored($item, $color)
-                
-                if ($null -ne $currentItem -and $item -eq $currentItem) {
-                    $this.Console.WriteColored(" $currentMarker", [Constants]::ColorHint)
-                }
-            }
+            $this.RenderSingleItem($items, $itemIndex, $viewportStart, $startLine, $selectedIndex, $focusMode, $currentItem, $currentMarker)
         }
         
         # Explicitly redraw footer every time the list updates to ensure it's not overwritten/ghosted
         $footerStart = $startLine + $pageSize
-        $this.RenderFooter($selectedIndex, $items.Count, $totalCount, $statusMessage, $statusColor, $footerStart, $false)
+        # Full footer render
+        $this.RenderFooter($selectedIndex, $items.Count, $totalCount, $statusMessage, $statusColor, $footerStart, $false, $false)
     }
 
     [void] RenderFull([string]$title, [string]$searchText, [array]$items, [int]$selectedIndex, [int]$headerIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$headerLines, [int]$totalCount, [string]$prompt, [string[]]$headerOptions, [bool]$clearScreen, [string]$currentItem, [string]$currentMarker, [string]$statusMessage, [ConsoleColor]$statusColor) {

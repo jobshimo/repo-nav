@@ -217,6 +217,9 @@ class FilteredListSelector {
                         }
                     }
                     elseif ($focusMode -eq [Constants]::FocusList -and $filteredItems.Count -gt 0) {
+                        $oldIndex = $selectedIndex
+                        $oldViewport = $viewportStart
+                        
                         if ($selectedIndex -lt ($filteredItems.Count - 1)) {
                             $selectedIndex++
                             if ($selectedIndex -ge ($viewportStart + $pageSize)) {
@@ -226,8 +229,14 @@ class FilteredListSelector {
                             $selectedIndex = 0
                             $viewportStart = 0
                         }
-                        # Pass total items count to RenderList
-                        $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                        
+                        if ($viewportStart -ne $oldViewport) {
+                             # Full redraw if viewport changed
+                             $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                        } else {
+                             # Partial update
+                             $this.ListRenderer.UpdateListSelection($filteredItems, $oldIndex, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker)
+                        }
                     }
                     continue
                 }
@@ -236,17 +245,27 @@ class FilteredListSelector {
                 if ($keyCode -eq [Constants]::KEY_UP_ARROW) {
                     if ($focusMode -eq [Constants]::FocusList) {
                          if ($selectedIndex -gt 0) {
+                            $oldIndex = $selectedIndex
+                            $oldViewport = $viewportStart
+                            
                             $selectedIndex--
                             if ($selectedIndex -lt $viewportStart) {
                                 $viewportStart = $selectedIndex
                             }
-                            # Pass total items count to RenderList
-                            $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                            
+                            if ($viewportStart -ne $oldViewport) {
+                                $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                            } else {
+                                $this.ListRenderer.UpdateListSelection($filteredItems, $oldIndex, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker)
+                            }
                         } else {
                             # Go to Input - partial update
                             $focusMode = [Constants]::FocusInput
                             $this.ListRenderer.UpdateSearchInput($searchText, $focusMode, $this.HeaderLines, $headerOptions.Count, $prompt)
+                            # We need to un-highlight the first item
                             $this.ListRenderer.RenderList($filteredItems, $selectedIndex, $focusMode, $viewportStart, $pageSize, $headerOptions.Count, $this.HeaderLines, $items.Count, $currentItem, $currentMarker, $statusMessage, $statusColor)
+                            # Actually RenderList is fine here as it will just draw items without selection. 
+                            # Partial optimization for this case is possible but RenderList is safe.
                         }
                     }
                     elseif ($focusMode -eq [Constants]::FocusInput) {
