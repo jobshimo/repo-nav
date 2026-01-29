@@ -318,6 +318,32 @@ if (Test-Path $resourcesSrc) {
 }
 #endregion
 
+#region Generate Install.bat
+$installBatContent = @"
+@echo off
+echo.
+echo ============================================
+echo   REPO-NAV INSTALLER
+echo ============================================
+echo.
+echo This will configure PowerShell to run scripts
+echo and then launch the Setup wizard.
+echo.
+pause
+
+:: Enable script execution for the current user
+powershell -Command "Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force"
+
+:: Run the Setup
+powershell -ExecutionPolicy Bypass -File "%~dp0Setup-Bundle.ps1"
+
+pause
+"@
+
+$installBatPath = Join-Path $distPath "Install.bat"
+$installBatContent | Set-Content -Path $installBatPath -Encoding ASCII -Force
+#endregion
+
 #region Summary
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
@@ -327,12 +353,13 @@ Write-Host ""
 Write-Host "  Distribution folder: $distPath" -ForegroundColor White
 Write-Host ""
 Write-Host "  Contents:" -ForegroundColor Cyan
+Write-Host "    - Install.bat          (run this first)" -ForegroundColor Gray
 Write-Host "    - repo-nav-bundle.ps1  ($bundleSize KB)" -ForegroundColor Gray
 Write-Host "    - Setup-Bundle.ps1" -ForegroundColor Gray
 Write-Host "    - Resources/i18n/      (translations)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  To distribute:" -ForegroundColor Yellow
 Write-Host "    1. Copy the 'dist' folder to target machine" -ForegroundColor Gray
-Write-Host "    2. Run: .\Setup-Bundle.ps1" -ForegroundColor Gray
+Write-Host "    2. Double-click Install.bat (or run .\Setup-Bundle.ps1)" -ForegroundColor Gray
 Write-Host ""
 #endregion
