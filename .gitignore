@@ -5,7 +5,7 @@
 .legacy/
 
 # Archivos generados (regenerar con Build-Bundle.ps1)
-repo-nav-bundle.ps1
+dist/
 
 # Archivos de backup y legacy
 legacy/
