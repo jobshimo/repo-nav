@@ -288,6 +288,8 @@
     "Flow.Quick.Opt.Commit": "Commit Changes",
     "Flow.Quick.Opt.Stash": "Stash Changes",
     "Flow.Quick.Opt.Refresh": "Check Status",
+    "Flow.Quick.Opt.CreateBranch": "Create New Branch",
+    "Flow.Quick.Opt.PushBranch": "Push Local Branch",
     "Flow.Quick.Back": "Back to Menu",
     "Flow.Quick.Prompt.CommitMsg": "Enter commit message: ",
     "Error.Aborted": "Aborted (Empty message)",
@@ -295,6 +297,9 @@
     "Status.Success": "Success!",
     "Flow.Quick.Prompt.StashName": "Enter stash name (optional): ",
     "Flow.Quick.Op.Stashing": "Stashing changes...",
+    "Flow.Prompt.PushNow": "Push new branch to origin?",
+    "Flow.Op.PushingBranch": "Pushing '{0}'...",
+    "Msg.SelectOption": "Select an option",
     
     "Status.Done": " DONE",
     "Status.Failed": " FAILED",

@@ -284,6 +284,8 @@
     "Flow.Quick.Opt.Commit": "Confirmar Cambios (Commit)",
     "Flow.Quick.Opt.Stash": "Guardar Cambios (Stash)",
     "Flow.Quick.Opt.Refresh": "Comprobar Estado",
+    "Flow.Quick.Opt.CreateBranch": "Crear Nueva Rama",
+    "Flow.Quick.Opt.PushBranch": "Subir Rama Local (Push)",
     "Flow.Quick.Back": "Volver al Menú",
     "Flow.Quick.Prompt.CommitMsg": "Introduce mensaje del commit: ",
     "Error.Aborted": "Abortado (Mensaje vacío)",
@@ -291,6 +293,9 @@
     "Status.Success": "¡Éxito!",
     "Flow.Quick.Prompt.StashName": "Nombre del stash (opcional): ",
     "Flow.Quick.Op.Stashing": "Guardando stash...",
+    "Flow.Prompt.PushNow": "¿Subir nueva rama al origen (Push)?",
+    "Flow.Op.PushingBranch": "Subiendo '{0}'...",
+    "Msg.SelectOption": "Selecciona una opción",
 
     "Status.Done": " HECHO",
     "Status.Failed": " FALLÓ",
