@@ -1,3 +1,4 @@
+
 class QuickChangeFlowController {
     [CommandContext] $Context
     [object] $Repo
@@ -13,8 +14,14 @@ class QuickChangeFlowController {
     
     [string] Start() {
         while ($true) {
+            # 1. Check Status
             $hasChanges = $this.GitService.HasUncommittedChanges($this.Repo.FullPath)
             
+            # 2. Check Remote
+            $remoteUrl = $this.GitService.GetRemoteUrl($this.Repo.FullPath)
+            $hasRemote = -not [string]::IsNullOrWhiteSpace($remoteUrl)
+            
+            # 3. Prepare Menu
             $title = $this.Context.LocalizationService.Get("Flow.Quick.Title", "QUICK CHANGES DASHBOARD")
             
             $statusText = if ($hasChanges) { 
@@ -25,7 +32,7 @@ class QuickChangeFlowController {
             
             $options = @()
             
-            # 1. Dirty Actions
+            # Dirty Actions
             if ($hasChanges) {
                 $optCommit = $this.Context.LocalizationService.Get("Flow.Quick.Opt.Commit", "Commit Changes")
                 $optStash = $this.Context.LocalizationService.Get("Flow.Quick.Opt.Stash", "Stash Changes")
@@ -33,13 +40,17 @@ class QuickChangeFlowController {
                 $options += @{ DisplayText = $optStash; Value = "Stash" }
             }
             
-            # 2. Common Actions (Branching)
+            # Branch Actions
             $optCreate = $this.Context.LocalizationService.Get("Flow.Quick.Opt.CreateBranch", "Create New Branch")
-            $optPush = $this.Context.LocalizationService.Get("Flow.Quick.Opt.PushBranch", "Push Local Branch")
             $options += @{ DisplayText = $optCreate; Value = "CreateBranch" }
-            $options += @{ DisplayText = $optPush; Value = "PushBranch" }
             
-            # 3. Navigation
+            # Push only if remote exists
+            if ($hasRemote) {
+                $optPush = $this.Context.LocalizationService.Get("Flow.Quick.Opt.PushBranch", "Push Local Branch")
+                $options += @{ DisplayText = $optPush; Value = "PushBranch" }
+            }
+            
+            # Navigation
             $optBack = $this.Context.LocalizationService.Get("Flow.Quick.Back", "Back to Menu")
             $options += @{ DisplayText = $optBack; Value = "Back" }
             
@@ -52,6 +63,7 @@ class QuickChangeFlowController {
                 return $this.Context.LocalizationService.Get("Msg.ActionCancelled", "Operation cancelled.")
             }
             
+            # 3. Handle Action
             switch ($selection) {
                 "Commit"       { $this.HandleCommit() }
                 "Stash"        { $this.HandleStash() }
@@ -59,7 +71,7 @@ class QuickChangeFlowController {
                 "PushBranch"   { $this.HandlePushBranch() }
             }
         }
-        return ""
+        return "" # Unreachable but required by parser
     }
     
     hidden [void] HandleCommit() {
@@ -77,6 +89,7 @@ class QuickChangeFlowController {
         
         $this.ShowMessage($this.Context.LocalizationService.Get("Flow.Quick.Op.Committing", "Committing..."), [Constants]::ColorHint)
         
+        # Add All
         $addRes = $this.GitService.Add($this.Repo.FullPath, ".")
         if (-not $addRes.Success) {
             $this.ShowMessage("Failed to stage files: $($addRes.Output)", [Constants]::ColorError)
@@ -84,6 +97,7 @@ class QuickChangeFlowController {
             return
         }
         
+        # Commit
         $res = $this.GitService.Commit($this.Repo.FullPath, $message)
         if ($res.Success) {
             $this.ShowMessage($this.Context.LocalizationService.Get("Status.Success", "Success!"), [Constants]::ColorSuccess)
@@ -132,9 +146,12 @@ class QuickChangeFlowController {
         if ($remotes.Count -eq 0) {
              # Fallback to local if no remotes
              $remotes = $this.GitService.GetBranches($this.Repo.FullPath)
+             $titleBase = "QUICK CHANGES > SELECT LOCAL BASE"
+        } else {
+             $titleBase = "QUICK CHANGES > SELECT REMOTE BASE"
         }
         
-        $titleBase = $this.Context.LocalizationService.Get("Flow.Action.SetTarget", "Select REMOTE Base Branch")
+        # Enable hierarchical context in title
         $sel = $this.ListSelector.ShowSelection($titleBase, $remotes, @{ Prompt="Base Branch" })
         if ($null -eq $sel) { return }
         $baseBranch = $sel.Value.Trim()
@@ -151,15 +168,20 @@ class QuickChangeFlowController {
         $this.ShowMessage($this.Context.LocalizationService.Get("Status.Success", "Success!"), [Constants]::ColorSuccess)
         
         # 5. Push?
-        $promptPush = $this.Context.LocalizationService.Get("Flow.Prompt.PushNow", "Push new branch to origin?")
-        if ($this.Context.OptionSelector.SelectYesNo($promptPush)) {
-             $this.ShowMessage($this.Context.LocalizationService.Get("Flow.Status.Pushing", "Pushing to origin..."), [Constants]::ColorHint)
-             $pushRes = $this.GitService.Push($this.Repo.FullPath, $newName)
-             if ($pushRes.Success) {
-                 $this.ShowMessage($this.Context.LocalizationService.Get("Status.Success", "Success!"), [Constants]::ColorSuccess)
-             } else {
-                 $this.ShowMessage("Push failed: $($pushRes.Output)", [Constants]::ColorError)
+        # Only ask if we have a remote
+        if ($this.GitService.GetRemoteUrl($this.Repo.FullPath)) {
+             $promptPush = $this.Context.LocalizationService.Get("Flow.Prompt.PushNow", "Push new branch to origin?")
+             if ($this.Context.OptionSelector.SelectYesNo($promptPush)) {
+                 $this.ShowMessage($this.Context.LocalizationService.Get("Flow.Status.Pushing", "Pushing to origin..."), [Constants]::ColorHint)
+                 $pushRes = $this.GitService.Push($this.Repo.FullPath, $newName)
+                 if ($pushRes.Success) {
+                     $this.ShowMessage($this.Context.LocalizationService.Get("Status.Success", "Success!"), [Constants]::ColorSuccess)
+                 } else {
+                     $this.ShowMessage("Push failed: $($pushRes.Output)", [Constants]::ColorError)
+                 }
+                 Start-Sleep -Milliseconds 1000
              }
+        } else {
              Start-Sleep -Milliseconds 1000
         }
     }
@@ -169,7 +191,8 @@ class QuickChangeFlowController {
         $locals = $this.GitService.GetBranches($this.Repo.FullPath)
         $current = $this.GitService.GetCurrentBranch($this.Repo.FullPath)
         
-        $title = $this.Context.LocalizationService.Get("Flow.Quick.Opt.PushBranch", "Push Local Branch")
+        # Hierarchical title
+        $title = "QUICK CHANGES > PUSH BRANCH"
         $sel = $this.ListSelector.ShowSelection($title, $locals, @{ Prompt="Branch to Push"; CurrentItem=$current })
         if ($null -eq $sel) { return }
         $branchToPush = $sel.Value.Trim()
