@@ -101,6 +101,7 @@
     "Cmd.Desc.Pref": "Prefs: U",
     "Cmd.Desc.Repo": "Open (Enter)",
     "Cmd.Desc.RepoMgmt": "Clone (C) / Delete (Del)",
+    "Cmd.Desc.Hide": "Hide (H) / Vis (V)",
     "Cmd.Desc.CreateFolder": "Create Folder (N)",
 
     "Nav.BackHint": "\u2190 back",
@@ -307,5 +308,12 @@
     "Status.Failed": " FAILED",
     "Flow.Warning.RunningWithoutCommit": "  Running without commit...",
     "Flow.Warning.SkipNoUrl": " SKIP (No URL)",
-    "Error.Unreachable": "Error: Unreachable Code"
+    "Error.Unreachable": "Error: Unreachable Code",
+    "Pref.HiddenDefault": "Hidden Repos Visibility",
+    "Pref.ManageHidden": "Manage Hidden Repos",
+    "Msg.RepoHidden": "Repository '{0}' hidden",
+    "Msg.RepoRestored": "Repository '{0}' restored",
+    "Msg.HiddenVisibilityChanged": "Hidden visibility: {0}",
+    "Msg.NoHiddenRepos": "No hidden repositories.",
+    "Prompt.SelectHiddenToRestore": "Select repository to restore"
 }

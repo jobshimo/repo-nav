@@ -227,7 +227,19 @@ class PreferencesMenuController {
         $display = & $GetLoc $displayKey $mode
         $items += @{ Id = "autoLoadGit"; Name = (& $GetLoc "Pref.AutoLoadGit" "Auto-load Git Status"); CurrentValue = $display }
         
-        # 5: Menu Mode
+        # 5: Hidden Repos Visibility
+        $hiddenDefault = if ($preferences.hidden.defaultVisibility) { 
+            (& $GetLoc "Pref.Value.Show") 
+        } else { 
+            (& $GetLoc "Pref.Value.Hide") 
+        }
+        $items += @{ Id = "hiddenDefaultVisibility"; Name = (& $GetLoc "Pref.HiddenDefault"); CurrentValue = $hiddenDefault }
+        
+        # 5.1: Manage Hidden List
+        $hiddenCount = if ($preferences.hidden.hiddenRepos) { $preferences.hidden.hiddenRepos.Count } else { 0 }
+        $items += @{ Id = "manageHidden"; Name = (& $GetLoc "Pref.ManageHidden"); CurrentValue = "($hiddenCount)"; IsAction = $true }
+
+        # 6: Menu Mode
         $menuModeDisplay = if ($preferences.display.menuMode) { $preferences.display.menuMode } else { "Full" }
         $items += @{ Id = "menuMode"; Name = (& $GetLoc "Pref.MenuMode" "Menu Display"); CurrentValue = $menuModeDisplay }
 
@@ -426,6 +438,31 @@ class PreferencesMenuController {
                  $timeout = 2
              }
         }
+        elseif ($item.Id -eq "hiddenDefaultVisibility") {
+             $current = $preferences.hidden.defaultVisibility
+             $newVal = -not $current
+             
+             # Call HiddenReposService (need to get it via RepoManager or context hack, 
+             # but standard way is via PreferencesService directly here as we save prefs)
+             $preferences.hidden.defaultVisibility = $newVal
+             $this.PreferencesService.SavePreferences($preferences)
+             
+             # Also update runtime state if service is available
+             if ($this.RepoManager.HiddenReposService) {
+                 $this.RepoManager.HiddenReposService.SetDefaultVisibility($newVal)
+                 $this.RepoManager.HiddenReposService.SetShowHiddenState($newVal)
+             }
+             
+             $visibilityStr = if ($newVal) { "Visible" } else { "Hidden" }
+             $msg = (& $GetLoc "Msg.HiddenVisibilityChanged") -f $visibilityStr
+             $updated = $true
+             $timeout = 2
+        }
+        elseif ($item.Id -eq "manageHidden") {
+             $this.ManageHiddenRepos($preferences, $GetLoc)
+             $updated = $true
+             $msg = "" # Message handled inside manager or just refresh
+        }
         elseif ($item.Id -eq "autoLoadGit") {
              $opts = @(
                  @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.None" "None"); Value = "None" },
@@ -473,5 +510,46 @@ class PreferencesMenuController {
         }
 
         return [PSCustomObject]@{ Updated = $updated; Message = $msg; Timeout = $timeout }
+    }
+
+    hidden [void] ManageHiddenRepos($preferences, $GetLoc) {
+        $hiddenList = $preferences.hidden.hiddenRepos
+        
+        if ($null -eq $hiddenList -or $hiddenList.Count -eq 0) {
+            $this.Console.ClearScreen()
+            $this.Console.SetCursorPosition(0, 0)
+            Write-Host "  $(& $GetLoc "Msg.NoHiddenRepos" "No hidden repositories.")" -ForegroundColor Yellow
+            Start-Sleep -Seconds 1
+            return
+        }
+        
+        $running = $true
+        while ($running) {
+            $hiddenList = $this.RepoManager.HiddenReposService.GetHiddenList()
+            if ($hiddenList.Count -eq 0) { return }
+            
+            $opts = @()
+            foreach ($repo in $hiddenList) {
+                $opts += @{ DisplayText = $repo; Value = $repo }
+            }
+            
+            # Show selection to RESTORE (remove from hidden)
+            $repoToRestore = $this.OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectHiddenToRestore"), $opts, $null, "Back")
+            
+            if ($null -eq $repoToRestore) {
+                $running = $false
+            } else {
+                # Remove from hidden
+                $this.RepoManager.HiddenReposService.RemoveFromHidden($repoToRestore)
+                
+                # Feedback
+                $this.Console.ClearScreen()
+                $msg = (& $GetLoc "Msg.RepoRestored") -f $repoToRestore
+                Write-Host "  $msg" -ForegroundColor Green
+                Start-Sleep -Milliseconds 800
+                
+                # Loop continues to allow managing more
+            }
+        }
     }
 }

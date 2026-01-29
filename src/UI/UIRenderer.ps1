@@ -210,8 +210,10 @@ class UIRenderer {
         $grpRepo = $this.GetLoc("UI.Group.Repo", "Repository")
         $cmdClone = $this.GetLoc("Cmd.Desc.RepoMgmt", "C=clone | Del=delete")
         $cmdFav = $this.GetLoc("Cmd.Desc.Favorite", "Space=favorite")
+        $cmdHide = $this.GetLoc("Cmd.Desc.Hide", "H=hide | V=vis")
+        
         $lblRepo = "${grpRepo}:".PadRight($labelWidth)
-        $this.Console.WriteLineColored("  $lblRepo $cmdClone | $cmdFav", [Constants]::ColorMenuText)
+        $this.Console.WriteLineColored("  $lblRepo $cmdClone | $cmdFav | $cmdHide", [Constants]::ColorMenuText)
         return 1
     }
     

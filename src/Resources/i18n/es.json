@@ -97,6 +97,7 @@
     "Cmd.Desc.Pref": "Preferencias: U",
     "Cmd.Desc.Repo": "Abrir (Enter)",
     "Cmd.Desc.RepoMgmt": "Clonar (C) / Borrar (Supr)",
+    "Cmd.Desc.Hide": "Ocultar (H) / Vis (V)",
     "Cmd.Desc.CreateFolder": "Crear Carpeta (N)",
 
     "Nav.BackHint": "\u2190 volver",
@@ -303,5 +304,12 @@
     "Status.Failed": " FALLÓ",
     "Flow.Warning.RunningWithoutCommit": "  Ejecutando sin confirmar...",
     "Flow.Warning.SkipNoUrl": " OMITIR (Sin URL)",
-    "Error.Unreachable": "Error: Código inalcanzable"
+    "Error.Unreachable": "Error: Código inalcanzable",
+    "Pref.HiddenDefault": "Visibilidad de Ocultos",
+    "Pref.ManageHidden": "Gestionar Repos Ocultos",
+    "Msg.RepoHidden": "Repositorio '{0}' oculto",
+    "Msg.RepoRestored": "Repositorio '{0}' restaurado",
+    "Msg.HiddenVisibilityChanged": "Visibilidad ocultos: {0}",
+    "Msg.NoHiddenRepos": "No hay repositorios ocultos.",
+    "Prompt.SelectHiddenToRestore": "Selecciona repositorio a restaurar"
 }

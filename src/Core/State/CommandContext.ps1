@@ -8,5 +8,6 @@ class CommandContext {
     [OptionSelector] $OptionSelector
     [LocalizationService] $LocalizationService
     [UserPreferencesService] $PreferencesService
+    [HiddenReposService] $HiddenReposService
     [string] $BasePath
 }

@@ -51,6 +51,17 @@ class CommandFactory {
         if ($null -ne $npmType) {
             $this.RegisterOneCommand($npmType)
         }
+        
+        # Explicitly register Hidden Repos commands
+        $hideType = "HideRepoCommand" -as [type]
+        if ($null -ne $hideType) {
+            $this.RegisterOneCommand($hideType)
+        }
+        
+        $toggleType = "ToggleHiddenVisibilityCommand" -as [type]
+        if ($null -ne $toggleType) {
+            $this.RegisterOneCommand($toggleType)
+        }
     }
 
     hidden [System.Collections.ArrayList] FindCommandTypes() {

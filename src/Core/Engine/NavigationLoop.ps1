@@ -16,14 +16,13 @@ function Start-NavigationLoop {
     # Unpack context for local usage
     $RepoManager = $Context.RepoManager
     $Renderer = $Context.Renderer
-    $RepoManager = $Context.RepoManager
-    $Renderer = $Context.Renderer
     $Console = $Context.Console
     $Logger = $Context.Logger
     $ColorSelector = $Context.ColorSelector
     $OptionSelector = $Context.OptionSelector
     $LocalizationService = $Context.LocalizationService
     $PreferencesService = $Context.PreferencesService
+    $HiddenReposService = $Context.HiddenReposService
     $BasePath = $Context.BasePath
     
     # Load repositories
@@ -68,6 +67,7 @@ function Start-NavigationLoop {
         $commandContext.OptionSelector = $OptionSelector
         $commandContext.LocalizationService = $LocalizationService
         $commandContext.PreferencesService = $PreferencesService
+        $commandContext.HiddenReposService = $HiddenReposService
         $commandContext.BasePath = $BasePath
         
         # Initial full render and layout calculation

@@ -45,6 +45,7 @@ class AppBuilder {
         # 3. Intermediate Managers (Depend on Services)
         [ServiceRegistry]::Register('AliasManager', [AliasManager]::new($configService))
         [ServiceRegistry]::Register('FavoriteService', [FavoriteService]::new($configService))
+        [ServiceRegistry]::Register('HiddenReposService', [HiddenReposService]::new($preferencesService))
         [ServiceRegistry]::Register('ParallelGitLoader', [ParallelGitLoader]::new())
         
         $gitService = [ServiceRegistry]::Resolve('GitService')
@@ -83,7 +84,8 @@ class AppBuilder {
             [ServiceRegistry]::Resolve('RepositoryOperationsService'),
             $progressReporter,
             $gitStatusManager,
-            [ServiceRegistry]::Resolve('RepositorySorter')
+            [ServiceRegistry]::Resolve('RepositorySorter'),
+            [ServiceRegistry]::Resolve('HiddenReposService')
         )
         [ServiceRegistry]::Register('RepositoryManager', $repoManager)
         
@@ -111,6 +113,7 @@ class AppBuilder {
             OptionSelector      = $optionSelector
             LocalizationService = $localizationService
             PreferencesService  = $preferencesService
+            HiddenReposService  = [ServiceRegistry]::Resolve('HiddenReposService')
             BasePath            = $BasePath
             ServiceRegistry     = [ServiceRegistry] # Expose registry if needed
         }

@@ -33,6 +33,7 @@ class RepositoryManager {
     [IProgressReporter] $ProgressReporter
     [GitStatusManager] $GitStatusManager
     [RepositorySorter] $Sorter
+    [HiddenReposService] $HiddenReposService
     
     # Cache for loaded repositories
     [System.Collections.ArrayList] $Repositories
@@ -53,7 +54,8 @@ class RepositoryManager {
         [RepositoryOperationsService]$repoOperationsService,
         [IProgressReporter]$progressReporter,
         [GitStatusManager]$gitStatusManager,
-        [RepositorySorter]$sorter
+        [RepositorySorter]$sorter,
+        [HiddenReposService]$hiddenReposService
     ) {
         $this.GitService = $gitService
         $this.GitReadService = $gitReadService
@@ -68,6 +70,7 @@ class RepositoryManager {
         $this.ProgressReporter = $progressReporter
         $this.GitStatusManager = $gitStatusManager
         $this.Sorter = $sorter
+        $this.HiddenReposService = $hiddenReposService
         $this.Repositories = [System.Collections.ArrayList]::new()
     }
     
@@ -141,8 +144,17 @@ class RepositoryManager {
         
         $this.Repositories.Clear()
         
+        # Get hidden repos list and visibility state
+        $hiddenRepos = @()
+        $showHidden = $true
+        if ($null -ne $this.HiddenReposService) {
+            $hiddenRepos = $this.HiddenReposService.GetHiddenList()
+            $showHidden = $this.HiddenReposService.GetShowHiddenState()
+        }
+        
         $directories = Get-ChildItem -Directory -Path $basePath | 
-                       Where-Object { $_.Name -notin @('envs', 'classes', 'repo-nav') }
+                       Where-Object { $_.Name -notin @('envs', 'classes', 'repo-nav') } |
+                       Where-Object { $showHidden -or ($_.Name -notin $hiddenRepos) }
         
         if ($directories.Count -eq 0) {
             return

@@ -22,3 +22,5 @@ $commandsPath = $PSScriptRoot
 . "$commandsPath\PreferencesCommand.ps1"
 . "$commandsPath\CreateFolderCommand.ps1"
 . "$commandsPath\SearchCommand.ps1"
+. "$commandsPath\HideRepoCommand.ps1"
+. "$commandsPath\ToggleHiddenVisibilityCommand.ps1"
