@@ -24,6 +24,8 @@ class AppBuilder {
 
         # 1. Base Services (No dependencies)
         $gitService        = [GitService]::new()
+        $gitReadService    = [GitReadService]::new()
+        $gitWriteService   = [GitWriteService]::new()
         $npmService        = [NpmService]::new()
         # $configService already created above
         $preferencesService = [UserPreferencesService]::new()
@@ -53,6 +55,8 @@ class AppBuilder {
         # 4. Core Facade (Depends on everything above)
         $repoManager = [RepositoryManager]::new(
             $gitService,
+            $gitReadService,
+            $gitWriteService,
             $npmService,
             $aliasManager,
             $configService,

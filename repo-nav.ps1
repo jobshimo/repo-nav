@@ -79,6 +79,8 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Services\UserPreferencesService.ps1"
 . "$srcPath\Services\LocalizationService.ps1"
 . "$srcPath\Services\AliasManager.ps1"
+. "$srcPath\Services\GitReadService.ps1"
+. "$srcPath\Services\GitWriteService.ps1"
 . "$srcPath\Services\GitService.ps1"
 . "$srcPath\Services\NpmService.ps1"
 . "$srcPath\Services\ParallelGitLoader.ps1"
@@ -124,6 +126,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Core\State\CommandContext.ps1"
 
 # Controllers (Depend on CommandContext)
+. "$srcPath\Core\Flows\FlowControllerBase.ps1"
 . "$srcPath\Core\Flows\IntegrationFlowController.ps1"
 . "$srcPath\Core\Flows\QuickChangeFlowController.ps1"
 

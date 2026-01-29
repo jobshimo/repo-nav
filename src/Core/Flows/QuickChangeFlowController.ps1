@@ -1,14 +1,8 @@
 
-class QuickChangeFlowController {
-    [CommandContext] $Context
-    [object] $Repo
-    [GitService] $GitService
+class QuickChangeFlowController : FlowControllerBase {
     [FilteredListSelector] $ListSelector
     
-    QuickChangeFlowController([CommandContext]$context, [object]$repo) {
-        $this.Context = $context
-        $this.Repo = $repo
-        $this.GitService = $context.RepoManager.GitService
+    QuickChangeFlowController([CommandContext]$context, [object]$repo) : base($context, $repo) {
         $this.ListSelector = [FilteredListSelector]::new($context.Console, $context.Renderer)
     }
     
@@ -18,21 +12,22 @@ class QuickChangeFlowController {
         
         while ($true) {
             # 1. State
-            $hasChanges = $this.GitService.HasUncommittedChanges($this.Repo.FullPath)
-            $currentBranch = $this.GitService.GetCurrentBranch($this.Repo.FullPath)
-            $remoteUrl = $this.GitService.GetRemoteUrl($this.Repo.FullPath)
+            $hasChanges = $this.GitReadService.HasUncommittedChanges($this.Repo.FullPath)
+            $currentBranch = $this.GitReadService.GetCurrentBranch($this.Repo.FullPath)
+            $remoteUrl = $this.GitReadService.GetRemoteUrl($this.Repo.FullPath)
             $hasRemote = -not [string]::IsNullOrWhiteSpace($remoteUrl)
             
             # 2. Logic for Push
             $needsPush = $false
             if ($hasRemote) {
-                $remotes = $this.GitService.GetRemoteBranches($this.Repo.FullPath)
+                # Note: GitWriteService or ReadService for GetRemoteBranches? ReadService.
+                $remotes = $this.GitReadService.GetRemoteBranches($this.Repo.FullPath)
                 $target = "origin/$currentBranch"
                 $existsOnRemote = $remotes -contains $target
                 
                 if (-not $existsOnRemote) {
                     $needsPush = $true # New branch
-                } elseif ($this.GitService.HasUnpushedCommits($this.Repo.FullPath)) {
+                } elseif ($this.GitReadService.HasUnpushedCommits($this.Repo.FullPath)) {
                     $needsPush = $true # Ahead
                 }
             }
@@ -80,11 +75,7 @@ class QuickChangeFlowController {
             # Pass $tempMessage as description if set
             $desc = if ($tempMessage) { $tempMessage } else { $statusText }
             # Use Red for error warnings (tempMessage), otherwise standard color for status
-            $descColor = if ($tempMessage) { $tempMessageColor } else { [Constants]::ColorWarning } # Warning is default yellow, maybe use Gray for clean status? 
-            # Actually statusText is informational, typically Gray/Green/Yellow depending on state, but here we pass it as Description.
-            # If dirty, statusText is "Status: Uncommitted...", which should be Yellow.
-            # If clean, "Status: Clean", which could be Gray.
-            # But OptionSelector currently takes one color. Let's stick to Warning(Yellow) for status, and Error(Red) for alerts.
+            $descColor = if ($tempMessage) { $tempMessageColor } else { [Constants]::ColorWarning } 
             
             # Override for status text color if not an error message
             if (-not $tempMessage) {
@@ -93,8 +84,7 @@ class QuickChangeFlowController {
             
             $selection = $this.Context.OptionSelector.ShowSelection($title, $options, $null, $hintText, $false, $desc, $descColor, $true)
             
-            # Clear temporary message after showing once (it persists if user cancels/does nothing? No, ShowSelection loops until selection/cancel)
-            # If user selects something, loop re-runs. We want to clear the message unless the action sets it again.
+            # Clear temporary message after showing once
             $tempMessage = ""
             
             if ($null -eq $selection -or $selection -eq "Back") {
@@ -123,8 +113,8 @@ class QuickChangeFlowController {
             return $this.Context.LocalizationService.Get("Flow.Warning.DirtySwitch", "Running changes! Commit or stash before switching branches.")
         }
         
-        $branches = $this.GitService.GetBranches($this.Repo.FullPath)
-        $current = $this.GitService.GetCurrentBranch($this.Repo.FullPath)
+        $branches = $this.GitReadService.GetBranches($this.Repo.FullPath)
+        $current = $this.GitReadService.GetCurrentBranch($this.Repo.FullPath)
         
         $title = "QUICK CHANGES > SWITCH BRANCH"
         $sel = $this.ListSelector.ShowSelection($title, $branches, @{ Prompt="Select Branch"; CurrentItem=$current; InitialFocus=[Constants]::FocusInput })
@@ -133,11 +123,9 @@ class QuickChangeFlowController {
             $target = $sel.Value.Trim()
             if ($target -ne $current) {
                 $this.ShowMessage("Checking out '$target'...", [Constants]::ColorHint)
-                $res = $this.GitService.Checkout($this.Repo.FullPath, $target)
+                # Checkout -> WriteService
+                $res = $this.GitWriteService.Checkout($this.Repo.FullPath, $target)
                 if (-not $res.Success) {
-                     # Return error to show in loop? Or show immediately?
-                     # Checkout errors are usually blocking/important, so showing immediate is fine. 
-                     # But we could return it too if we want.
                      $this.ShowMessage("Error: $($res.Output)", [Constants]::ColorError)
                      Start-Sleep -Seconds 2
                 }
@@ -147,11 +135,12 @@ class QuickChangeFlowController {
     }
     
     hidden [void] HandlePushBranch() {
-        $current = $this.GitService.GetCurrentBranch($this.Repo.FullPath)
+        $current = $this.GitReadService.GetCurrentBranch($this.Repo.FullPath)
         
         $this.ShowMessage([string]::Format($this.Context.LocalizationService.Get("Flow.Op.PushingBranch", "Pushing '{0}'..."), $current), [Constants]::ColorHint)
         
-        $res = $this.GitService.Push($this.Repo.FullPath, $current)
+        # Push -> WriteService
+        $res = $this.GitWriteService.Push($this.Repo.FullPath, $current)
         if ($res.Success) {
             $this.ShowMessage($this.Context.LocalizationService.Get("Status.Success", "Success!"), [Constants]::ColorSuccess)
         } else {
@@ -171,11 +160,13 @@ class QuickChangeFlowController {
         if ([string]::IsNullOrWhiteSpace($newName)) { return }
         
         $this.ShowMessage($this.Context.LocalizationService.Get("Flow.Init.Fetching", "Fetching remotes..."), [Constants]::ColorHint)
-        $this.GitService.Fetch($this.Repo.FullPath) | Out-Null
+        # Fetch -> WriteService
+        $this.GitWriteService.Fetch($this.Repo.FullPath) | Out-Null
         
-        $remotes = $this.GitService.GetRemoteBranches($this.Repo.FullPath)
+        $remotes = $this.GitReadService.GetRemoteBranches($this.Repo.FullPath)
         if ($remotes.Count -eq 0) {
-             $remotes = $this.GitService.GetBranches($this.Repo.FullPath)
+             # GetBranches -> ReadService
+             $remotes = $this.GitReadService.GetBranches($this.Repo.FullPath)
              $titleBase = "QUICK CHANGES > SELECT LOCAL BASE"
         } else {
              $titleBase = "QUICK CHANGES > SELECT REMOTE BASE"
@@ -188,7 +179,8 @@ class QuickChangeFlowController {
         
         $this.ShowMessage([string]::Format($this.Context.LocalizationService.Get("Flow.Op.Creating", "Creating '{0}' from '{1}'..."), $newName, $baseBranch), [Constants]::ColorHint)
         
-        $res = $this.GitService.CreateBranch($this.Repo.FullPath, $newName, $baseBranch)
+        # CreateBranch -> WriteService
+        $res = $this.GitWriteService.CreateBranch($this.Repo.FullPath, $newName, $baseBranch)
         if (-not $res.Success) {
             $this.ShowMessage("Failed: $($res.Output)", [Constants]::ColorError)
             Start-Sleep -Seconds 2
@@ -196,13 +188,9 @@ class QuickChangeFlowController {
         }
         $this.ShowMessage($this.Context.LocalizationService.Get("Status.Success", "Success!"), [Constants]::ColorSuccess)
         
-        # Branch created and checked out. 
-        # Dashboard will refresh and show "Current Branch: $newName"
-        # And "Push" option should appear because it's new.
         Start-Sleep -Milliseconds 500
     }
 
-    # Commit/Stash methods remain largely same
     hidden [void] HandleCommit() {
         $this.Context.Console.NewLine()
         $prompt = $this.Context.LocalizationService.Get("Flow.Quick.Prompt.CommitMsg", "Enter commit message: ")
@@ -216,13 +204,15 @@ class QuickChangeFlowController {
              return
         }
         $this.ShowMessage($this.Context.LocalizationService.Get("Flow.Quick.Op.Committing", "Committing..."), [Constants]::ColorHint)
-        $addRes = $this.GitService.Add($this.Repo.FullPath, ".")
+        # Add -> WriteService
+        $addRes = $this.GitWriteService.Add($this.Repo.FullPath, ".")
         if (-not $addRes.Success) {
             $this.ShowMessage("Failed: $($addRes.Output)", [Constants]::ColorError)
             Start-Sleep -Seconds 2
             return
         }
-        $res = $this.GitService.Commit($this.Repo.FullPath, $message)
+        # Commit -> WriteService
+        $res = $this.GitWriteService.Commit($this.Repo.FullPath, $message)
         if ($res.Success) {
             $this.ShowMessage($this.Context.LocalizationService.Get("Status.Success", "Success!"), [Constants]::ColorSuccess)
         } else {
@@ -240,16 +230,13 @@ class QuickChangeFlowController {
         $this.Context.Console.HideCursor()
         
         $this.ShowMessage($this.Context.LocalizationService.Get("Flow.Quick.Op.Stashing", "Stashing changes..."), [Constants]::ColorHint)
-        $res = $this.GitService.Stash($this.Repo.FullPath, $name)
+        # Stash -> WriteService
+        $res = $this.GitWriteService.Stash($this.Repo.FullPath, $name)
         if ($res.Success) {
             $this.ShowMessage($this.Context.LocalizationService.Get("Status.Success", "Success!"), [Constants]::ColorSuccess)
         } else {
             $this.ShowMessage("Failed: $($res.Output)", [Constants]::ColorError)
         }
         Start-Sleep -Milliseconds 1000
-    }
-    
-    hidden [void] ShowMessage([string]$text, [ConsoleColor]$color) {
-        $this.Context.Console.WriteLineColored("  $text", $color)
     }
 }

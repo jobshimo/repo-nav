@@ -1,8 +1,4 @@
-
-class IntegrationFlowController {
-    [CommandContext] $Context
-    [object] $Repo
-    [GitService] $GitService
+class IntegrationFlowController : FlowControllerBase {
     [FilteredListSelector] $Selector
     [IntegrationFlowDashboard] $Dashboard
     [IntegrationFlowModel] $Model
@@ -10,10 +6,7 @@ class IntegrationFlowController {
     # Cache for remote branches
     [array] $RemoteBranches = $null
 
-    IntegrationFlowController([CommandContext]$context, [object]$repo, [GitService]$gitService, [FilteredListSelector]$selector) {
-        $this.Context = $context
-        $this.Repo = $repo
-        $this.GitService = $gitService
+    IntegrationFlowController([CommandContext]$context, [object]$repo, [GitService]$gitService, [FilteredListSelector]$selector) : base($context, $repo) {
         $this.Selector = $selector
         
         # Instantiate View and Model
