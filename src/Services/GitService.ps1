@@ -124,9 +124,9 @@ class GitService {
     }
     
     # Clone a repository
-    [object] CloneRepository([string]$url, [string]$targetPath, [string]$folderName = "") {
+    [OperationResult] CloneRepository([string]$url, [string]$targetPath, [string]$folderName = "") {
         if (-not $this.IsValidGitUrl($url)) {
-            return @{ Success = $false; Output = "Invalid Git URL format" }
+            return [OperationResult]::Fail("Invalid Git URL format")
         }
         
         # Ensure URL ends with .git
@@ -145,10 +145,14 @@ class GitService {
             $success = ($LASTEXITCODE -eq 0)
             $outStr = if ($output) { $output -join "`n" } else { "" }
             
-            return @{ Success = $success; Output = $outStr }
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
         }
         catch {
-            return @{ Success = $false; Output = $_.ToString() }
+            return [OperationResult]::Fail($_.ToString())
         }
         finally {
             Pop-Location
@@ -242,9 +246,9 @@ class GitService {
     }
 
     # Create a new branch from a source branch
-    [object] CreateBranch([string]$repoPath, [string]$newBranchName, [string]$sourceBranch) {
+    [OperationResult] CreateBranch([string]$repoPath, [string]$newBranchName, [string]$sourceBranch) {
         if (-not $this.IsGitRepository($repoPath)) {
-            return @{ Success = $false; Output = "Not a git repository" }
+            return [OperationResult]::Fail("Not a git repository")
         }
         
         Push-Location $repoPath
@@ -254,10 +258,14 @@ class GitService {
             $success = ($LASTEXITCODE -eq 0)
             $outStr = if ($output) { $output -join "`n" } else { "" }
             
-            return @{ Success = $success; Output = $outStr }
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
         }
         catch {
-             return @{ Success = $false; Output = $_.ToString() }
+             return [OperationResult]::Fail($_.ToString())
         }
         finally {
             Pop-Location
@@ -265,9 +273,9 @@ class GitService {
     }
 
     # Checkout a branch
-    [object] Checkout([string]$repoPath, [string]$branchName) {
+    [OperationResult] Checkout([string]$repoPath, [string]$branchName) {
         if (-not $this.IsGitRepository($repoPath)) {
-            return @{ Success = $false; Output = "Not a git repository" }
+            return [OperationResult]::Fail("Not a git repository")
         }
         
         Push-Location $repoPath
@@ -279,10 +287,14 @@ class GitService {
             # Convert array to string if needed
             $outStr = if ($output) { $output -join "`n" } else { "" }
             
-            return @{ Success = $success; Output = $outStr }
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
         }
         catch {
-             return @{ Success = $false; Output = $_.ToString() }
+             return [OperationResult]::Fail($_.ToString())
         }
         finally {
             Pop-Location
@@ -290,9 +302,9 @@ class GitService {
     }
 
     # Merge a branch into the current branch
-    [object] Merge([string]$repoPath, [string]$branchToMerge) {
+    [OperationResult] Merge([string]$repoPath, [string]$branchToMerge) {
         if (-not $this.IsGitRepository($repoPath)) {
-            return @{ Success = $false; Output = "Not a git repository" }
+            return [OperationResult]::Fail("Not a git repository")
         }
         
         Push-Location $repoPath
@@ -301,10 +313,14 @@ class GitService {
             $success = ($LASTEXITCODE -eq 0)
             $outStr = if ($output) { $output -join "`n" } else { "" }
             
-            return @{ Success = $success; Output = $outStr }
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
         }
         catch {
-             return @{ Success = $false; Output = $_.ToString() }
+             return [OperationResult]::Fail($_.ToString())
         }
         finally {
             Pop-Location
@@ -312,9 +328,9 @@ class GitService {
     }
 
     # Fetch changes from remote
-    [object] Fetch([string]$repoPath) {
+    [OperationResult] Fetch([string]$repoPath) {
         if (-not $this.IsGitRepository($repoPath)) {
-            return @{ Success = $false; Output = "Not a git repository" }
+            return [OperationResult]::Fail("Not a git repository")
         }
         
         Push-Location $repoPath
@@ -324,10 +340,14 @@ class GitService {
             $success = ($LASTEXITCODE -eq 0)
             $outStr = if ($output) { $output -join "`n" } else { "" }
             
-            return @{ Success = $success; Output = $outStr }
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
         }
         catch {
-             return @{ Success = $false; Output = $_.ToString() }
+             return [OperationResult]::Fail($_.ToString())
         }
         finally {
             Pop-Location
@@ -358,9 +378,9 @@ class GitService {
     }
 
     # Push a branch to remote
-    [object] Push([string]$repoPath, [string]$branchName) {
+    [OperationResult] Push([string]$repoPath, [string]$branchName) {
         if (-not $this.IsGitRepository($repoPath)) {
-            return @{ Success = $false; Output = "Not a git repository" }
+            return [OperationResult]::Fail("Not a git repository")
         }
         
         Push-Location $repoPath
@@ -370,19 +390,23 @@ class GitService {
             $success = ($LASTEXITCODE -eq 0)
             $outStr = if ($output) { $output -join "`n" } else { "" }
             
-            return @{ Success = $success; Output = $outStr }
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
         }
         catch {
-             return @{ Success = $false; Output = $_.ToString() }
+             return [OperationResult]::Fail($_.ToString())
         }
         finally {
             Pop-Location
         }
     }
     # Stage files
-    [object] Add([string]$repoPath, [string]$filePattern) {
+    [OperationResult] Add([string]$repoPath, [string]$filePattern) {
         if (-not $this.IsGitRepository($repoPath)) {
-            return @{ Success = $false; Output = "Not a git repository" }
+            return [OperationResult]::Fail("Not a git repository")
         }
         
         Push-Location $repoPath
@@ -391,10 +415,14 @@ class GitService {
             $success = ($LASTEXITCODE -eq 0)
             $outStr = if ($output) { $output -join "`n" } else { "" }
             
-            return @{ Success = $success; Output = $outStr }
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
         }
         catch {
-             return @{ Success = $false; Output = $_.ToString() }
+             return [OperationResult]::Fail($_.ToString())
         }
         finally {
             Pop-Location
@@ -402,9 +430,9 @@ class GitService {
     }
 
     # Commit changes
-    [object] Commit([string]$repoPath, [string]$message) {
+    [OperationResult] Commit([string]$repoPath, [string]$message) {
         if (-not $this.IsGitRepository($repoPath)) {
-            return @{ Success = $false; Output = "Not a git repository" }
+            return [OperationResult]::Fail("Not a git repository")
         }
         
         Push-Location $repoPath
@@ -414,10 +442,14 @@ class GitService {
             $success = ($LASTEXITCODE -eq 0)
             $outStr = if ($output) { $output -join "`n" } else { "" }
             
-            return @{ Success = $success; Output = $outStr }
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
         }
         catch {
-             return @{ Success = $false; Output = $_.ToString() }
+             return [OperationResult]::Fail($_.ToString())
         }
         finally {
             Pop-Location
@@ -425,9 +457,9 @@ class GitService {
     }
 
     # Stash changes
-    [object] Stash([string]$repoPath, [string]$message = "") {
+    [OperationResult] Stash([string]$repoPath, [string]$message = "") {
         if (-not $this.IsGitRepository($repoPath)) {
-            return @{ Success = $false; Output = "Not a git repository" }
+            return [OperationResult]::Fail("Not a git repository")
         }
         
         Push-Location $repoPath
@@ -440,10 +472,14 @@ class GitService {
             $success = ($LASTEXITCODE -eq 0)
             $outStr = if ($output) { $output -join "`n" } else { "" }
             
-            return @{ Success = $success; Output = $outStr }
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
         }
         catch {
-             return @{ Success = $false; Output = $_.ToString() }
+             return [OperationResult]::Fail($_.ToString())
         }
         finally {
             Pop-Location

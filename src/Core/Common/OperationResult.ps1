@@ -6,7 +6,15 @@ class OperationResult {
 
     OperationResult() {}
 
-    static [OperationResult] Ok([object]$data = $null, [string]$message = "") {
+    static [OperationResult] Ok() {
+        return [OperationResult]::Ok($null, "")
+    }
+
+    static [OperationResult] Ok([object]$data) {
+        return [OperationResult]::Ok($data, "")
+    }
+
+    static [OperationResult] Ok([object]$data, [string]$message) {
         $result = [OperationResult]::new()
         $result.Success = $true
         $result.Data = $data
@@ -14,7 +22,11 @@ class OperationResult {
         return $result
     }
 
-    static [OperationResult] Fail([string]$message, [object]$errorObj = $null) {
+    static [OperationResult] Fail([string]$message) {
+        return [OperationResult]::Fail($message, $null)
+    }
+
+    static [OperationResult] Fail([string]$message, [object]$errorObj) {
         $result = [OperationResult]::new()
         $result.Success = $false
         $result.Message = $message

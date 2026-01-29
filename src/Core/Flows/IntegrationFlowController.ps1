@@ -194,14 +194,14 @@ class IntegrationFlowController : FlowControllerBase {
          $createRes = $this.GitService.CreateBranch($this.Repo.FullPath, $newBranchName, $targetBranch)
          if (-not $createRes.Success) {
               $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Failed", " FAILED"), [Constants]::ColorError)
-              $this.Context.Console.WriteLineColored("  $($createRes.Output)", [Constants]::ColorError)
+              $this.Context.Console.WriteLineColored("  $($createRes.Message)", [Constants]::ColorError)
               $fmtErr = $this.Context.LocalizationService.Get("Flow.Error.CreateFailed", "Failed to create branch '{0}': {1}")
               
               # Pause for user to see error
               $this.Context.Console.WriteLineColored("  Press any key to continue...", [Constants]::ColorHint)
               $this.Context.Console.ReadKey()
               
-              return "Error: " + [string]::Format($fmtErr, $newBranchName, $createRes.Output)
+              return "Error: " + [string]::Format($fmtErr, $newBranchName, $createRes.Message)
          }
          $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Done", " DONE"), [Constants]::ColorSuccess)
          
@@ -213,8 +213,8 @@ class IntegrationFlowController : FlowControllerBase {
          $mergeRes = $this.GitService.Merge($this.Repo.FullPath, $sourceBranch)
          if (-not $mergeRes.Success) {
              $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Failed", " FAILED"), [Constants]::ColorError)
-             $this.Context.Console.WriteLineColored("  $($mergeRes.Output)", [Constants]::ColorError)
-             if ($mergeRes.Output -match "CONFLICT") {
+             $this.Context.Console.WriteLineColored("  $($mergeRes.Message)", [Constants]::ColorError)
+             if ($mergeRes.Message -match "CONFLICT") {
                  $msgConflict = $this.Context.LocalizationService.Get("Flow.Error.Conflict", "Please resolve conflicts in IDE.")
                  $this.Context.Console.WriteLineColored("  [!] $msgConflict", [Constants]::ColorWarning)
              }
@@ -224,7 +224,7 @@ class IntegrationFlowController : FlowControllerBase {
              $this.Context.Console.WriteLineColored("  Press any key to continue...", [Constants]::ColorHint)
              $this.Context.Console.ReadKey()
              
-             return "Error: " + [string]::Format($fmtErr, $mergeRes.Output)
+             return "Error: " + [string]::Format($fmtErr, $mergeRes.Message)
          }
          $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Done", " DONE"), [Constants]::ColorSuccess)
 
@@ -237,14 +237,14 @@ class IntegrationFlowController : FlowControllerBase {
          $pushRes = $this.GitService.Push($this.Repo.FullPath, $newBranchName)
          if (-not $pushRes.Success) {
              $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Failed", " FAILED"), [Constants]::ColorError)
-             $this.Context.Console.WriteLineColored("  $($pushRes.Output)", [Constants]::ColorError)
+             $this.Context.Console.WriteLineColored("  $($pushRes.Message)", [Constants]::ColorError)
              $fmtErr = $this.Context.LocalizationService.Get("Flow.Error.PushFailed", "Push failed: {0}")
              
              # Pause for user to see error
              $this.Context.Console.WriteLineColored("  Press any key to continue...", [Constants]::ColorHint)
              $this.Context.Console.ReadKey()
              
-             return "Error: " + [string]::Format($fmtErr, $pushRes.Output)
+             return "Error: " + [string]::Format($fmtErr, $pushRes.Message)
          }
          $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Done", " DONE"), [Constants]::ColorSuccess)
          

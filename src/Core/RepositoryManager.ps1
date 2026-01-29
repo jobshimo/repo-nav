@@ -73,19 +73,19 @@ class RepositoryManager {
     
     # Clone a new repository (delegates to RepositoryOperationsService)
     # Returns a result object { Success: bool, Message: string }
-    [hashtable] CloneRepository([string]$url, [string]$customName, [string]$basePath) {
+    [OperationResult] CloneRepository([string]$url, [string]$customName, [string]$basePath) {
         return $this.RepoOperationsService.CloneRepository($url, $customName, $basePath)
     }
 
     # Delete a repository (delegates to RepositoryOperationsService)
     # Returns a result object { Success: bool, Message: string, RequiresForce: bool }
-    [hashtable] DeleteRepository([RepositoryModel]$repository) {
+    [OperationResult] DeleteRepository([RepositoryModel]$repository) {
         return $this.DeleteRepository($repository, $false)
     }
     
     # Delete repository with optional force flag
     # Returns a result object { Success: bool, Message: string, RequiresForce: bool }
-    [hashtable] DeleteRepository([RepositoryModel]$repository, [bool]$force) {
+    [OperationResult] DeleteRepository([RepositoryModel]$repository, [bool]$force) {
         # Ensure git status is loaded for safety check
         if (-not $repository.HasGitStatusLoaded()) {
             $this.LoadGitStatus($repository)
@@ -105,6 +105,21 @@ class RepositoryManager {
             # Remove from local list
             if ($this.Repositories.Contains($repository)) {
                 $this.Repositories.Remove($repository)
+            }
+        }
+        
+        return $result
+    }
+    
+    # Delete a folder (delegates to RepositoryOperationsService)
+    # Returns a result object { Success: bool, Message: string }
+    [OperationResult] DeleteFolder([RepositoryModel]$folder) {
+        $result = $this.RepoOperationsService.DeleteFolder($folder)
+        
+        if ($result.Success) {
+            # Remove from local list if strictly necessary, but usually reload happens after
+            if ($this.Repositories.Contains($folder)) {
+                $this.Repositories.Remove($folder)
             }
         }
         
@@ -353,20 +368,7 @@ class RepositoryManager {
         }
     }
 
-    # Delete a folder (delegates to RepositoryOperationsService)
-    # Returns a result object { Success: bool, Message: string }
-    [hashtable] DeleteFolder([RepositoryModel]$folder) {
-        $result = $this.RepoOperationsService.DeleteFolder($folder)
-        
-        if ($result.Success) {
-            # Remove from local list if strictly necessary, but usually reload happens after
-            if ($this.Repositories.Contains($folder)) {
-                $this.Repositories.Remove($folder)
-            }
-        }
-        
-        return $result
-    }
+
     
     # Check if folder is empty (delegates to RepositoryOperationsService)
     [bool] IsFolderEmpty([string]$folderPath) {
