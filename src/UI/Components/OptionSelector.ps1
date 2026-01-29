@@ -58,14 +58,17 @@ class OptionSelector {
     #>
     # Overload for backward compatibility (4 arguments)
     [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText) {
-        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "", $true)
+        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "", [Constants]::ColorWarning, $true)
     }
 
     # Main method with all options
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [bool]$clearScreen = $true) {
+    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [ConsoleColor]$descriptionColor, [bool]$clearScreen = $true) {
         if ($options.Count -eq 0) {
             return $null
         }
+        
+        # Default color handling
+        if ($descriptionColor -eq 0) { $descriptionColor = [Constants]::ColorWarning }
         
         # Find current option index
         $selectedIndex = 0
@@ -82,7 +85,6 @@ class OptionSelector {
         try {
             $this.Console.HideCursor()
             
-            # Clear screen once and render header
             # Clear screen once and render header
             if ($clearScreen) {
                 $this.Console.ClearScreen()
@@ -103,7 +105,7 @@ class OptionSelector {
             $this.Console.NewLine()
             
             if (-not [string]::IsNullOrWhiteSpace($description)) {
-                $this.Console.WriteLineColored("  $description", [Constants]::ColorWarning)
+                $this.Console.WriteLineColored("  $description", $descriptionColor)
                 $this.Console.NewLine()
             }
             
@@ -219,8 +221,8 @@ class OptionSelector {
             @{ DisplayText = $noText; Value = $false }
         )
         
-        # Pass clearScreen
-        $result = $this.ShowSelection($question, $options, $false, $cancelText, $false, "", $clearScreen)
+        # Pass clearScreen and default color
+        $result = $this.ShowSelection($question, $options, $false, $cancelText, $false, "", [Constants]::ColorWarning, $clearScreen)
         
         if ($null -eq $result) {
             return $false

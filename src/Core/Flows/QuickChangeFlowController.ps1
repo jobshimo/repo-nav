@@ -13,6 +13,9 @@ class QuickChangeFlowController {
     }
     
     [string] Start() {
+        $tempMessage = ""
+        $tempMessageColor = [Constants]::ColorWarning
+        
         while ($true) {
             # 1. State
             $hasChanges = $this.GitService.HasUncommittedChanges($this.Repo.FullPath)
@@ -37,7 +40,7 @@ class QuickChangeFlowController {
             # 3. Prepare Menu
             $title = $this.Context.LocalizationService.Get("Flow.Quick.Title", "QUICK CHANGES DASHBOARD")
             
-            # Status line still useful
+            # Status line
             $statusText = if ($hasChanges) { 
                 $this.Context.LocalizationService.Get("Flow.Quick.Status.Dirty", "Status: Uncommitted changes detected")
             } else {
@@ -52,7 +55,6 @@ class QuickChangeFlowController {
             
             # OPT 2: Push (Contextual)
             if ($needsPush) {
-                # Indent or mark it related to branch
                 $lblPush = $this.Context.LocalizationService.Get("Flow.Quick.Opt.PushBranch", "Push Local Branch")
                 $options += @{ DisplayText = "  $lblPush"; Value = "PushBranch" }
             }
@@ -75,14 +77,38 @@ class QuickChangeFlowController {
             
             $hintText = $this.Context.LocalizationService.Get("Msg.SelectOption", "Select an option")
             
-            $selection = $this.Context.OptionSelector.ShowSelection($title, $options, $null, $hintText, $false, $statusText, $true)
+            # Pass $tempMessage as description if set
+            $desc = if ($tempMessage) { $tempMessage } else { $statusText }
+            # Use Red for error warnings (tempMessage), otherwise standard color for status
+            $descColor = if ($tempMessage) { $tempMessageColor } else { [Constants]::ColorWarning } # Warning is default yellow, maybe use Gray for clean status? 
+            # Actually statusText is informational, typically Gray/Green/Yellow depending on state, but here we pass it as Description.
+            # If dirty, statusText is "Status: Uncommitted...", which should be Yellow.
+            # If clean, "Status: Clean", which could be Gray.
+            # But OptionSelector currently takes one color. Let's stick to Warning(Yellow) for status, and Error(Red) for alerts.
+            
+            # Override for status text color if not an error message
+            if (-not $tempMessage) {
+                 if ($hasChanges) { $descColor = [Constants]::ColorWarning } else { $descColor = [ConsoleColor]::Gray }
+            }
+            
+            $selection = $this.Context.OptionSelector.ShowSelection($title, $options, $null, $hintText, $false, $desc, $descColor, $true)
+            
+            # Clear temporary message after showing once (it persists if user cancels/does nothing? No, ShowSelection loops until selection/cancel)
+            # If user selects something, loop re-runs. We want to clear the message unless the action sets it again.
+            $tempMessage = ""
             
             if ($null -eq $selection -or $selection -eq "Back") {
                 return $this.Context.LocalizationService.Get("Msg.ActionCancelled", "Operation cancelled.")
             }
             
             switch ($selection) {
-                "SwitchBranch" { $this.HandleSwitchBranch($hasChanges) }
+                "SwitchBranch" { 
+                    $err = $this.HandleSwitchBranch($hasChanges) 
+                    if ($err) {
+                        $tempMessage = $err
+                        $tempMessageColor = [Constants]::ColorError # Red
+                    }
+                }
                 "PushBranch"   { $this.HandlePushBranch() }
                 "Commit"       { $this.HandleCommit() }
                 "Stash"        { $this.HandleStash() }
@@ -92,19 +118,15 @@ class QuickChangeFlowController {
         return ""
     }
     
-    hidden [void] HandleSwitchBranch([bool]$hasChanges) {
+    hidden [string] HandleSwitchBranch([bool]$hasChanges) {
         if ($hasChanges) {
-            $msg = $this.Context.LocalizationService.Get("Flow.Warning.DirtySwitch", "Running changes! Commit or stash before switching branches.")
-            $this.ShowMessage($msg, [Constants]::ColorWarning)
-            Start-Sleep -Seconds 2
-            return
+            return $this.Context.LocalizationService.Get("Flow.Warning.DirtySwitch", "Running changes! Commit or stash before switching branches.")
         }
         
         $branches = $this.GitService.GetBranches($this.Repo.FullPath)
         $current = $this.GitService.GetCurrentBranch($this.Repo.FullPath)
         
         $title = "QUICK CHANGES > SWITCH BRANCH"
-        # Option to focus input
         $sel = $this.ListSelector.ShowSelection($title, $branches, @{ Prompt="Select Branch"; CurrentItem=$current; InitialFocus=[Constants]::FocusInput })
         
         if ($null -ne $sel) {
@@ -113,11 +135,15 @@ class QuickChangeFlowController {
                 $this.ShowMessage("Checking out '$target'...", [Constants]::ColorHint)
                 $res = $this.GitService.Checkout($this.Repo.FullPath, $target)
                 if (-not $res.Success) {
+                     # Return error to show in loop? Or show immediately?
+                     # Checkout errors are usually blocking/important, so showing immediate is fine. 
+                     # But we could return it too if we want.
                      $this.ShowMessage("Error: $($res.Output)", [Constants]::ColorError)
                      Start-Sleep -Seconds 2
                 }
             }
         }
+        return ""
     }
     
     hidden [void] HandlePushBranch() {

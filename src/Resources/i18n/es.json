@@ -271,14 +271,14 @@
 
     "Flow.Error.NoBranches": "No se encontraron ramas",
     "Flow.Option.Integrate": "Integrar",
-    "Flow.Option.Flow2": "Flow 2: Cambios Rápidos",
+    "Flow.Option.Flow2": "Gestor Ramas",
     "Flow.Option.Flow3": "Flujo 3 (Release)",
     "Flow.Error.CheckoutUncommitted": "Error: No se puede cambiar a '{0}'. Tienes cambios sin confirmar.",
     "Flow.Status.CheckoutSuccess": "Cambiado a '{0}' exitosamente.",
     "Flow.Error.CheckoutFailed": "Error al cambiar de rama: {0}",
     "Flow.Status.NotImplemented": "Flujo seleccionado: {0} (No implementado)",
     
-    "Flow.Quick.Title": "PANEL DE CAMBIOS RÁPIDOS",
+    "Flow.Quick.Title": "GESTOR RAMAS",
     "Flow.Quick.Status.Dirty": "Estado: Cambios sin confirmar detectados",
     "Flow.Quick.Status.Clean": "Estado: Directorio de trabajo limpio",
     "Flow.Quick.Opt.Commit": "Confirmar Cambios (Commit)",
