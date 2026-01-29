@@ -45,13 +45,19 @@ class GitFlowCommand : INavigationCommand {
         # Stop navigation loop for interaction
         $state.Stop()
         
+        
+        $needsRedraw = $false
+
         try {
             if (-not $gitService.IsGitRepository($repo.FullPath)) {
-                 $context.Console.WriteError($this.GetLoc($context, "UI.NoGit", "Not a git repository"))
-                 Start-Sleep -Milliseconds 1000
+                 $context.Console.WriteLineColored($this.GetLoc($context, "UI.NoGit", "Not a git repository"), [Constants]::ColorError)
+                 # No sleep to allow immediate navigation
                  return
             }
             
+            # We are entering a complex UI flow, so we will need to redraw when finished
+            $needsRedraw = $true
+
             # 1. Select Base Branch
             $selector = [FilteredListSelector]::new($context.Console, $context.Renderer)
             
@@ -67,7 +73,7 @@ class GitFlowCommand : INavigationCommand {
                 $branches = $gitService.GetBranches($repo.FullPath)
                 $errNoBranches = $this.GetLoc($context, "Flow.Error.NoBranches", "No branches found")
                 if ($branches.Count -eq 0) {
-                    $context.Console.WriteError($errNoBranches) 
+                    $context.Console.WriteLineColored($errNoBranches, [Constants]::ColorError) 
                     Start-Sleep -Milliseconds 1000
                     return
                 }
@@ -132,7 +138,7 @@ class GitFlowCommand : INavigationCommand {
                             $statusColor = [Constants]::ColorSuccess
                         } else {
                              # Clean up error message if possible
-                             $err = if ($result.Output) { $result.Output } else { "Unknown error" }
+                             $err = if ($result.Message) { $result.Message } else { "Unknown error" }
                              $fmtErr = $this.GetLoc($context, "Flow.Error.CheckoutFailed", "Error checking out: {0}")
                              $statusMessage = $fmtErr -f $err
                              $statusColor = [Constants]::ColorError
@@ -173,9 +179,13 @@ class GitFlowCommand : INavigationCommand {
              $context.Console.ReadKey()
         }
         finally {
-             # Resume navigation and force redraw
+             # Resume navigation
              $state.Resume()
-             $state.MarkForFullRedraw()
+             
+             # Only full redraw if we actually entered the UI flow
+             if ($needsRedraw) {
+                $state.MarkForFullRedraw()
+             }
         }
     }
 
