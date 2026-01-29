@@ -167,7 +167,10 @@ class GitFlowCommand : INavigationCommand {
                     }
                 }
             }
-            
+        }
+        catch {
+             $context.Console.WriteError("Unexpected error in Flow: $_")
+             $context.Console.ReadKey()
         }
         finally {
              # Resume navigation and force redraw

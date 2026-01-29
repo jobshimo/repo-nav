@@ -279,7 +279,7 @@ class IntegrationFlowController {
                  @{ DisplayText = $noText;  Value = $false }
              )
              
-             $updateChoice = $this.Context.OptionSelector.ShowSelection($promptTitle, $yesNoOptions, $false, $cancelText, $false, $desc, $true)
+             $updateChoice = $this.Context.OptionSelector.ShowSelection($promptTitle, $yesNoOptions, $false, $cancelText, $false, $desc, [Constants]::ColorWarning, $true)
              
              if ($true -eq $updateChoice) {
                  $this.Context.Console.NewLine()
