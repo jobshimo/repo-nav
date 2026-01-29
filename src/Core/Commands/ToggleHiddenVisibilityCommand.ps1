@@ -43,7 +43,7 @@ class ToggleHiddenVisibilityCommand : INavigationCommand {
             $state.SetCurrentIndex($newIndex)
         }
         
-        # Mark for full redraw
-        $state.MarkForFullRedraw()
+        # Mark for list redraw (Partial update, no flickering)
+        $state.MarkForListRedraw()
     }
 }

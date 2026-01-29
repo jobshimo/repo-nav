@@ -58,16 +58,49 @@ class RenderOrchestrator {
 
         if ($state.RequiresFullRedraw) {
             $this.RenderFull($state)
-            # Clearing flags logic might need to be specific if methods exist, 
-            # but usually bool properties can be set to false directly if accessible
             $state.RequiresFullRedraw = $false
+            $state.RequiresListRedraw = $false
+        }
+        elseif ($state.RequiresListRedraw) {
+            $this.RenderListOnly($state)
+            $state.RequiresListRedraw = $false
+            # Should also clear selection changed as we redrew everything
+            $state.SelectionChanged = $false
         }
         elseif ($state.SelectionChanged -or $state.ViewportChanged) {
             $this.RenderPartial($state)
             $state.SelectionChanged = $false
-            # ViewportChanged is cleared inside RenderPartial, but to be safe:
             $state.ViewportChanged = $false
         }
+    }
+    
+    <#
+    .SYNOPSIS
+        Renders only the repository list and footer (no header/menu redraw)
+        Avoids ClearScreen to prevent flickering
+    #>
+    [void] RenderListOnly([object]$state) {
+        $this.Console.HideCursor()
+        
+        # Ensure correct start position
+        $startLine = $this.CursorStartLine
+        $this.Console.SetCursorPosition(0, $startLine)
+        
+        # Render list (UIRenderer needs to clear lines/pad correctly)
+        $this.Renderer.RenderRepositoryList($state, $startLine)
+        
+        # If list is shorter than PageSize, RenderRepositoryList MUST clear the remaining lines
+        # or we do it here. Or we trust RenderRepositoryList fills PageSize lines.
+        # Assuming RenderRepositoryList logic iterates up to PageSize:
+        
+        # Render Footer
+        $footerLine = $startLine + $state.PageSize + 1
+        $this.Console.SetCursorPosition(0, $footerLine)
+        
+        $totalItems = $state.GetTotalCount()
+        $totalRepos = $state.GetRepoCount()
+        $loadedRepos = $state.GetLoadedCount()
+        $this.Renderer.RenderGitStatusFooter($state.GetSelectedRepository(), $totalItems, $totalRepos, $loadedRepos, $state.SelectedIndex)
     }
     
     <#

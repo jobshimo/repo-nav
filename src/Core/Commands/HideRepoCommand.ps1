@@ -27,8 +27,6 @@ class HideRepoCommand : INavigationCommand {
                 # Unhide
                 $context.HiddenReposService.RemoveFromHidden($repoPath)
                 $context.Console.WriteLineColored("Unhided: $($currentRepo.Name)", [Constants]::ColorSuccess)
-                $context.HiddenReposService.RemoveFromHidden($repoPath)
-                $context.Console.WriteLineColored("Unhided: $($currentRepo.Name)", [Constants]::ColorSuccess)
             } 
             else {
                 # Hide
@@ -45,7 +43,7 @@ class HideRepoCommand : INavigationCommand {
                         $state.SetCurrentIndex([Math]::Max(0, $repos.Count - 1))
                     }
                     
-                    $state.MarkForFullRedraw()
+                    $state.MarkForListRedraw()
                     return
                 }
             }
@@ -59,13 +57,13 @@ class HideRepoCommand : INavigationCommand {
             # Restore selection if possible
             $newRepos = $state.GetRepositories()
             for ($i = 0; $i -lt $newRepos.Count; $i++) {
-                if ($newRepos[$i].FullPath -eq $repoPath) {
+                if ($newRepos[$i].FullPath -eq $currentRepo.FullPath) {
                     $state.SetCurrentIndex($i)
                     break
                 }
             }
             
-            $state.MarkForFullRedraw()
+            $state.MarkForListRedraw()
         }
     }
 }
