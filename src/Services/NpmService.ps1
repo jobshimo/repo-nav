@@ -182,9 +182,9 @@ class NpmService {
     }
 
     # Set package version
-    [hashtable] SetVersion([string]$repoPath, [string]$newVersion) {
+    [OperationResult] SetVersion([string]$repoPath, [string]$newVersion) {
         if (-not $this.HasPackageJson($repoPath)) {
-            return @{ Success = $false; Output = "No package.json found" }
+            return [OperationResult]::Fail("No package.json found")
         }
         
         $hasLockFile = $this.HasPackageLock($repoPath)
@@ -204,10 +204,10 @@ class NpmService {
                      if ($hasLockFile) {
                          $lockContent = Get-Content (Join-Path $repoPath "package-lock.json") -Raw
                          if ($lockContent -notmatch """version""\s*:\s*""$newVersion""") {
-                             return @{ Success = $true; Output = "Updated package.json via npm, but package-lock.json seems outdated. Please run 'npm install' manually." }
+                             return [OperationResult]::Ok($null, "Updated package.json via npm, but package-lock.json seems outdated. Please run 'npm install' manually.")
                          }
                      }
-                     return @{ Success = $true; Output = "Updated to $newVersion via npm" }
+                     return [OperationResult]::Ok($null, "Updated to $newVersion via npm")
                 } 
                 # If failed, fallthrough but warn if lockfile exists
             }
@@ -220,7 +220,7 @@ class NpmService {
         if ($hasLockFile) {
             # If we have a lock file but couldn't use npm, we should probably STOP or WARN LOUDLY
             # The user explicitly said: "check that package-lock.json changes... this has to be aligned"
-            return @{ Success = $false; Output = "Cannot update version: 'npm' not found or failed, and package-lock.json exists. Manual update would break sync." }
+            return [OperationResult]::Fail("Cannot update version: 'npm' not found or failed, and package-lock.json exists. Manual update would break sync.")
         }
 
         try {
@@ -230,13 +230,13 @@ class NpmService {
             if ($content -match '"version"\s*:\s*"[^"]+"') {
                 $newContent = $content -replace '"version"\s*:\s*"[^"]+"', """version"": ""$newVersion"""
                 Set-Content -Path $packageJsonPath -Value $newContent -Encoding UTF8
-                return @{ Success = $true; Output = "Updated package.json manually to $newVersion" }
+                return [OperationResult]::Ok($null, "Updated package.json manually to $newVersion")
             } else {
-                 return @{ Success = $false; Output = "Could not find version field in package.json" }
+                 return [OperationResult]::Fail("Could not find version field in package.json")
             }
         }
         catch {
-             return @{ Success = $false; Output = "Error writing package.json: $_" }
+             return [OperationResult]::Fail("Error writing package.json: $_")
         }
     }
 }

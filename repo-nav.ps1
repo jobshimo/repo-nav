@@ -67,6 +67,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Models\AliasInfo.ps1"
 . "$srcPath\Models\RepositoryModel.ps1"
 . "$srcPath\Models\IntegrationFlowModel.ps1"
+. "$srcPath\Core\Common\OperationResult.ps1"
 
 # Services - WindowSizeCalculator needed by NavigationState
 . "$srcPath\Services\WindowSizeCalculator.ps1"
@@ -93,6 +94,7 @@ $srcPath = Join-Path $scriptRoot "src"
 # UI (depend on models and config)
 # UI (depend on models and config)
 . "$srcPath\UI\Base\ConsoleHelper.ps1"
+. "$srcPath\UI\Framework\ConsoleView.ps1"
 . "$srcPath\UI\Components\ProgressIndicator.ps1"
 # ViewModels (Must be loaded before Renderer)
 . "$srcPath\UI\ViewModels\RepositoryViewModel.ps1"
@@ -152,6 +154,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Core\Engine\NavigationLoop.ps1"
 
 # App Builder (Manual DI Container)
+. "$srcPath\Startup\ServiceRegistry.ps1"
 . "$srcPath\App\AppBuilder.ps1"
 #endregion
 

@@ -16,14 +16,12 @@
     - Cancel with Esc/Q
 #>
 
-class OptionSelector {
-    [ConsoleHelper] $Console
+class OptionSelector : ConsoleView {
     [UIRenderer] $Renderer
     
     # Constructor with dependency injection
     # Breaking cyclical dependency typing in constructor by using [object]
-    OptionSelector([ConsoleHelper]$console, [object]$renderer) {
-        $this.Console = $console
+    OptionSelector([ConsoleHelper]$console, [object]$renderer) : base($console) {
         $this.Renderer = $renderer
     }
     
@@ -98,15 +96,15 @@ class OptionSelector {
             
             if (-not $showHeaders) {
                 # Render prompt as high-visibility content
-                $this.Console.WriteLineColored("  $title", [Constants]::ColorHighlight)
+                $this.WriteLineColored("  $title", [Constants]::ColorHighlight)
                 $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)
             }
             
-            $this.Console.NewLine()
+            $this.NewLine()
             
             if (-not [string]::IsNullOrWhiteSpace($description)) {
-                $this.Console.WriteLineColored("  $description", $descriptionColor)
-                $this.Console.NewLine()
+                $this.WriteLineColored("  $description", $descriptionColor)
+                $this.NewLine()
             }
             
             # Store the starting position of the list to avoid full screen clears
@@ -114,52 +112,17 @@ class OptionSelector {
             
             # Initialize viewport state
             $viewportStart = 0
+            # Reserve space for Footer (Safe margin: 6 lines)
+            # Structure: Newline, Cancel, Newline, Newline, Hint -> 5 lines + 1 safety
+            $reservedFooter = 6
 
             while ($running) {
-                # Calculate available height dynamically (in case of resize)
-                $windowHeight = $this.Console.GetWindowHeight()
-                # Reserve space for Footer (Safe margin: 6 lines)
-                # Structure: Newline, Cancel, Newline, Newline, Hint -> 5 lines + 1 safety
-                $reservedFooter = 6
-                $availableHeight = $windowHeight - $listStartTop - $reservedFooter
-                
-                # Ensure at least 1 line is visible, otherwise we can't do anything
-                if ($availableHeight -lt 1) { $availableHeight = 1 }
-                
-                # Page Size is min(Options, Available)
-                $pageSize = [Math]::Min($options.Count, $availableHeight)
-                
-                # Calculate Viewport to keep SelectedIndex in view
-                # Standard scrolling logic: 
-                # If selected < viewportStart, move start up
-                # If selected >= viewportStart + pageSize, move start down
-                
-                # Initial viewport calculation (simple center or keep visible)
-                # We need persistent viewport state? No, we can derive it from selection if we just want "keep visible"
-                # But "keep visible" is stateful if we want to avoid jumping. 
-                # Simple "keep visible" logic:
-                
-                # We need to track viewportStart outside the loop? 
-                # Actually, effectively we can derive a "valid" viewportStart from SelectedIndex.
-                # But scrolling down one by one is better.
-                # Let's calculate a "Smart" Viewport.
-                
-                # Let's calculate a "Smart" Viewport.
-                
-                # Removed redundant null check (init is now outside loop)
-                
-                if ($selectedIndex -lt $viewportStart) {
-                    $viewportStart = $selectedIndex
-                }
-                elseif ($selectedIndex -ge ($viewportStart + $pageSize)) {
-                    $viewportStart = $selectedIndex - $pageSize + 1
-                }
-                
-                # Ensure bounds
-                if ($viewportStart -lt 0) { $viewportStart = 0 }
-                if ($viewportStart + $pageSize -gt $options.Count) { $viewportStart = $options.Count - $pageSize }
+                # 1. Logic (Update Viewport)
+                $pageSize = $this.CalculatePageSize($options.Count, $listStartTop, $reservedFooter)
+                $viewportStart = $this.CalculateViewportStart($selectedIndex, $viewportStart, $pageSize, $options.Count)
 
-
+                # 2. Render
+                
                 # Reset cursor to the start of the list
                 $this.Console.SetCursorPosition(0, $listStartTop)
 
@@ -176,44 +139,33 @@ class OptionSelector {
                     
                     $displayLine = "  $prefix $($option.DisplayText)$currentMarker"
                     
-
-                    
                     $isColorPreview = $false
                     if ($option.Value -ne 'None' -and ($option.Value -as [System.ConsoleColor])) {
                         $isColorPreview = $true
                     }
 
                     # Clear line first to prevent ghosting
-                    $this.Console.ClearCurrentLine()
+                    $this.ClearLine()
 
                     if ($isColorPreview) {
                         # Show color preview
-                        $this.Console.WriteLineColored($displayLine, $option.Value)
+                        $this.WriteLineColored($displayLine, $option.Value)
                     } else {
-                        $this.Console.WriteLineColored($displayLine, $color)
+                        $this.WriteLineColored($displayLine, $color)
                     }
                 }
                 
-                # Clear any lines below if the list shrank (or if window grew and we have old clutter)
-                # But actually we just write footer immediately after.
-                # However, if previous render had more lines, we must clear them.
-                # Since we write footer at fixed relative position to the LIST, wait...
-                # Footer position is dynamic based on $pageSize.
+                # Footer
+                $this.NewLine()
+                $this.ClearLine()
+                $this.WriteLineColored("  $cancelText", [Constants]::ColorHint)
+                $this.NewLine()
                 
-                # If we want to clean up, we should ClearRestOfScreen? No, flickering.
-                # We can just write blanks if $pageSize < previousPageSize. 
-                # But usually pageSize is constant unless window resizes.
+                $this.NewLine()
+                $this.ClearLine()
+                $this.WriteLineColored("  Use Arrows to navigate | Enter to select | Q/Esc to cancel", [Constants]::ColorHint)
                 
-                $this.Console.NewLine()
-                $this.Console.ClearCurrentLine()
-                $this.Console.WriteLineColored("  $cancelText", [Constants]::ColorHint)
-                $this.Console.NewLine()
-                
-                $this.Console.NewLine()
-                $this.Console.ClearCurrentLine()
-                $this.Console.WriteLineColored("  Use Arrows to navigate | Enter to select | Q/Esc to cancel", [Constants]::ColorHint)
-                
-                # Wait for input
+                # 3. Input
                 $key = $this.Console.ReadKey()
                 
                 switch ($key.VirtualKeyCode) {
