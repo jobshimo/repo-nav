@@ -112,23 +112,77 @@ class OptionSelector {
             # Store the starting position of the list to avoid full screen clears
             $listStartTop = $this.Console.GetCursorTop()
             
+            # Initialize viewport state
+            $viewportStart = 0
+
             while ($running) {
+                # Calculate available height dynamically (in case of resize)
+                $windowHeight = $this.Console.GetWindowHeight()
+                # Reserve space for Footer (4 lines: Newline, Cancel, Newline, Hint)
+                $reservedFooter = 4
+                $availableHeight = $windowHeight - $listStartTop - $reservedFooter
+                
+                # Ensure at least 1 line is visible, otherwise we can't do anything
+                if ($availableHeight -lt 1) { $availableHeight = 1 }
+                
+                # Page Size is min(Options, Available)
+                $pageSize = [Math]::Min($options.Count, $availableHeight)
+                
+                # Calculate Viewport to keep SelectedIndex in view
+                # Standard scrolling logic: 
+                # If selected < viewportStart, move start up
+                # If selected >= viewportStart + pageSize, move start down
+                
+                # Initial viewport calculation (simple center or keep visible)
+                # We need persistent viewport state? No, we can derive it from selection if we just want "keep visible"
+                # But "keep visible" is stateful if we want to avoid jumping. 
+                # Simple "keep visible" logic:
+                
+                # We need to track viewportStart outside the loop? 
+                # Actually, effectively we can derive a "valid" viewportStart from SelectedIndex.
+                # But scrolling down one by one is better.
+                # Let's calculate a "Smart" Viewport.
+                
+                # Let's calculate a "Smart" Viewport.
+                
+                # Removed redundant null check (init is now outside loop)
+                
+                if ($selectedIndex -lt $viewportStart) {
+                    $viewportStart = $selectedIndex
+                }
+                elseif ($selectedIndex -ge ($viewportStart + $pageSize)) {
+                    $viewportStart = $selectedIndex - $pageSize + 1
+                }
+                
+                # Ensure bounds
+                if ($viewportStart -lt 0) { $viewportStart = 0 }
+                if ($viewportStart + $pageSize -gt $options.Count) { $viewportStart = $options.Count - $pageSize }
+
+
                 # Reset cursor to the start of the list
                 $this.Console.SetCursorPosition(0, $listStartTop)
 
-                # Display options
-                for ($i = 0; $i -lt $options.Count; $i++) {
-                    $option = $options[$i]
-                    $prefix = if ($i -eq $selectedIndex) { ">" } else { " " }
-                    $color = if ($i -eq $selectedIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+                # Display options (Windowed)
+                for ($i = 0; $i -lt $pageSize; $i++) {
+                    $optionIndex = $viewportStart + $i
+                    $option = $options[$optionIndex]
+                    
+                    $prefix = if ($optionIndex -eq $selectedIndex) { ">" } else { " " }
+                    $color = if ($optionIndex -eq $selectedIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
                     
                     # Add indicator if this is the current value
                     $currentMarker = if ($showCurrentMarker -and $option.Value -eq $currentValue) { " (current)" } else { "" }
                     
                     $displayLine = "  $prefix $($option.DisplayText)$currentMarker"
                     
-                    # Attempt to render background color preview if the option value is a valid console color
-                    # But not if it's 'None'
+                    # Scroll indicators (if content is hidden)
+                    if ($i -eq 0 -and $viewportStart -gt 0) {
+                         $displayLine += " ([char]0x2191)" # Up arrow
+                    }
+                    if ($i -eq ($pageSize - 1) -and ($viewportStart + $pageSize) -lt $options.Count) {
+                         $displayLine += " ([char]0x2193)" # Down arrow
+                    }
+                    
                     $isColorPreview = $false
                     if ($option.Value -ne 'None' -and ($option.Value -as [System.ConsoleColor])) {
                         $isColorPreview = $true
@@ -144,6 +198,16 @@ class OptionSelector {
                         $this.Console.WriteLineColored($displayLine, $color)
                     }
                 }
+                
+                # Clear any lines below if the list shrank (or if window grew and we have old clutter)
+                # But actually we just write footer immediately after.
+                # However, if previous render had more lines, we must clear them.
+                # Since we write footer at fixed relative position to the LIST, wait...
+                # Footer position is dynamic based on $pageSize.
+                
+                # If we want to clean up, we should ClearRestOfScreen? No, flickering.
+                # We can just write blanks if $pageSize < previousPageSize. 
+                # But usually pageSize is constant unless window resizes.
                 
                 $this.Console.NewLine()
                 $this.Console.ClearCurrentLine()
