@@ -50,32 +50,59 @@ param(
 )
 
 #region Import Modules
-# Get script directory
+# ============================================================================
+# IMPORT SYSTEM - Manual Dependency Order
+# ============================================================================
+# 
+# ⚠️  FOR AI ASSISTANTS & DEVELOPERS:
+#     When adding a NEW FILE, find the appropriate section below and add
+#     your dot-source line. Sections are organized by layer and dependency.
+#
+#     RULES:
+#     1. A file can ONLY use types defined in files ABOVE it
+#     2. If you get "TypeNotFound", move your import AFTER the type's file
+#     3. Models have NO dependencies, Services depend on Models, etc.
+#
+# ============================================================================
+
 $scriptRoot = $PSScriptRoot
 $srcPath = Join-Path $scriptRoot "src"
 
-# Import in dependency order
-# Config
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 1: CONFIG (Loaded first - defines global constants)
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD NEW CONFIG FILES HERE
 . "$srcPath\Config\Constants.ps1"
 . "$srcPath\Config\ColorPalette.ps1"
 
 # Initialize Constants with configuration
 [Constants]::Initialize($scriptRoot)
 
-# Models (no dependencies)
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 2: MODELS (Pure data structures, no dependencies)
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD NEW MODELS HERE (src/Models/*.ps1)
 . "$srcPath\Models\GitStatusModel.ps1"
 . "$srcPath\Models\AliasInfo.ps1"
 . "$srcPath\Models\RepositoryModel.ps1"
 . "$srcPath\Models\IntegrationFlowModel.ps1"
 . "$srcPath\Core\Common\OperationResult.ps1"
 
-# Services - WindowSizeCalculator needed by NavigationState
-. "$srcPath\Services\WindowSizeCalculator.ps1"
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 3: CORE INFRASTRUCTURE (Interfaces, State - minimal deps)
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD NEW INTERFACES HERE (src/Core/Interfaces/*.ps1)
+. "$srcPath\Core\Interfaces\IProgressReporter.ps1"
 
-# Core - Navigation State (Accessed by UI and Services)
+# State - NavigationState needed early by many components
+. "$srcPath\Services\WindowSizeCalculator.ps1"
 . "$srcPath\Core\State\NavigationState.ps1"
 
-# Services (depend on models)
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 4: SERVICES (Business logic, external integrations)
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD NEW SERVICES HERE (src/Services/*.ps1)
+# Order: Base services first, then services that depend on them
 . "$srcPath\Services\ConfigurationService.ps1"
 . "$srcPath\Services\UserPreferencesService.ps1"
 . "$srcPath\Services\LocalizationService.ps1"
@@ -91,48 +118,57 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Services\RenderOrchestrator.ps1"
 . "$srcPath\Services\LoggerService.ps1"
 
-# UI (depend on models and config)
-# UI (depend on models and config)
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 5: UI BASE & FRAMEWORK (Console helpers, base classes)
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD NEW UI BASE CLASSES HERE
 . "$srcPath\UI\Base\ConsoleHelper.ps1"
 . "$srcPath\UI\Framework\ConsoleView.ps1"
-. "$srcPath\UI\Components\ProgressIndicator.ps1"
-# ViewModels (Must be loaded before Renderer)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 6: UI COMPONENTS & VIEWS (Widgets, Renderers, Views)
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD NEW UI COMPONENTS HERE (src/UI/Components/*.ps1, src/UI/Views/*.ps1)
+# ViewModels first (used by Renderer)
 . "$srcPath\UI\ViewModels\RepositoryViewModel.ps1"
 . "$srcPath\UI\UIRenderer.ps1"
+. "$srcPath\UI\Components\ProgressIndicator.ps1"
 . "$srcPath\UI\Components\ColorSelector.ps1"
 . "$srcPath\UI\Components\OptionSelector.ps1"
 . "$srcPath\UI\Renderers\FilteredListRenderer.ps1"
 . "$srcPath\UI\Renderers\IntegrationFlowRenderer.ps1"
 . "$srcPath\UI\Components\FilteredListSelector.ps1"
 . "$srcPath\UI\Dashboards\IntegrationFlowDashboard.ps1"
-# RepositoryManager (Depends on Services, IProgressReporter)
-. "$srcPath\Core\Interfaces\IProgressReporter.ps1"
+
+# UI Services (implements interfaces from Core)
 . "$srcPath\UI\Services\ConsoleProgressReporter.ps1"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 7: CORE MANAGERS (Depend on Services + IProgressReporter)
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD NEW CORE SERVICES/MANAGERS HERE (src/Core/Services/*.ps1)
 . "$srcPath\Core\Services\GitStatusManager.ps1"
 . "$srcPath\Core\Services\RepositorySorter.ps1"
 . "$srcPath\Core\RepositoryManager.ps1"
 
-
-
-# Controllers (Depend on RepositoryManager and UI)
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 8: UI CONTROLLERS & VIEWS (Depend on RepositoryManager)
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD NEW CONTROLLERS/VIEWS HERE
 . "$srcPath\UI\Controllers\PreferencesMenuController.ps1"
-
-
-
-# Views (depend on UI components)
 . "$srcPath\UI\Views\RepositoryManagementView.ps1"
 . "$srcPath\UI\Views\AliasView.ps1"
 . "$srcPath\UI\Views\SearchView.ps1"
 
-# Core Context (Depends on RepositoryManager and UI)
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 9: COMMAND SYSTEM (Depends on UI + Core)
+# ─────────────────────────────────────────────────────────────────────────────
+# CommandContext - depends on UI types
 . "$srcPath\Core\State\CommandContext.ps1"
 
-# Controllers (Depend on CommandContext)
-. "$srcPath\Core\Flows\FlowControllerBase.ps1"
-. "$srcPath\Core\Flows\IntegrationFlowController.ps1"
-. "$srcPath\Core\Flows\QuickChangeFlowController.ps1"
-
-# Commands (Interfaces and Implementations)
+# Command Interface + Implementations
+# ADD NEW COMMANDS HERE (src/Core/Commands/*.ps1)
+# Don't forget to register in CommandFactory.ps1 -> GetAllCommands()
 . "$srcPath\Core\Commands\INavigationCommand.ps1"
 . "$srcPath\Core\Commands\ExitCommand.ps1"
 . "$srcPath\Core\Commands\NavigationCommand.ps1"
@@ -145,17 +181,32 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Core\Commands\PreferencesCommand.ps1"
 . "$srcPath\Core\Commands\CreateFolderCommand.ps1"
 . "$srcPath\Core\Commands\SearchCommand.ps1"
+# NOTE: GitFlowCommand is loaded AFTER Flows (Section 10) because it depends on them
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 10: FLOWS (Workflow controllers - depend on Commands + UI)
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD NEW FLOWS HERE (src/Core/Flows/*.ps1)
+. "$srcPath\Core\Flows\FlowControllerBase.ps1"
+. "$srcPath\Core\Flows\IntegrationFlowController.ps1"
+. "$srcPath\Core\Flows\QuickChangeFlowController.ps1"
+
+# GitFlowCommand MUST be loaded after Flows (uses IntegrationFlowController, QuickChangeFlowController)
 . "$srcPath\Core\Commands\GitFlowCommand.ps1"
 
-# Core Components
-# Core Components
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 11: ENGINE (Navigation loop - loaded last, drives everything)
+# ─────────────────────────────────────────────────────────────────────────────
 . "$srcPath\Core\Engine\CommandFactory.ps1"
 . "$srcPath\Core\Engine\InputHandler.ps1"
 . "$srcPath\Core\Engine\NavigationLoop.ps1"
 
-# App Builder (Manual DI Container)
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 12: STARTUP (DI Container, AppBuilder - depends on everything)
+# ─────────────────────────────────────────────────────────────────────────────
 . "$srcPath\Startup\ServiceRegistry.ps1"
 . "$srcPath\App\AppBuilder.ps1"
+
 #endregion
 
 #region Main Entry Point
