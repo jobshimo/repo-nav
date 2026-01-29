@@ -176,13 +176,7 @@ class OptionSelector {
                     
                     $displayLine = "  $prefix $($option.DisplayText)$currentMarker"
                     
-                    # Scroll indicators (if content is hidden)
-                    if ($i -eq 0 -and $viewportStart -gt 0) {
-                         $displayLine += " $([char]0x2191)" # Up arrow
-                    }
-                    if ($i -eq ($pageSize - 1) -and ($viewportStart + $pageSize) -lt $options.Count) {
-                         $displayLine += " $([char]0x2193)" # Down arrow
-                    }
+
                     
                     $isColorPreview = $false
                     if ($option.Value -ne 'None' -and ($option.Value -as [System.ConsoleColor])) {
