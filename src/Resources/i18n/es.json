@@ -296,6 +296,8 @@
     "Flow.Prompt.PushNow": "¿Subir nueva rama al origen (Push)?",
     "Flow.Op.PushingBranch": "Subiendo '{0}'...",
     "Msg.SelectOption": "Selecciona una opción",
+    "Flow.Quick.Current": "Rama Actual: {0}",
+    "Flow.Warning.DirtySwitch": "¡Hay cambios sin confirmar! Haz commit o stash antes de cambiar de rama.",
 
     "Status.Done": " HECHO",
     "Status.Failed": " FALLÓ",

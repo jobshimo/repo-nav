@@ -300,6 +300,8 @@
     "Flow.Prompt.PushNow": "Push new branch to origin?",
     "Flow.Op.PushingBranch": "Pushing '{0}'...",
     "Msg.SelectOption": "Select an option",
+    "Flow.Quick.Current": "Current Branch: {0}",
+    "Flow.Warning.DirtySwitch": "Running changes! Commit or stash before switching branches.",
     
     "Status.Done": " DONE",
     "Status.Failed": " FAILED",
