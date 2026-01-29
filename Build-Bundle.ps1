@@ -197,19 +197,45 @@ foreach ($relativePath in $loadOrder) {
     $fileContent = $fileContent -replace 'src\\Resources\\i18n', 'Resources\i18n'
     $fileContent = $fileContent -replace 'src/Resources/i18n', 'Resources/i18n'
     
-    [void]$bundleContent.AppendLine("#region $relativePath")
-    
     if ($Minify) {
-        $lines = $fileContent -split "`n" | Where-Object { 
-            $trimmed = $_.Trim()
-            $trimmed -ne '' -and -not ($trimmed -match '^#(?!>)') -and -not ($trimmed -match '^<#')
-        }
+        # ─────────────────────────────────────────────────────────────────
+        # AGGRESSIVE MINIFICATION
+        # ─────────────────────────────────────────────────────────────────
+        
+        # Remove multi-line comment blocks <# ... #>
+        $fileContent = $fileContent -replace '(?s)<#.*?#>', ''
+        
+        # Process line by line
+        $lines = $fileContent -split "`n" | ForEach-Object {
+            $line = $_
+            
+            # Remove trailing whitespace
+            $line = $line.TrimEnd()
+            
+            # Skip empty lines
+            if ([string]::IsNullOrWhiteSpace($line)) { return $null }
+            
+            # Skip single-line comments (but keep #region/#endregion for structure)
+            $trimmed = $line.Trim()
+            if ($trimmed -match '^#(?!region|endregion)' -and $trimmed -notmatch '^#>') {
+                return $null
+            }
+            
+            return $line
+        } | Where-Object { $_ -ne $null }
+        
         $fileContent = $lines -join "`n"
+        
+        # Don't add region markers in minified mode
+        [void]$bundleContent.AppendLine($fileContent)
     }
-    
-    [void]$bundleContent.AppendLine($fileContent)
-    [void]$bundleContent.AppendLine("#endregion")
-    [void]$bundleContent.AppendLine("")
+    else {
+        # Normal mode: keep regions for readability
+        [void]$bundleContent.AppendLine("#region $relativePath")
+        [void]$bundleContent.AppendLine($fileContent)
+        [void]$bundleContent.AppendLine("#endregion")
+        [void]$bundleContent.AppendLine("")
+    }
     
     $processedCount++
 }
