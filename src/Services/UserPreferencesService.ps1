@@ -65,7 +65,6 @@ class UserPreferencesService {
     [PSCustomObject] CreateDefaultPreferences() {
         $defaults = [PSCustomObject]@{
             hidden = [PSCustomObject]@{
-                defaultVisibility = $false
                 hiddenRepos = @()
             }
             general = [PSCustomObject]@{
@@ -186,14 +185,11 @@ class UserPreferencesService {
         # Hidden Section
         if (-not ($preferences.PSObject.Properties.Name -contains 'hidden')) {
             $preferences | Add-Member -NotePropertyName 'hidden' -NotePropertyValue ([PSCustomObject]@{
-                defaultVisibility = $false
                 hiddenRepos = @()
             }) -Force
         }
         
-        if (-not ($preferences.hidden.PSObject.Properties.Name -contains 'defaultVisibility')) {
-            $preferences.hidden | Add-Member -NotePropertyName 'defaultVisibility' -NotePropertyValue $false -Force
-        }
+        # defaultVisibility removed
         
         if (-not ($preferences.hidden.PSObject.Properties.Name -contains 'hiddenRepos')) {
             $preferences.hidden | Add-Member -NotePropertyName 'hiddenRepos' -NotePropertyValue @() -Force

@@ -275,7 +275,11 @@ class UIRenderer {
         $vm = [RepositoryViewModel]::new($repo, $preferences)
         
         # Get color from ViewModel
-        $nameColor = $vm.GetNameColor($isSelected)
+        $nameColor = if ($repo.IsHidden -and -not $isSelected) { 
+            [Constants]::ColorHint 
+        } else { 
+            $vm.GetNameColor($isSelected) 
+        }
         
         # Get prefix from ViewModel
         $prefix = $vm.GetPrefix($isSelected)
@@ -353,6 +357,18 @@ class UIRenderer {
             $this.Console.WriteWithBackground($repo.Name, $nameColor, $backgroundColor)
         } else {
             $this.Console.WriteColored($repo.Name, $nameColor)
+        }
+        
+        # Render (Hidden) suffix if applicable
+        if ($repo.IsHidden) {
+             $hiddenSuffix = " [Hidden]"
+             $suffixColor = if ($isSelected) { $selectedTextColor } else { [Constants]::ColorHint }
+             
+             if ($backgroundColor) {
+                 $this.Console.WriteWithBackground($hiddenSuffix, $suffixColor, $backgroundColor)
+             } else {
+                 $this.Console.WriteColored($hiddenSuffix, $suffixColor)
+             }
         }
         
         # Render right delimiter

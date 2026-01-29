@@ -227,13 +227,9 @@ class PreferencesMenuController {
         $display = & $GetLoc $displayKey $mode
         $items += @{ Id = "autoLoadGit"; Name = (& $GetLoc "Pref.AutoLoadGit" "Auto-load Git Status"); CurrentValue = $display }
         
-        # 5: Hidden Repos Visibility
-        $hiddenDefault = if ($preferences.hidden.defaultVisibility) { 
-            (& $GetLoc "Pref.Value.Show") 
-        } else { 
-            (& $GetLoc "Pref.Value.Hide") 
-        }
-        $items += @{ Id = "hiddenDefaultVisibility"; Name = (& $GetLoc "Pref.HiddenDefault"); CurrentValue = $hiddenDefault }
+        # 5: Hidden Repos Visibility (REMOVED as per user request - always manual via V)
+        # $hiddenDefault = ...
+        # $items += @{ Id = "hiddenDefaultVisibility"; ... }
         
         # 5.1: Manage Hidden List
         $hiddenCount = if ($preferences.hidden.hiddenRepos) { $preferences.hidden.hiddenRepos.Count } else { 0 }
@@ -438,26 +434,7 @@ class PreferencesMenuController {
                  $timeout = 2
              }
         }
-        elseif ($item.Id -eq "hiddenDefaultVisibility") {
-             $current = $preferences.hidden.defaultVisibility
-             $newVal = -not $current
-             
-             # Call HiddenReposService (need to get it via RepoManager or context hack, 
-             # but standard way is via PreferencesService directly here as we save prefs)
-             $preferences.hidden.defaultVisibility = $newVal
-             $this.PreferencesService.SavePreferences($preferences)
-             
-             # Also update runtime state if service is available
-             if ($this.RepoManager.HiddenReposService) {
-                 $this.RepoManager.HiddenReposService.SetDefaultVisibility($newVal)
-                 $this.RepoManager.HiddenReposService.SetShowHiddenState($newVal)
-             }
-             
-             $visibilityStr = if ($newVal) { "Visible" } else { "Hidden" }
-             $msg = (& $GetLoc "Msg.HiddenVisibilityChanged") -f $visibilityStr
-             $updated = $true
-             $timeout = 2
-        }
+        # hiddenDefaultVisibility REMOVED
         elseif ($item.Id -eq "manageHidden") {
              $this.ManageHiddenRepos($preferences, $GetLoc)
              $updated = $true

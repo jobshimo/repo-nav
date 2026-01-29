@@ -154,7 +154,7 @@ class RepositoryManager {
         
         $directories = Get-ChildItem -Directory -Path $basePath | 
                        Where-Object { $_.Name -notin @('envs', 'classes', 'repo-nav') } |
-                       Where-Object { $showHidden -or ($_.Name -notin $hiddenRepos) }
+                       Where-Object { $showHidden -or ($_.FullName -notin $hiddenRepos) }
         
         if ($directories.Count -eq 0) {
             return
@@ -183,7 +183,7 @@ class RepositoryManager {
                 $repo.SetAlias($aliases[$repo.Name])
             }
             
-            # Delegate favorite check to FavoriteService
+            # Delegate favorite check to FavoriteService (already updated to use FullPath inside)
             $this.FavoriteService.UpdateRepositoryModel($repo)
             
             # Only check node_modules for non-container folders
@@ -193,6 +193,11 @@ class RepositoryManager {
             
             # Hydrate from GitStatusManager cache
             $this.GitStatusManager.HydrateFromCache($repo)
+            
+            # Mark as hidden if applicable (check FullPath)
+            if ($repo.FullPath -in $hiddenRepos) {
+                $repo.MarkAsHidden($true)
+            }
             
             $this.Repositories.Add($repo) | Out-Null
         }
@@ -340,9 +345,9 @@ class RepositoryManager {
         return $false
     }
     
-    # Toggle favorite status (delegates to FavoriteService)
+    # Toggle favorite status
     [bool] ToggleFavorite([RepositoryModel]$repository) {
-        $result = $this.FavoriteService.ToggleFavorite($repository.Name)
+        $result = $this.FavoriteService.ToggleFavorite($repository.FullPath)
         if ($result) {
             $repository.MarkAsFavorite(-not $repository.IsFavorite)
         }

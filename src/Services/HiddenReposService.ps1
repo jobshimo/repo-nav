@@ -21,19 +21,19 @@ class HiddenReposService {
     # Constructor with dependency injection
     HiddenReposService([UserPreferencesService]$preferencesService) {
         $this.PreferencesService = $preferencesService
-        # Initialize from preferences
-        $this.ShowHiddenRepos = $this.GetDefaultVisibility()
+        # Always start with hidden repos hidden (user request)
+        $this.ShowHiddenRepos = $false
     }
     
     # Check if a repository is hidden
-    [bool] IsHidden([string]$repoName) {
+    [bool] IsHidden([string]$repoPath) {
         $hiddenList = $this.GetHiddenList()
-        return $repoName -in $hiddenList
+        return $repoPath -in $hiddenList
     }
     
     # Add a repository to the hidden list
-    [bool] AddToHidden([string]$repoName) {
-        if ([string]::IsNullOrWhiteSpace($repoName)) {
+    [bool] AddToHidden([string]$repoPath) {
+        if ([string]::IsNullOrWhiteSpace($repoPath)) {
             return $false
         }
         
@@ -44,20 +44,20 @@ class HiddenReposService {
         $hiddenList = [System.Collections.ArrayList]@($preferences.hidden.hiddenRepos)
         
         # Check if already hidden
-        if ($repoName -in $hiddenList) {
+        if ($repoPath -in $hiddenList) {
             return $true
         }
         
         # Add to list
-        $hiddenList.Add($repoName) | Out-Null
+        $hiddenList.Add($repoPath) | Out-Null
         $preferences.hidden.hiddenRepos = $hiddenList.ToArray()
         
         return $this.PreferencesService.SavePreferences($preferences)
     }
     
     # Remove a repository from the hidden list
-    [bool] RemoveFromHidden([string]$repoName) {
-        if ([string]::IsNullOrWhiteSpace($repoName)) {
+    [bool] RemoveFromHidden([string]$repoPath) {
+        if ([string]::IsNullOrWhiteSpace($repoPath)) {
             return $false
         }
         
@@ -68,8 +68,8 @@ class HiddenReposService {
         $hiddenList = [System.Collections.ArrayList]@($preferences.hidden.hiddenRepos)
         
         # Remove from list
-        if ($repoName -in $hiddenList) {
-            $hiddenList.Remove($repoName)
+        if ($repoPath -in $hiddenList) {
+            $hiddenList.Remove($repoPath)
             $preferences.hidden.hiddenRepos = $hiddenList.ToArray()
             return $this.PreferencesService.SavePreferences($preferences)
         }
@@ -102,22 +102,7 @@ class HiddenReposService {
         return $this.PreferencesService.SavePreferences($preferences)
     }
     
-    # Get default visibility setting
-    [bool] GetDefaultVisibility() {
-        $preferences = $this.PreferencesService.LoadPreferences()
-        $this.EnsureHiddenSection($preferences)
-        
-        return $preferences.hidden.defaultVisibility
-    }
-    
-    # Set default visibility setting
-    [bool] SetDefaultVisibility([bool]$visible) {
-        $preferences = $this.PreferencesService.LoadPreferences()
-        $this.EnsureHiddenSection($preferences)
-        
-        $preferences.hidden.defaultVisibility = $visible
-        return $this.PreferencesService.SavePreferences($preferences)
-    }
+    # GetDefaultVisibility and SetDefaultVisibility removed as per user request
     
     # Toggle runtime visibility state
     [bool] ToggleShowHidden() {
@@ -139,13 +124,8 @@ class HiddenReposService {
     hidden [void] EnsureHiddenSection([PSCustomObject]$preferences) {
         if (-not ($preferences.PSObject.Properties.Name -contains 'hidden')) {
             $preferences | Add-Member -NotePropertyName 'hidden' -NotePropertyValue ([PSCustomObject]@{
-                defaultVisibility = $false
                 hiddenRepos = @()
             }) -Force
-        }
-        
-        if (-not ($preferences.hidden.PSObject.Properties.Name -contains 'defaultVisibility')) {
-            $preferences.hidden | Add-Member -NotePropertyName 'defaultVisibility' -NotePropertyValue $false -Force
         }
         
         if (-not ($preferences.hidden.PSObject.Properties.Name -contains 'hiddenRepos')) {
