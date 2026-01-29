@@ -489,43 +489,55 @@ class PreferencesMenuController {
         return [PSCustomObject]@{ Updated = $updated; Message = $msg; Timeout = $timeout }
     }
 
-    hidden [void] ManageHiddenRepos($preferences, $GetLoc) {
-        $hiddenList = $preferences.hidden.hiddenRepos
-        
-        if ($null -eq $hiddenList -or $hiddenList.Count -eq 0) {
-            $this.Console.ClearScreen()
-            $this.Console.SetCursorPosition(0, 0)
-            Write-Host "  $(& $GetLoc "Msg.NoHiddenRepos" "No hidden repositories.")" -ForegroundColor Yellow
-            Start-Sleep -Seconds 1
-            return
-        }
+    # Manage hidden repositories
+    [void] ManageHiddenRepos([PSCustomObject]$preferences, [scriptblock]$GetLoc) {
+        $hiddenService = $this.RepoManager.HiddenReposService
+        if ($null -eq $hiddenService) { return }
         
         $running = $true
+        
         while ($running) {
-            $hiddenList = $this.RepoManager.HiddenReposService.GetHiddenList()
-            if ($hiddenList.Count -eq 0) { return }
+            $hiddenList = $hiddenService.GetHiddenList()
             
-            $opts = @()
-            foreach ($repo in $hiddenList) {
-                $opts += @{ DisplayText = $repo; Value = $repo }
+            if ($hiddenList.Count -eq 0) {
+                $this.Console.WriteLineColored("  " + (& $GetLoc "Msg.NoHiddenRepos"), [Constants]::ColorInfo)
+                Start-Sleep -Seconds 1
+                return
             }
             
-            # Show selection to RESTORE (remove from hidden)
-            $repoToRestore = $this.OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectHiddenToRestore"), $opts, $null, "Back")
+            # Create friendly options (Name as DisplayText, Path as Value)
+            $options = @()
+            foreach ($path in $hiddenList) {
+                $name = Split-Path -Path $path -Leaf
+                $options += @{ DisplayText = $name; Value = $path }
+            }
             
-            if ($null -eq $repoToRestore) {
+            $title = & $GetLoc "Menu.ManageHidden"
+            $description = "Select a repository to UNHIDE (restore to list)"
+            $cancelText = & $GetLoc "Cmd.Back"
+            
+            # Callback to render full path detail
+            $capturedConsole = $this.Console # Capture for closure
+            $onSelectionChanged = {
+                param($selectedOption)
+                $path = $selectedOption.Value
+                $capturedConsole.WriteLineColored("    $path", [Constants]::ColorHint)
+            }
+            
+            $selector = [OptionSelector]::new($this.Console, $this.Renderer)
+            # Pass null for currentValue (no pre-selection)
+            # Pass onSelectionChanged as last argument
+            $selectedPath = $selector.ShowSelection($title, $options, $null, $cancelText, $false, $description, [Constants]::ColorInfo, $true, $onSelectionChanged)
+            
+            if ($null -eq $selectedPath) {
                 $running = $false
             } else {
-                # Remove from hidden
-                $this.RepoManager.HiddenReposService.RemoveFromHidden($repoToRestore)
-                
-                # Feedback
-                $this.Console.ClearScreen()
-                $msg = (& $GetLoc "Msg.RepoRestored") -f $repoToRestore
-                Write-Host "  $msg" -ForegroundColor Green
+                # Unhide selected
+                $hiddenService.RemoveFromHidden($selectedPath)
+                $this.Console.WriteLineColored("  Unhided: $selectedPath", [Constants]::ColorSuccess)
                 Start-Sleep -Milliseconds 800
                 
-                # Loop continues to allow managing more
+                # Loop continues
             }
         }
     }

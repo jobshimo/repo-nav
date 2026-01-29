@@ -19,15 +19,28 @@ class ToggleHiddenVisibilityCommand : INavigationCommand {
         # Toggle visibility state
         $hiddenService.ToggleShowHidden()
         
-        # Reload repositories to apply the new filter
+        $currentIndex = $state.GetCurrentIndex()
+        $currentRepo = if ($currentIndex -ge 0 -and $currentIndex -lt $state.GetRepositories().Count) { $state.GetRepositories()[$currentIndex] } else { $null }
+        
+        # Reload repositories to apply the new filter (Now fast via Cache)
         $repoManager = $context.RepoManager
         if ($null -ne $repoManager) {
-            $repoManager.LoadRepositories($context.BasePath)
+            $repoManager.LoadRepositories()
             $updatedRepos = $repoManager.GetRepositories()
             $state.SetRepositories($updatedRepos)
             
-            # Reset selection to first item
-            $state.SetCurrentIndex(0)
+            # Try to restore selection
+            $newIndex = 0
+            if ($null -ne $currentRepo) {
+                for ($i = 0; $i -lt $updatedRepos.Count; $i++) {
+                    if ($updatedRepos[$i].FullPath -eq $currentRepo.FullPath) {
+                        $newIndex = $i
+                        break
+                    }
+                }
+            }
+            
+            $state.SetCurrentIndex($newIndex)
         }
         
         # Mark for full redraw

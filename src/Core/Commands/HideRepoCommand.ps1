@@ -51,7 +51,7 @@ class HideRepoCommand : INavigationCommand {
             
             # If we are here, it means we unhided OR we hided but showHidden is true. 
             # In both cases, we need to refresh to update the (Hidden) status visual or the list.
-            # A full reload is safest to ensure filters apply correctly.
+            # A full reload IS NOW FAST thanks to Cache.
             $context.RepoManager.LoadRepositories()
             $state.SetRepositories($context.RepoManager.GetRepositories())
             

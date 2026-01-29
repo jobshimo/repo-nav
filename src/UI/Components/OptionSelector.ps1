@@ -56,11 +56,11 @@ class OptionSelector : ConsoleView {
     #>
     # Overload for backward compatibility (4 arguments)
     [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText) {
-        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "", [Constants]::ColorWarning, $true)
+        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "", [Constants]::ColorWarning, $true, $null)
     }
 
     # Main method with all options
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [ConsoleColor]$descriptionColor, [bool]$clearScreen = $true) {
+    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [ConsoleColor]$descriptionColor, [bool]$clearScreen = $true, [scriptblock]$onSelectionChanged = $null) {
         if ($options.Count -eq 0) {
             return $null
         }
@@ -79,6 +79,7 @@ class OptionSelector : ConsoleView {
         
         $running = $true
         $result = $null
+        $lastSelectedIndex = -1
         
         try {
             $this.Console.HideCursor()
@@ -112,16 +113,28 @@ class OptionSelector : ConsoleView {
             
             # Initialize viewport state
             $viewportStart = 0
-            # Reserve space for Footer (Safe margin: 6 lines)
+            # Reserve space for Footer (Safe margin: 6 lines + optional detail space)
             # Structure: Newline, Cancel, Newline, Newline, Hint -> 5 lines + 1 safety
-            $reservedFooter = 6
+            $reservedFooter = 8 # Increased to allow space for detail
+            
+            # Force first render logic
+            $forceRender = $true
 
             while ($running) {
+                # 0. Handle Selection Change Callback
+                if ($selectedIndex -ne $lastSelectedIndex -or $forceRender) {
+                    if ($null -ne $onSelectionChanged) {
+                         # We invoke this AFTER rendering the list usually, but since the list is windowed,
+                         # we can render the detail in the reserved footer area.
+                         # But let's let logical update happen first.
+                    }
+                }
+
                 # 1. Logic (Update Viewport)
                 $pageSize = $this.CalculatePageSize($options.Count, $listStartTop, $reservedFooter)
                 $viewportStart = $this.CalculateViewportStart($selectedIndex, $viewportStart, $pageSize, $options.Count)
 
-                # 2. Render
+                # 2. Render List
                 
                 # Reset cursor to the start of the list
                 $this.Console.SetCursorPosition(0, $listStartTop)
@@ -161,9 +174,31 @@ class OptionSelector : ConsoleView {
                 $this.WriteLineColored("  $cancelText", [Constants]::ColorHint)
                 $this.NewLine()
                 
-                $this.NewLine()
+                # Render Detail (Dynamic via Callback)
+                if ($null -ne $onSelectionChanged -and ($selectedIndex -ne $lastSelectedIndex -or $forceRender)) {
+                    $detailStartTop = $this.Console.GetCursorTop()
+                    $this.Console.SetCursorPosition(0, $detailStartTop)
+                    # Clear a few lines for detail
+                    $this.ClearLine()
+                    $this.Console.Write("`n")
+                    $this.ClearLine()
+                    $this.Console.SetCursorPosition(0, $detailStartTop)
+                    
+                    try {
+                        & $onSelectionChanged $options[$selectedIndex]
+                    } catch {
+                        # Ignore errors in callback
+                    }
+                }
+                
+                # Render keys hint at the very bottom or fixed position? 
+                # Let's put it after the detail area.
+                $this.Console.Write("`n`n")
                 $this.ClearLine()
-                $this.WriteLineColored("  Use Arrows to navigate | Enter to select | Q/Esc to cancel", [Constants]::ColorHint)
+                $this.WriteLineColored("  Use Arrows | Enter | Q/Esc", [Constants]::ColorHint)
+                
+                $lastSelectedIndex = $selectedIndex
+                $forceRender = $false
                 
                 # 3. Input
                 $key = $this.Console.ReadKey()
