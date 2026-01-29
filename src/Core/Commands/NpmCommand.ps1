@@ -72,8 +72,8 @@ class NpmView {
                 @{ DisplayText = $yes; Value = $true },
                 @{ DisplayText = $no; Value = $false }
             )
-            # Fixed: Passed explicit $true for clearScreen (7th argument)
-            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $warning, $true)
+            # Fixed: Passed explicit [Constants]::ColorWarning (7th arg) and $true (8th arg)
+            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $warning, [Constants]::ColorWarning, $true)
             return ($result -eq $true)
         } else {
             Write-Host $warning -ForegroundColor ([Constants]::ColorWarning)
@@ -91,8 +91,8 @@ class NpmView {
                 @{ DisplayText = $yes; Value = $true },
                 @{ DisplayText = $no; Value = $false }
             )
-            # Fixed: Passed explicit $true for clearScreen (7th argument)
-            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $null, $true)
+            # Fixed: Passed explicit [Constants]::ColorWarning (7th arg) and $true (8th arg)
+            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $null, [Constants]::ColorWarning, $true)
             return ($result -eq $true)
         } else {
             return $this.Console.ConfirmAction($prompt, $false)
@@ -236,7 +236,12 @@ class NpmCommand : INavigationCommand {
             try {
                 $nm = Join-Path $path "node_modules"
                 if (Test-Path $nm) {
-                    Remove-Item -Path $nm -Recurse -Force -ErrorAction Stop
+                    # Use cmd.exe for speed and path length robustness
+                    # /s = recursive, /q = quiet
+                    $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c rmdir /s /q `"$nm`"" -NoNewWindow -Wait -PassThru
+                    if ($proc.ExitCode -ne 0) {
+                        throw "rmdir failed with exit code $($proc.ExitCode)"
+                    }
                 }
                 
                 if ($removeLock) {

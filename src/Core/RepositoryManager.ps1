@@ -21,6 +21,8 @@
 class RepositoryManager {
     # Dependencies (injected)
     [GitService] $GitService
+    [GitReadService] $GitReadService
+    [GitWriteService] $GitWriteService
     [NpmService] $NpmService
     [AliasManager] $AliasManager
     [ConfigurationService] $ConfigService
@@ -40,6 +42,8 @@ class RepositoryManager {
     # Constructor with dependency injection
     RepositoryManager(
         [GitService]$gitService,
+        [GitReadService]$gitReadService,
+        [GitWriteService]$gitWriteService,
         [NpmService]$npmService,
         [AliasManager]$aliasManager,
         [ConfigurationService]$configService,
@@ -52,6 +56,8 @@ class RepositoryManager {
         [RepositorySorter]$sorter
     ) {
         $this.GitService = $gitService
+        $this.GitReadService = $gitReadService
+        $this.GitWriteService = $gitWriteService
         $this.NpmService = $npmService
         $this.AliasManager = $aliasManager
         $this.ConfigService = $configService

@@ -423,4 +423,30 @@ class GitService {
             Pop-Location
         }
     }
+
+    # Stash changes
+    [object] Stash([string]$repoPath, [string]$message = "") {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @{ Success = $false; Output = "Not a git repository" }
+        }
+        
+        Push-Location $repoPath
+        try {
+            if ([string]::IsNullOrWhiteSpace($message)) {
+                $output = git stash 2>&1
+            } else {
+                $output = git stash save "$message" 2>&1
+            }
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch {
+             return @{ Success = $false; Output = $_.ToString() }
+        }
+        finally {
+            Pop-Location
+        }
+    }
 }

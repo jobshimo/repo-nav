@@ -58,14 +58,17 @@ class OptionSelector {
     #>
     # Overload for backward compatibility (4 arguments)
     [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText) {
-        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "", $true)
+        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "", [Constants]::ColorWarning, $true)
     }
 
     # Main method with all options
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [bool]$clearScreen = $true) {
+    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [ConsoleColor]$descriptionColor, [bool]$clearScreen = $true) {
         if ($options.Count -eq 0) {
             return $null
         }
+        
+        # Default color handling
+        if ($descriptionColor -eq 0) { $descriptionColor = [Constants]::ColorWarning }
         
         # Find current option index
         $selectedIndex = 0
@@ -82,7 +85,6 @@ class OptionSelector {
         try {
             $this.Console.HideCursor()
             
-            # Clear screen once and render header
             # Clear screen once and render header
             if ($clearScreen) {
                 $this.Console.ClearScreen()
@@ -103,34 +105,86 @@ class OptionSelector {
             $this.Console.NewLine()
             
             if (-not [string]::IsNullOrWhiteSpace($description)) {
-                $this.Console.WriteLineColored("  $description", [Constants]::ColorWarning)
+                $this.Console.WriteLineColored("  $description", $descriptionColor)
                 $this.Console.NewLine()
             }
             
             # Store the starting position of the list to avoid full screen clears
             $listStartTop = $this.Console.GetCursorTop()
             
+            # Initialize viewport state
+            $viewportStart = 0
+
             while ($running) {
+                # Calculate available height dynamically (in case of resize)
+                $windowHeight = $this.Console.GetWindowHeight()
+                # Reserve space for Footer (Safe margin: 6 lines)
+                # Structure: Newline, Cancel, Newline, Newline, Hint -> 5 lines + 1 safety
+                $reservedFooter = 6
+                $availableHeight = $windowHeight - $listStartTop - $reservedFooter
+                
+                # Ensure at least 1 line is visible, otherwise we can't do anything
+                if ($availableHeight -lt 1) { $availableHeight = 1 }
+                
+                # Page Size is min(Options, Available)
+                $pageSize = [Math]::Min($options.Count, $availableHeight)
+                
+                # Calculate Viewport to keep SelectedIndex in view
+                # Standard scrolling logic: 
+                # If selected < viewportStart, move start up
+                # If selected >= viewportStart + pageSize, move start down
+                
+                # Initial viewport calculation (simple center or keep visible)
+                # We need persistent viewport state? No, we can derive it from selection if we just want "keep visible"
+                # But "keep visible" is stateful if we want to avoid jumping. 
+                # Simple "keep visible" logic:
+                
+                # We need to track viewportStart outside the loop? 
+                # Actually, effectively we can derive a "valid" viewportStart from SelectedIndex.
+                # But scrolling down one by one is better.
+                # Let's calculate a "Smart" Viewport.
+                
+                # Let's calculate a "Smart" Viewport.
+                
+                # Removed redundant null check (init is now outside loop)
+                
+                if ($selectedIndex -lt $viewportStart) {
+                    $viewportStart = $selectedIndex
+                }
+                elseif ($selectedIndex -ge ($viewportStart + $pageSize)) {
+                    $viewportStart = $selectedIndex - $pageSize + 1
+                }
+                
+                # Ensure bounds
+                if ($viewportStart -lt 0) { $viewportStart = 0 }
+                if ($viewportStart + $pageSize -gt $options.Count) { $viewportStart = $options.Count - $pageSize }
+
+
                 # Reset cursor to the start of the list
                 $this.Console.SetCursorPosition(0, $listStartTop)
 
-                # Display options
-                for ($i = 0; $i -lt $options.Count; $i++) {
-                    $option = $options[$i]
-                    $prefix = if ($i -eq $selectedIndex) { ">" } else { " " }
-                    $color = if ($i -eq $selectedIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+                # Display options (Windowed)
+                for ($i = 0; $i -lt $pageSize; $i++) {
+                    $optionIndex = $viewportStart + $i
+                    $option = $options[$optionIndex]
+                    
+                    $prefix = if ($optionIndex -eq $selectedIndex) { ">" } else { " " }
+                    $color = if ($optionIndex -eq $selectedIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
                     
                     # Add indicator if this is the current value
                     $currentMarker = if ($showCurrentMarker -and $option.Value -eq $currentValue) { " (current)" } else { "" }
                     
                     $displayLine = "  $prefix $($option.DisplayText)$currentMarker"
                     
-                    # Attempt to render background color preview if the option value is a valid console color
-                    # But not if it's 'None'
+
+                    
                     $isColorPreview = $false
                     if ($option.Value -ne 'None' -and ($option.Value -as [System.ConsoleColor])) {
                         $isColorPreview = $true
                     }
+
+                    # Clear line first to prevent ghosting
+                    $this.Console.ClearCurrentLine()
 
                     if ($isColorPreview) {
                         # Show color preview
@@ -140,9 +194,23 @@ class OptionSelector {
                     }
                 }
                 
+                # Clear any lines below if the list shrank (or if window grew and we have old clutter)
+                # But actually we just write footer immediately after.
+                # However, if previous render had more lines, we must clear them.
+                # Since we write footer at fixed relative position to the LIST, wait...
+                # Footer position is dynamic based on $pageSize.
+                
+                # If we want to clean up, we should ClearRestOfScreen? No, flickering.
+                # We can just write blanks if $pageSize < previousPageSize. 
+                # But usually pageSize is constant unless window resizes.
+                
                 $this.Console.NewLine()
+                $this.Console.ClearCurrentLine()
                 $this.Console.WriteLineColored("  $cancelText", [Constants]::ColorHint)
                 $this.Console.NewLine()
+                
+                $this.Console.NewLine()
+                $this.Console.ClearCurrentLine()
                 $this.Console.WriteLineColored("  Use Arrows to navigate | Enter to select | Q/Esc to cancel", [Constants]::ColorHint)
                 
                 # Wait for input
@@ -219,8 +287,8 @@ class OptionSelector {
             @{ DisplayText = $noText; Value = $false }
         )
         
-        # Pass clearScreen
-        $result = $this.ShowSelection($question, $options, $false, $cancelText, $false, "", $clearScreen)
+        # Pass clearScreen and default color
+        $result = $this.ShowSelection($question, $options, $false, $cancelText, $false, "", [Constants]::ColorWarning, $clearScreen)
         
         if ($null -eq $result) {
             return $false

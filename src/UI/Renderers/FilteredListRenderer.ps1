@@ -11,12 +11,8 @@ class FilteredListRenderer {
         # Footer area: 4 lines
         $sep = "=" * [Constants]::UIWidth
         
-        if (-not $fastUpdate) {
-            for ($i = 0; $i -lt 4; $i++) {
-                $this.Console.SetCursorPosition(0, $footerStartLine + $i)
-                if (-not $clearScreen) { $this.Console.ClearCurrentLine() }
-            }
-        }
+        # NOTE: Removed the initial 4-line clear loop which caused flickering.
+        # Instead, we overwrite content or clear line-by-line just before writing if needed.
         
         # 1. Separator
         if (-not $fastUpdate) {
@@ -26,32 +22,69 @@ class FilteredListRenderer {
         
         # 2. Counts (This changes on selection, so we redraw it)
         $this.Console.SetCursorPosition(0, $footerStartLine + 1)
-        # Clear specific line if fast update to ensure no artifacts
-        if ($fastUpdate) { $this.Console.ClearCurrentLine() }
+        
+        $lineLength = 0
         
         if ($filteredCount -gt 0) {
+            # 1-based index for display
             $currentPos = $selectedIndex + 1
             $lblItem = $this.UIRenderer.GetLoc("UI.Label.Item", "Item")
             $lblFiltered = $this.UIRenderer.GetLoc("UI.Label.Filtered", "Filtered")
             $lblOf = $this.UIRenderer.GetLoc("UI.Label.Of", "of")
             
-            $this.Console.WriteColored("  $lblItem`: ", [Constants]::ColorLabel)
-            $this.Console.WriteColored("$currentPos/$filteredCount", [Constants]::ColorValue)
-            $this.Console.WriteColored(" | $lblFiltered`: ", [Constants]::ColorLabel)
-            $this.Console.WriteColored("$filteredCount $lblOf $totalCount", [Constants]::ColorHint)
+            # Build string parts to calc length
+            # "  Item: "
+            $part1 = "  $lblItem`: "
+            $this.Console.WriteColored($part1, [Constants]::ColorLabel)
+            
+            # "1/10"
+            $part2 = "$currentPos/$filteredCount"
+            $this.Console.WriteColored($part2, [Constants]::ColorValue)
+            
+            # " | Filtered: "
+            $part3 = " | $lblFiltered`: "
+            $this.Console.WriteColored($part3, [Constants]::ColorLabel)
+            
+            # "10 of 100"
+            $part4 = "$filteredCount $lblOf $totalCount"
+            $this.Console.WriteColored($part4, [Constants]::ColorHint)
+            
+            $lineLength = $part1.Length + $part2.Length + $part3.Length + $part4.Length
         } else {
              $noItems = $this.UIRenderer.GetLoc("Search.NoItems", "No items found")
-             $this.Console.WriteColored("  $noItems", [Constants]::ColorWarning)
+             $prefix = "  "
+             $this.Console.WriteColored("$prefix$noItems", [Constants]::ColorWarning)
+             $lineLength = $prefix.Length + $noItems.Length
+        }
+        
+        # Clear remaining part of the line to avoid artifacts
+        if ($lineLength -lt [Constants]::UIWidth) {
+            $pad = " " * ([Constants]::UIWidth - $lineLength)
+            $this.Console.Write($pad)
         }
         
         # 3. Message / Hints
         if (-not $fastUpdate) {
             $this.Console.SetCursorPosition(0, $footerStartLine + 2)
+            $msgLength = 0
+            
             if (-not [string]::IsNullOrEmpty($statusMessage)) {
-                 $this.Console.WriteColored("  $statusMessage", $statusColor)
+                 $prefix = "  "
+                 $this.Console.WriteColored("$prefix$statusMessage", $statusColor)
+                 $msgLength = $prefix.Length + $statusMessage.Length
             } else {
-                 $hint = $this.UIRenderer.GetLoc("Search.Hint.FilteredList", "$([char]0x2191)$([char]0x2193)=Navigate | Enter=Select | Esc=Cancel")
-                 $this.Console.WriteColored("  $hint", [Constants]::ColorHint)
+                 $hint = $this.UIRenderer.GetLoc("Search.Hint.FilteredList", "$([char]0x2191)$([char]0x2193)=Navigate | Enter=Select | Q/Esc=Cancel")
+                 $prefix = "  "
+                 $this.Console.WriteColored("$prefix$hint", [Constants]::ColorHint)
+                 $msgLength = $prefix.Length + $hint.Length
+            }
+            
+            # Fill rest with spaces
+            if ($msgLength -lt [Constants]::UIWidth) {
+                # Ensure we don't error on negative count if message is somehow huge
+                $remaining = [Math]::Max(0, [Constants]::UIWidth - $msgLength)
+                $pad = " " * $remaining
+                $this.Console.Write($pad)
             }
             
             # 4. Final Separator

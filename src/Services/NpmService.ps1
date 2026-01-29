@@ -55,7 +55,12 @@ class NpmService {
         }
         
         try {
-            Remove-Item -Path $nodeModulesPath -Recurse -Force -ErrorAction Stop
+            # Use cmd.exe for speed and path length robustness
+            $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c rmdir /s /q `"$nodeModulesPath`"" -NoNewWindow -Wait -PassThru
+            if ($proc.ExitCode -ne 0) {
+                 Write-Error "rmdir failed with exit code $($proc.ExitCode)"
+                 return $false
+            }
             
             # Remove package-lock.json if requested
             if ($removePackageLock) {
