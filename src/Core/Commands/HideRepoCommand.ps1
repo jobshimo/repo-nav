@@ -27,7 +27,8 @@ class HideRepoCommand : INavigationCommand {
                 # Unhide
                 $context.HiddenReposService.RemoveFromHidden($repoPath)
                 $context.Console.WriteLineColored("Unhided: $($currentRepo.Name)", [Constants]::ColorSuccess)
-                Start-Sleep -Milliseconds 500
+                $context.HiddenReposService.RemoveFromHidden($repoPath)
+                $context.Console.WriteLineColored("Unhided: $($currentRepo.Name)", [Constants]::ColorSuccess)
             } 
             else {
                 # Hide

@@ -315,5 +315,7 @@
     "Msg.RepoRestored": "Repository '{0}' restored",
     "Msg.HiddenVisibilityChanged": "Hidden visibility: {0}",
     "Msg.NoHiddenRepos": "No hidden repositories.",
-    "Prompt.SelectHiddenToRestore": "Select repository to restore"
+    "Prompt.SelectHiddenToRestore": "Select repository to restore",
+    "Menu.ManageHidden": "Manage Hidden Repositories",
+    "Cmd.Back": "Back"
 }

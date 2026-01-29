@@ -311,5 +311,7 @@
     "Msg.RepoRestored": "Repositorio '{0}' restaurado",
     "Msg.HiddenVisibilityChanged": "Visibilidad ocultos: {0}",
     "Msg.NoHiddenRepos": "No hay repositorios ocultos.",
-    "Prompt.SelectHiddenToRestore": "Selecciona repositorio a restaurar"
+    "Prompt.SelectHiddenToRestore": "Selecciona repositorio a restaurar",
+    "Menu.ManageHidden": "Gestionar Repositorios Ocultos",
+    "Cmd.Back": "Atrás"
 }

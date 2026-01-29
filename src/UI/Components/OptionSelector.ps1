@@ -56,11 +56,16 @@ class OptionSelector : ConsoleView {
     #>
     # Overload for backward compatibility (4 arguments)
     [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText) {
-        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "", [Constants]::ColorWarning, $true, $null)
+        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "", [Constants]::ColorWarning, $true, $null, $null)
+    }
+    
+    # Overload for callback compatibility
+    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [ConsoleColor]$descriptionColor, [bool]$clearScreen, [scriptblock]$onSelectionChanged) {
+        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $showCurrentMarker, $description, $descriptionColor, $clearScreen, $onSelectionChanged, $null)
     }
 
     # Main method with all options
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [ConsoleColor]$descriptionColor, [bool]$clearScreen = $true, [scriptblock]$onSelectionChanged = $null) {
+    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [ConsoleColor]$descriptionColor, [bool]$clearScreen = $true, [scriptblock]$onSelectionChanged = $null, [scriptblock]$onRenderItem = $null) {
         if ($options.Count -eq 0) {
             return $null
         }
@@ -144,31 +149,41 @@ class OptionSelector : ConsoleView {
                     $optionIndex = $viewportStart + $i
                     $option = $options[$optionIndex]
                     
-                    $prefix = if ($optionIndex -eq $selectedIndex) { ">" } else { " " }
-                    $color = if ($optionIndex -eq $selectedIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+                    $isSelected = ($optionIndex -eq $selectedIndex)
+                    $prefix = if ($isSelected) { ">" } else { " " }
+                    $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
                     
-                    # Add indicator if this is the current value
-                    $currentMarker = if ($showCurrentMarker -and $option.Value -eq $currentValue) { " (current)" } else { "" }
-                    
-                    $displayLine = "  $prefix $($option.DisplayText)$currentMarker"
-                    
-                    $isColorPreview = $false
-                    if ($option.Value -ne 'None' -and ($option.Value -as [System.ConsoleColor])) {
-                        $isColorPreview = $true
-                    }
-
-                    # Clear line first to prevent ghosting
-                    $this.ClearLine()
-
-                    if ($isColorPreview) {
-                        # Show color preview
-                        $this.WriteLineColored($displayLine, $option.Value)
+                    # Custom Render Callback
+                    if ($null -ne $onRenderItem) {
+                        # Invoke custom renderer
+                        # Param: Option, IsSelected, Prefix
+                        & $onRenderItem $option $isSelected $prefix
                     } else {
-                        $this.WriteLineColored($displayLine, $color)
+                        # Default rendering
+                        
+                        # Add indicator if this is the current value
+                        $currentMarker = if ($showCurrentMarker -and $option.Value -eq $currentValue) { " (current)" } else { "" }
+                        
+                        $displayLine = "  $prefix $($option.DisplayText)$currentMarker"
+                        
+                        $isColorPreview = $false
+                        if ($option.Value -ne 'None' -and ($option.Value -as [System.ConsoleColor])) {
+                            $isColorPreview = $true
+                        }
+
+                        # Clear line first to prevent ghosting
+                        $this.ClearLine()
+
+                        if ($isColorPreview) {
+                            # Show color preview
+                            $this.WriteLineColored($displayLine, $option.Value)
+                        } else {
+                            $this.WriteLineColored($displayLine, $color)
+                        }
                     }
                 }
                 
-                # Footer
+                # Render Footer (Static)
                 $this.NewLine()
                 $this.ClearLine()
                 $this.WriteLineColored("  $cancelText", [Constants]::ColorHint)

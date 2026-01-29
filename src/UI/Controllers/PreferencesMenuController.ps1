@@ -505,11 +505,34 @@ class PreferencesMenuController {
                 return
             }
             
-            # Create friendly options (Name as DisplayText, Path as Value)
+            # Create rich options by hydrating temporary RepositoryModels
             $options = @()
+            $aliases = $this.RepoManager.AliasManager.GetAllAliases()
+            
             foreach ($path in $hiddenList) {
-                $name = Split-Path -Path $path -Leaf
-                $options += @{ DisplayText = $name; Value = $path }
+                if (Test-Path $path) {
+                    $item = Get-Item $path
+                    $repo = [RepositoryModel]::new($item)
+                    
+                    # Hydrate basic info needed for display
+                    if ($this.RepoManager.GitService.IsContainerDirectory($path)) {
+                        $count = $this.RepoManager.GitService.CountContainedRepositories($path)
+                        $repo.MarkAsContainer($count)
+                    }
+                    
+                    if ($aliases.ContainsKey($path)) {
+                        $repo.SetAlias($aliases[$path])
+                    }
+                    
+                    # Favorites might be tricky if based on Name vs FullPath, 
+                    # but FavoriteService now uses FullPath, so update model
+                    $this.RepoManager.FavoriteService.UpdateRepositoryModel($repo)
+
+                    $options += @{ Value = $repo; DisplayText = $repo.Name }
+                } else {
+                    # Path not found (maybe deleted outside), show as text
+                    $options += @{ Value = $path; DisplayText = "$path (Missing)" }
+                }
             }
             
             $title = & $GetLoc "Menu.ManageHidden"
@@ -520,14 +543,88 @@ class PreferencesMenuController {
             $capturedConsole = $this.Console # Capture for closure
             $onSelectionChanged = {
                 param($selectedOption)
-                $path = $selectedOption.Value
-                $capturedConsole.WriteLineColored("    $path", [Constants]::ColorHint)
+                $val = $selectedOption.Value
+                if ($val -is [RepositoryModel]) {
+                    $capturedConsole.WriteLineColored("    $($val.FullPath)", [Constants]::ColorHint)
+                } else {
+                    $capturedConsole.WriteLineColored("    $val", [Constants]::ColorHint)
+                }
+            }
+
+            # Callback for rich item rendering
+            # $option is the hashtable from $options array
+            $onRenderItem = {
+                param($option, $isSelected, $prefix)
+                
+                $val = $option.Value
+                
+                if ($val -is [RepositoryModel]) {
+                   $repo = $val
+                   
+                   # Build display string similar to UIRenderer
+                   $icon = if ($repo.IsContainer) { "[+]" } elseif ($repo.IsFavorite) { "[*]" } else { "   " }
+                   $text = $repo.Name
+                   
+                   # Alias - Robust check
+                   $aliasStr = ""
+                   if (-not [string]::IsNullOrEmpty($repo.Alias)) {
+                       $aliasStr = " ($($repo.Alias))"
+                   }
+                   
+                   # Container count - Robust check
+                   $countStr = ""
+                   if ($repo.IsContainer) {
+                       $countVal = if ($null -ne $repo.ContainerRepoCount) { $repo.ContainerRepoCount } else { 0 }
+                       $countStr = " ($countVal)"
+                   }
+                   
+                   # Colors logic
+                   $baseColor = [Constants]::ColorRepo
+                   
+                   if ($repo.IsContainer) { 
+                        $baseColor = [Constants]::ColorContainer 
+                   }
+                   
+                   if ($isSelected) { 
+                        $baseColor = [Constants]::ColorSelected 
+                   } elseif ($repo.IsFavorite) {
+                        # Only show favorite color if not selected (and not container override? usually favorite overrides repo color)
+                        $baseColor = [Constants]::ColorFavorite
+                   }
+                   
+                   # Safety for null color
+                   if ($null -eq $baseColor) { $baseColor = [Constants]::ColorRepo }
+
+                   # Construct line
+                   $capturedConsole.ClearLine()
+                   $line = "  $prefix $icon $text$aliasStr$countStr"
+                   
+                   try {
+                       $capturedConsole.WriteLineColored($line, $baseColor)
+                   } catch {
+                       # Fallback if color is somehow invalid
+                       $capturedConsole.WriteLineColored($line, [ConsoleColor]::Gray)
+                   }
+                   
+                } else {
+                   # Fallback for missing items or strings
+                   $capturedConsole.ClearLine()
+                   $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+                   # Ensure color is valid
+                   if ($null -eq $color) { $color = [ConsoleColor]::Gray }
+                   
+                   $displayText = if ($option.DisplayText) { $option.DisplayText } else { $option.Value }
+                   $capturedConsole.WriteLineColored("  $prefix $displayText", $color)
+                }
             }
             
             $selector = [OptionSelector]::new($this.Console, $this.Renderer)
-            # Pass null for currentValue (no pre-selection)
-            # Pass onSelectionChanged as last argument
-            $selectedPath = $selector.ShowSelection($title, $options, $null, $cancelText, $false, $description, [Constants]::ColorInfo, $true, $onSelectionChanged)
+            # Pass onRenderItem as last argument
+            $selectedResult = $selector.ShowSelection($title, $options, $null, $cancelText, $false, $description, [Constants]::ColorInfo, $true, $onSelectionChanged, $onRenderItem)
+            
+            $selectedPath = if ($null -ne $selectedResult) { 
+                if ($selectedResult -is [RepositoryModel]) { $selectedResult.FullPath } else { $selectedResult }
+            } else { $null }
             
             if ($null -eq $selectedPath) {
                 $running = $false
