@@ -118,8 +118,9 @@ class OptionSelector {
             while ($running) {
                 # Calculate available height dynamically (in case of resize)
                 $windowHeight = $this.Console.GetWindowHeight()
-                # Reserve space for Footer (4 lines: Newline, Cancel, Newline, Hint)
-                $reservedFooter = 4
+                # Reserve space for Footer (Safe margin: 6 lines)
+                # Structure: Newline, Cancel, Newline, Newline, Hint -> 5 lines + 1 safety
+                $reservedFooter = 6
                 $availableHeight = $windowHeight - $listStartTop - $reservedFooter
                 
                 # Ensure at least 1 line is visible, otherwise we can't do anything
@@ -177,10 +178,10 @@ class OptionSelector {
                     
                     # Scroll indicators (if content is hidden)
                     if ($i -eq 0 -and $viewportStart -gt 0) {
-                         $displayLine += " ([char]0x2191)" # Up arrow
+                         $displayLine += " $([char]0x2191)" # Up arrow
                     }
                     if ($i -eq ($pageSize - 1) -and ($viewportStart + $pageSize) -lt $options.Count) {
-                         $displayLine += " ([char]0x2193)" # Down arrow
+                         $displayLine += " $([char]0x2193)" # Down arrow
                     }
                     
                     $isColorPreview = $false
