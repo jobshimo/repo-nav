@@ -156,6 +156,10 @@ class GitFlowCommand : INavigationCommand {
                         } else {
                              $statusColor = [Constants]::ColorSuccess
                         }
+                    } elseif ($flow -eq $optFlow2) {
+                        $quickResult = $this.InvokeQuickChangeFlow($context, $repo)
+                        $statusMessage = $quickResult
+                        $statusColor = [Constants]::ColorHint
                     } else {
                         $fmtNotImpl = $this.GetLoc($context, "Flow.Status.NotImplemented", "Selected Flow: {0} (Not implemented)")
                         $statusMessage = $fmtNotImpl -f $flow
@@ -174,6 +178,11 @@ class GitFlowCommand : INavigationCommand {
 
     hidden [string] InvokeIntegrationFlow($context, $repo, $gitService, $selector) {
         $controller = [IntegrationFlowController]::new($context, $repo, $gitService, $selector)
+        return $controller.Start()
+    }
+
+    hidden [string] InvokeQuickChangeFlow($context, $repo) {
+        $controller = [QuickChangeFlowController]::new($context, $repo)
         return $controller.Start()
     }
 }

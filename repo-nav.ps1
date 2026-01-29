@@ -125,6 +125,7 @@ $srcPath = Join-Path $scriptRoot "src"
 
 # Controllers (Depend on CommandContext)
 . "$srcPath\Core\Flows\IntegrationFlowController.ps1"
+. "$srcPath\Core\Flows\QuickChangeFlowController.ps1"
 
 # Commands (Interfaces and Implementations)
 . "$srcPath\Core\Commands\INavigationCommand.ps1"
