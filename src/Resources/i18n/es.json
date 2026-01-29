@@ -267,5 +267,20 @@
     "Flow.Init.Fetching": "Obteniendo remotos...",
     "Flow.Init.Title": "FLUJO DE INTEGRACIÓN: INICIALIZANDO",
     "Flow.Op.Creating": "Creando '{0}' desde '{1}'...",
-    "Flow.Op.Merging": "Fusionando '{0}'..."
+    "Flow.Op.Merging": "Fusionando '{0}'...",
+
+    "Flow.Error.NoBranches": "No se encontraron ramas",
+    "Flow.Option.Integrate": "Integrar",
+    "Flow.Option.Flow2": "Flujo 2 (Dev)",
+    "Flow.Option.Flow3": "Flujo 3 (Release)",
+    "Flow.Error.CheckoutUncommitted": "Error: No se puede cambiar a '{0}'. Tienes cambios sin confirmar.",
+    "Flow.Status.CheckoutSuccess": "Cambiado a '{0}' exitosamente.",
+    "Flow.Error.CheckoutFailed": "Error al cambiar de rama: {0}",
+    "Flow.Status.NotImplemented": "Flujo seleccionado: {0} (No implementado)",
+    
+    "Status.Done": " HECHO",
+    "Status.Failed": " FALLÓ",
+    "Flow.Warning.RunningWithoutCommit": "  Ejecutando sin confirmar...",
+    "Flow.Warning.SkipNoUrl": " OMITIR (Sin URL)",
+    "Error.Unreachable": "Error: Código inalcanzable"
 }

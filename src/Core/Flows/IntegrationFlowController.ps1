@@ -94,7 +94,7 @@ class IntegrationFlowController {
                 }
             }
         }
-        return "Error: Unreachable Code"
+        return $this.Context.LocalizationService.Get("Error.Unreachable", "Error: Unreachable Code")
     }
     
     hidden [void] Initialize() {
@@ -108,7 +108,7 @@ class IntegrationFlowController {
         
         $fetchRes = $this.GitService.Fetch($this.Repo.FullPath)
         if ($fetchRes.Success) {
-            $this.Context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
+            $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Done", " DONE"), [Constants]::ColorSuccess)
         } else {
             $msgFail = $this.Context.LocalizationService.Get("Flow.Warning.FetchFailed", "WARNING: Fetch failed")
             $this.Context.Console.WriteLineColored(" $msgFail", [Constants]::ColorWarning)
@@ -200,7 +200,7 @@ class IntegrationFlowController {
          
          $createRes = $this.GitService.CreateBranch($this.Repo.FullPath, $newBranchName, $targetBranch)
          if (-not $createRes.Success) {
-              $this.Context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
+              $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Failed", " FAILED"), [Constants]::ColorError)
               $this.Context.Console.WriteLineColored("  $($createRes.Output)", [Constants]::ColorError)
               $fmtErr = $this.Context.LocalizationService.Get("Flow.Error.CreateFailed", "Failed to create branch '{0}': {1}")
               
@@ -210,7 +210,7 @@ class IntegrationFlowController {
               
               return "Error: " + [string]::Format($fmtErr, $newBranchName, $createRes.Output)
          }
-         $this.Context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
+         $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Done", " DONE"), [Constants]::ColorSuccess)
          
          # 2. Merge Source
          $fmtMerge = $this.Context.LocalizationService.Get("Flow.Op.Merging", "Merging '{0}'...")
@@ -219,7 +219,7 @@ class IntegrationFlowController {
          
          $mergeRes = $this.GitService.Merge($this.Repo.FullPath, $sourceBranch)
          if (-not $mergeRes.Success) {
-             $this.Context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
+             $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Failed", " FAILED"), [Constants]::ColorError)
              $this.Context.Console.WriteLineColored("  $($mergeRes.Output)", [Constants]::ColorError)
              if ($mergeRes.Output -match "CONFLICT") {
                  $msgConflict = $this.Context.LocalizationService.Get("Flow.Error.Conflict", "Please resolve conflicts in IDE.")
@@ -233,7 +233,7 @@ class IntegrationFlowController {
              
              return "Error: " + [string]::Format($fmtErr, $mergeRes.Output)
          }
-         $this.Context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
+         $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Done", " DONE"), [Constants]::ColorSuccess)
 
          # 3. Version Check (Logic reused)
          $this.HandleVersionBump($newBranchName)
@@ -243,7 +243,7 @@ class IntegrationFlowController {
          $this.Context.Console.WriteColored("  $msgPush", [Constants]::ColorHint)
          $pushRes = $this.GitService.Push($this.Repo.FullPath, $newBranchName)
          if (-not $pushRes.Success) {
-             $this.Context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
+             $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Failed", " FAILED"), [Constants]::ColorError)
              $this.Context.Console.WriteLineColored("  $($pushRes.Output)", [Constants]::ColorError)
              $fmtErr = $this.Context.LocalizationService.Get("Flow.Error.PushFailed", "Push failed: {0}")
              
@@ -253,7 +253,7 @@ class IntegrationFlowController {
              
              return "Error: " + [string]::Format($fmtErr, $pushRes.Output)
          }
-         $this.Context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
+         $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Done", " DONE"), [Constants]::ColorSuccess)
          
          # 5. PR URL
          $this.HandlePullRequest($newBranchName)
@@ -295,7 +295,7 @@ class IntegrationFlowController {
                      $setRes = $npmService.SetVersion($this.Repo.FullPath, $newVersion)
                      
                      if ($setRes.Success) {
-                         $this.Context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
+                         $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Done", " DONE"), [Constants]::ColorSuccess)
                          
                          $msgCommitting = $this.Context.LocalizationService.Get("Flow.CommitVersionBump", "Committing version bump...")
                          $this.Context.Console.WriteColored("  $msgCommitting", [Constants]::ColorHint)
@@ -307,13 +307,13 @@ class IntegrationFlowController {
                          
                          $commitRes = $this.GitService.Commit($this.Repo.FullPath, "chore: bump version to $newVersion")
                          if ($commitRes.Success) {
-                             $this.Context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
+                             $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Done", " DONE"), [Constants]::ColorSuccess)
                          } else {
-                             $this.Context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
-                             $this.Context.Console.WriteLineColored("  Running without commit...", [Constants]::ColorWarning)
+                             $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Failed", " FAILED"), [Constants]::ColorError)
+                             $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Flow.Warning.RunningWithoutCommit", "  Running without commit..."), [Constants]::ColorWarning)
                          }
                      } else {
-                         $this.Context.Console.WriteLineColored(" FAILED", [Constants]::ColorError)
+                         $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Failed", " FAILED"), [Constants]::ColorError)
                      }
                  }
              }
@@ -326,7 +326,7 @@ class IntegrationFlowController {
         $repoUrl = $this.GitService.GetRepoUrl($this.Repo.FullPath)
         
         if (-not [string]::IsNullOrWhiteSpace($repoUrl)) {
-            $this.Context.Console.WriteLineColored(" DONE", [Constants]::ColorSuccess)
+            $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Status.Done", " DONE"), [Constants]::ColorSuccess)
             $prUrl = "{0}/compare/{1}?expand=1" -f $repoUrl, $branchName
             
             $this.Context.Console.NewLine()
@@ -336,7 +336,7 @@ class IntegrationFlowController {
                 Start-Process $prUrl
             }
         } else {
-            $this.Context.Console.WriteLineColored(" SKIP (No URL)", [Constants]::ColorWarning)
+            $this.Context.Console.WriteLineColored($this.Context.LocalizationService.Get("Flow.Warning.SkipNoUrl", " SKIP (No URL)"), [Constants]::ColorWarning)
             $this.Context.Console.NewLine()
             $msgNoUrl = $this.Context.LocalizationService.Get("Flow.Error.PrUrlNotFound", "[i] Could not determine Pull Request URL.")
             $this.Context.Console.WriteLineColored("  $msgNoUrl", [Constants]::ColorHint)

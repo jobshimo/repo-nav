@@ -65,8 +65,9 @@ class GitFlowCommand : INavigationCommand {
             
             while ($loop) {
                 $branches = $gitService.GetBranches($repo.FullPath)
+                $errNoBranches = $this.GetLoc($context, "Flow.Error.NoBranches", "No branches found")
                 if ($branches.Count -eq 0) {
-                    $context.Console.WriteError("No branches found") 
+                    $context.Console.WriteError($errNoBranches) 
                     Start-Sleep -Milliseconds 1000
                     return
                 }
@@ -75,8 +76,11 @@ class GitFlowCommand : INavigationCommand {
                 $selectBaseTitle = $this.GetLoc($context, "Flow.SelectBase", "SELECT BRANCH")
                 $selectBasePrompt = $this.GetLoc($context, "Flow.SelectBasePrompt", "From Branch")
                 
-                # Header Options (Defined closer to usage or in a constant if shared)
-                $flowOptions = @("Integrate", "flow2", "flow3")
+                # Header Options
+                $optIntegrate = $this.GetLoc($context, "Flow.Option.Integrate", "Integrate")
+                $optFlow2 = $this.GetLoc($context, "Flow.Option.Flow2", "Flow 2")
+                $optFlow3 = $this.GetLoc($context, "Flow.Option.Flow3", "Flow 3")
+                $flowOptions = @($optIntegrate, $optFlow2, $optFlow3)
                 
                 # Current Branch Info
                 $currentBranch = $gitService.GetCurrentBranch($repo.FullPath)
@@ -117,36 +121,44 @@ class GitFlowCommand : INavigationCommand {
                     $hasChanges = $gitService.HasUncommittedChanges($repo.FullPath)
                     
                     if ($hasChanges) {
-                        $statusMessage = "Error: Cannot checkout '$selectedBranch'. You have uncommitted changes."
+                        $fmtErr = $this.GetLoc($context, "Flow.Error.CheckoutUncommitted", "Error: Cannot checkout '{0}'. You have uncommitted changes.")
+                        $statusMessage = $fmtErr -f $selectedBranch
                         $statusColor = [Constants]::ColorError
                     } else {
                         $result = $gitService.Checkout($repo.FullPath, $selectedBranch)
                         if ($result.Success) {
-                            $statusMessage = "Checked out '$selectedBranch' successfully."
+                            $fmtSuccess = $this.GetLoc($context, "Flow.Status.CheckoutSuccess", "Checked out '{0}' successfully.")
+                            $statusMessage = $fmtSuccess -f $selectedBranch
                             $statusColor = [Constants]::ColorSuccess
                         } else {
                              # Clean up error message if possible
                              $err = if ($result.Output) { $result.Output } else { "Unknown error" }
-                             $statusMessage = "Error: $err"
+                             $fmtErr = $this.GetLoc($context, "Flow.Error.CheckoutFailed", "Error checking out: {0}")
+                             $statusMessage = $fmtErr -f $err
                              $statusColor = [Constants]::ColorError
                         }
                     }
                 }
                 elseif ($selection.Type -eq "Header") {
                     $flow = $selection.Value
-                    if ($flow -eq "Integrate") {
+                    
+                    if ($flow -eq $optIntegrate) {
                         $integrationResult = $this.InvokeIntegrationFlow($context, $repo, $gitService, $selector)
                         # After flow, show result
                         $statusMessage = $integrationResult
+                        
+                        $cancelledMsg = $this.GetLoc($context, "Flow.Status.Cancelled", "Integration Cancelled")
+                        
                         if ($statusMessage -like "Error*") {
                              $statusColor = [Constants]::ColorError
-                        } elseif ($statusMessage -eq "Integration Cancelled") {
+                        } elseif ($statusMessage -eq $cancelledMsg) {
                              $statusColor = [Constants]::ColorWarning
                         } else {
                              $statusColor = [Constants]::ColorSuccess
                         }
                     } else {
-                        $statusMessage = "Selected Flow: $flow (Not implemented)"
+                        $fmtNotImpl = $this.GetLoc($context, "Flow.Status.NotImplemented", "Selected Flow: {0} (Not implemented)")
+                        $statusMessage = $fmtNotImpl -f $flow
                         $statusColor = [Constants]::ColorWarning
                     }
                 }
