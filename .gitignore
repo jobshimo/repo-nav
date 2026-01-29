@@ -4,6 +4,9 @@
 .repo-preferences.json
 .legacy/
 
+# Archivos generados (regenerar con Build-Bundle.ps1)
+repo-nav-bundle.ps1
+
 # Archivos de backup y legacy
 legacy/
 *.backup
