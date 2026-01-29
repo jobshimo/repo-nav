@@ -134,6 +134,9 @@ class OptionSelector {
                         $isColorPreview = $true
                     }
 
+                    # Clear line first to prevent ghosting
+                    $this.Console.ClearCurrentLine()
+
                     if ($isColorPreview) {
                         # Show color preview
                         $this.Console.WriteLineColored($displayLine, $option.Value)
@@ -143,8 +146,12 @@ class OptionSelector {
                 }
                 
                 $this.Console.NewLine()
+                $this.Console.ClearCurrentLine()
                 $this.Console.WriteLineColored("  $cancelText", [Constants]::ColorHint)
                 $this.Console.NewLine()
+                
+                $this.Console.NewLine()
+                $this.Console.ClearCurrentLine()
                 $this.Console.WriteLineColored("  Use Arrows to navigate | Enter to select | Q/Esc to cancel", [Constants]::ColorHint)
                 
                 # Wait for input

@@ -169,7 +169,7 @@ class GitFlowCommand : INavigationCommand {
             }
         }
         catch {
-             $context.Console.WriteError("Unexpected error in Flow: $_")
+             $context.Console.WriteLineColored("Unexpected error in Flow: $_", [Constants]::ColorError)
              $context.Console.ReadKey()
         }
         finally {
