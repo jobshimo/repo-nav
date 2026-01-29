@@ -51,17 +51,22 @@ param(
 
 #region Import Modules
 # ============================================================================
-# IMPORT SYSTEM - Manual Dependency Order
+# IMPORT SYSTEM - Layer-based Indices
 # ============================================================================
 # 
 # ⚠️  FOR AI ASSISTANTS & DEVELOPERS:
-#     When adding a NEW FILE, find the appropriate section below and add
-#     your dot-source line. Sections are organized by layer and dependency.
+#     When adding a NEW FILE, add it to the appropriate _index.ps1 file
+#     in the corresponding layer folder.
 #
-#     RULES:
-#     1. A file can ONLY use types defined in files ABOVE it
-#     2. If you get "TypeNotFound", move your import AFTER the type's file
-#     3. Models have NO dependencies, Services depend on Models, etc.
+#     LAYER ORDER (DO NOT CHANGE):
+#     1. Config      → src/Config/_index.ps1
+#     2. Models      → src/Models/_index.ps1
+#     3. Services    → src/Services/_index.ps1
+#     4. UI          → src/UI/_index.ps1
+#     5. Commands    → src/Core/Commands/_index.ps1
+#     6. Flows       → src/Core/Flows/_index.ps1 (includes GitFlowCommand)
+#     7. Engine      → src/Core/Engine/_index.ps1
+#     8. Startup     → src/Startup/_index.ps1
 #
 # ============================================================================
 
@@ -69,143 +74,68 @@ $scriptRoot = $PSScriptRoot
 $srcPath = Join-Path $scriptRoot "src"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 1: CONFIG (Loaded first - defines global constants)
+# LAYER 1: CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
-# ADD NEW CONFIG FILES HERE
-. "$srcPath\Config\Constants.ps1"
-. "$srcPath\Config\ColorPalette.ps1"
-
-# Initialize Constants with configuration
+. "$srcPath\Config\_index.ps1"
 [Constants]::Initialize($scriptRoot)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 2: MODELS (Pure data structures, no dependencies)
+# LAYER 2: MODELS
 # ─────────────────────────────────────────────────────────────────────────────
-# ADD NEW MODELS HERE (src/Models/*.ps1)
-. "$srcPath\Models\GitStatusModel.ps1"
-. "$srcPath\Models\AliasInfo.ps1"
-. "$srcPath\Models\RepositoryModel.ps1"
-. "$srcPath\Models\IntegrationFlowModel.ps1"
-. "$srcPath\Core\Common\OperationResult.ps1"
+. "$srcPath\Models\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 3: CORE INFRASTRUCTURE (Interfaces, State - minimal deps)
+# LAYER 3: CORE INFRASTRUCTURE (Interfaces + State)
 # ─────────────────────────────────────────────────────────────────────────────
-# ADD NEW INTERFACES HERE (src/Core/Interfaces/*.ps1)
 . "$srcPath\Core\Interfaces\IProgressReporter.ps1"
-
-# State - NavigationState needed early by many components
 . "$srcPath\Services\WindowSizeCalculator.ps1"
 . "$srcPath\Core\State\NavigationState.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 4: SERVICES (Business logic, external integrations)
+# LAYER 4: SERVICES
 # ─────────────────────────────────────────────────────────────────────────────
-# ADD NEW SERVICES HERE (src/Services/*.ps1)
-# Order: Base services first, then services that depend on them
-. "$srcPath\Services\ConfigurationService.ps1"
-. "$srcPath\Services\UserPreferencesService.ps1"
-. "$srcPath\Services\LocalizationService.ps1"
-. "$srcPath\Services\AliasManager.ps1"
-. "$srcPath\Services\GitReadService.ps1"
-. "$srcPath\Services\GitWriteService.ps1"
-. "$srcPath\Services\GitService.ps1"
-. "$srcPath\Services\NpmService.ps1"
-. "$srcPath\Services\ParallelGitLoader.ps1"
-. "$srcPath\Services\RepositoryOperationsService.ps1"
-. "$srcPath\Services\FavoriteService.ps1"
-. "$srcPath\Services\SearchService.ps1"
-. "$srcPath\Services\RenderOrchestrator.ps1"
-. "$srcPath\Services\LoggerService.ps1"
+. "$srcPath\Services\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 5: UI BASE & FRAMEWORK (Console helpers, base classes)
+# LAYER 5: UI (Base + Components + Services)
 # ─────────────────────────────────────────────────────────────────────────────
-# ADD NEW UI BASE CLASSES HERE
-. "$srcPath\UI\Base\ConsoleHelper.ps1"
-. "$srcPath\UI\Framework\ConsoleView.ps1"
+. "$srcPath\UI\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 6: UI COMPONENTS & VIEWS (Widgets, Renderers, Views)
+# LAYER 6: CORE MANAGERS
 # ─────────────────────────────────────────────────────────────────────────────
-# ADD NEW UI COMPONENTS HERE (src/UI/Components/*.ps1, src/UI/Views/*.ps1)
-# ViewModels first (used by Renderer)
-. "$srcPath\UI\ViewModels\RepositoryViewModel.ps1"
-. "$srcPath\UI\UIRenderer.ps1"
-. "$srcPath\UI\Components\ProgressIndicator.ps1"
-. "$srcPath\UI\Components\ColorSelector.ps1"
-. "$srcPath\UI\Components\OptionSelector.ps1"
-. "$srcPath\UI\Renderers\FilteredListRenderer.ps1"
-. "$srcPath\UI\Renderers\IntegrationFlowRenderer.ps1"
-. "$srcPath\UI\Components\FilteredListSelector.ps1"
-. "$srcPath\UI\Dashboards\IntegrationFlowDashboard.ps1"
-
-# UI Services (implements interfaces from Core)
-. "$srcPath\UI\Services\ConsoleProgressReporter.ps1"
-
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 7: CORE MANAGERS (Depend on Services + IProgressReporter)
-# ─────────────────────────────────────────────────────────────────────────────
-# ADD NEW CORE SERVICES/MANAGERS HERE (src/Core/Services/*.ps1)
 . "$srcPath\Core\Services\GitStatusManager.ps1"
 . "$srcPath\Core\Services\RepositorySorter.ps1"
 . "$srcPath\Core\RepositoryManager.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 8: UI CONTROLLERS & VIEWS (Depend on RepositoryManager)
+# LAYER 7: UI CONTROLLERS & VIEWS
 # ─────────────────────────────────────────────────────────────────────────────
-# ADD NEW CONTROLLERS/VIEWS HERE
 . "$srcPath\UI\Controllers\PreferencesMenuController.ps1"
 . "$srcPath\UI\Views\RepositoryManagementView.ps1"
 . "$srcPath\UI\Views\AliasView.ps1"
 . "$srcPath\UI\Views\SearchView.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 9: COMMAND SYSTEM (Depends on UI + Core)
+# LAYER 8: COMMAND SYSTEM
 # ─────────────────────────────────────────────────────────────────────────────
-# CommandContext - depends on UI types
 . "$srcPath\Core\State\CommandContext.ps1"
-
-# Command Interface + Implementations
-# ADD NEW COMMANDS HERE (src/Core/Commands/*.ps1)
-# Don't forget to register in CommandFactory.ps1 -> GetAllCommands()
-. "$srcPath\Core\Commands\INavigationCommand.ps1"
-. "$srcPath\Core\Commands\ExitCommand.ps1"
-. "$srcPath\Core\Commands\NavigationCommand.ps1"
-. "$srcPath\Core\Commands\RepositoryCommand.ps1"
-. "$srcPath\Core\Commands\GitCommand.ps1"
-. "$srcPath\Core\Commands\FavoriteCommand.ps1"
-. "$srcPath\Core\Commands\AliasCommand.ps1"
-. "$srcPath\Core\Commands\NpmCommand.ps1"
-. "$srcPath\Core\Commands\RepositoryManagementCommand.ps1"
-. "$srcPath\Core\Commands\PreferencesCommand.ps1"
-. "$srcPath\Core\Commands\CreateFolderCommand.ps1"
-. "$srcPath\Core\Commands\SearchCommand.ps1"
-# NOTE: GitFlowCommand is loaded AFTER Flows (Section 10) because it depends on them
+. "$srcPath\Core\Commands\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 10: FLOWS (Workflow controllers - depend on Commands + UI)
+# LAYER 9: FLOWS (includes GitFlowCommand)
 # ─────────────────────────────────────────────────────────────────────────────
-# ADD NEW FLOWS HERE (src/Core/Flows/*.ps1)
-. "$srcPath\Core\Flows\FlowControllerBase.ps1"
-. "$srcPath\Core\Flows\IntegrationFlowController.ps1"
-. "$srcPath\Core\Flows\QuickChangeFlowController.ps1"
-
-# GitFlowCommand MUST be loaded after Flows (uses IntegrationFlowController, QuickChangeFlowController)
-. "$srcPath\Core\Commands\GitFlowCommand.ps1"
+. "$srcPath\Core\Flows\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 11: ENGINE (Navigation loop - loaded last, drives everything)
+# LAYER 10: ENGINE
 # ─────────────────────────────────────────────────────────────────────────────
-. "$srcPath\Core\Engine\CommandFactory.ps1"
-. "$srcPath\Core\Engine\InputHandler.ps1"
-. "$srcPath\Core\Engine\NavigationLoop.ps1"
+. "$srcPath\Core\Engine\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECTION 12: STARTUP (DI Container, AppBuilder - depends on everything)
+# LAYER 11: STARTUP
 # ─────────────────────────────────────────────────────────────────────────────
-. "$srcPath\Startup\ServiceRegistry.ps1"
-. "$srcPath\App\AppBuilder.ps1"
+. "$srcPath\Startup\_index.ps1"
 
 #endregion
 
