@@ -34,9 +34,12 @@ class HideRepoCommand : INavigationCommand {
                 
                 # If hidden items are not shown, remove from current view locally to avoid full reload flicker
                 if (-not $context.HiddenReposService.GetShowHiddenState()) {
+                    # Convert to ArrayList for modification (arrays are fixed size)
+                    $newList = [System.Collections.ArrayList]::new($repos)
+                    
                     # Remove from observable list
-                    $repos.RemoveAt($currentIndex)
-                    $state.SetRepositories($repos)
+                    $newList.RemoveAt($currentIndex)
+                    $state.SetRepositories($newList)
                     
                     # Adjust index if needed
                     if ($currentIndex -ge $repos.Count) {
