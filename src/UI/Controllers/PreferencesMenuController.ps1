@@ -773,6 +773,11 @@ class PreferencesMenuController {
                     }
                 }
                 
+                # Check for Default
+                if ($preferences.repository.defaultPath -eq $p) {
+                    $display += " (Default)"
+                }
+                
                 if (-not $exists) { $display += " (Missing)" }
                 
                 $options += @{ Value = $p; DisplayText = $display }
@@ -844,6 +849,7 @@ class PreferencesMenuController {
                 
                 $mOpts = @(
                     @{ DisplayText = "Set Alias"; Value = "ALIAS" },
+                    @{ DisplayText = "Set as Default"; Value = "SET_DEFAULT" },
                     @{ DisplayText = "Remove Path"; Value = "REMOVE" }
                 )
                 
@@ -854,7 +860,12 @@ class PreferencesMenuController {
                 
                 $action = $selector.Show($actConfig)
                 
-                if ($action -eq "REMOVE") {
+                if ($action -eq "SET_DEFAULT") {
+                    $this.PreferencesService.SetPreference("repository", "defaultPath", $selectedPath)
+                     $statusMessage = "[Success] Default path set to: $selectedPath"
+                     $preferences = $this.PreferencesService.LoadPreferences()
+                }
+                elseif ($action -eq "REMOVE") {
                      $currentPaths = [array]$preferences.repository.paths
                      $newPaths = $currentPaths | Where-Object { $_ -ne $selectedPath }
                      

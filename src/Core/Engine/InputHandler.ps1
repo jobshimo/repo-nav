@@ -46,6 +46,36 @@ class InputHandler {
             throw "Context cannot be null"
         }
         
+        # --- Focus Management (Tab Navigation) ---
+        # --- Focus Management (Tab Navigation) ---
+        # Robust check for Tab: Key 'Tab', VirtualKeyCode 9, or Char 9
+        if ($keyPress.Key -eq 'Tab' -or $keyPress.VirtualKeyCode -eq 9 -or $keyPress.KeyChar -eq [char]9) {
+            $context.State.ToggleFocus()
+            return $true
+        }
+        
+        # Header Focus Input Handling
+        if ($context.State.IsHeaderFocused()) {
+            if ($keyPress.Key -eq 'Enter') {
+                # Delegate to SwitchPathCommand (Simulate 'P')
+                $fakeKey = [PSCustomObject]@{ Key = 'P'; KeyChar = 'P'; Modifiers = 0 }
+                $cmd = $this.factory.FindCommand($fakeKey, $context)
+                if ($null -ne $cmd) {
+                    $cmd.Execute($fakeKey, $context)
+                    return $true
+                }
+            }
+            elseif ($keyPress.Key -eq 'Escape' -or $keyPress.VirtualKeyCode -eq 27 -or $keyPress.KeyChar -eq [char]27) {
+                $context.State.SetFocus("List")
+                return $true
+            }
+            elseif ($keyPress.Key -eq 'UpArrow' -or $keyPress.Key -eq 'DownArrow') {
+                 # Consume navigation keys when focus is on Header
+                 return $true
+            }
+        }
+        
+        # Generic Dispatch (List Focus or Global Commands)
         # Find a command that can execute this key press
         $command = $this.factory.FindCommand($keyPress, $context)
         

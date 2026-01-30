@@ -180,7 +180,19 @@ class RenderOrchestrator {
             }
         }
         
-        $this.Renderer.RenderHeader($headerText, $subText, $highlight, $highlightColor)
+        # Focus Visualization
+        $borderColor = [Constants]::ColorSeparator
+        if ($state.IsHeaderFocused()) {
+            $borderColor = [Constants]::ColorFavorite
+            if ([string]::IsNullOrEmpty($highlight)) {
+                $highlight = "Enter: Switch Path"
+                $highlightColor = [Constants]::ColorInfo
+            } else {
+                $highlight += " | Enter: Switch Path"
+            }
+        }
+        
+        $this.Renderer.RenderHeader($headerText, $subText, $highlight, $highlightColor, $borderColor)
         
         # Render breadcrumb if we're inside a container
         $breadcrumbLines = 0

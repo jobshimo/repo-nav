@@ -14,6 +14,9 @@ class SwitchPathCommand : INavigationCommand {
         $preferences = $context.PreferencesService.LoadPreferences()
         $paths = if ($preferences.repository.paths) { $preferences.repository.paths } else { @() }
         $currentPath = $context.BasePath
+        
+        # Initialize variables
+        $inputPath = $null
 
         # Build options
         $options = @()
@@ -27,8 +30,21 @@ class SwitchPathCommand : INavigationCommand {
             # For now, just show it as an option so user knows where they are
         }
         
+        $pathAliases = if ($preferences.repository.pathAliases) { $preferences.repository.pathAliases } else { ([PSCustomObject]@{}) }
+        
         foreach ($p in $paths) {
-             $displayText = $p
+             # Resolve Alias
+             $displayAlias = ""
+             if ($pathAliases.$p) { 
+                 $aliasVal = $pathAliases.$p
+                 if ($aliasVal -is [string]) {
+                     $displayAlias = " [$aliasVal]"
+                 } elseif ($aliasVal.PSObject.Properties.Name -contains 'Text') {
+                     $displayAlias = " [$($aliasVal.Text)]"
+                 }
+             }
+        
+             $displayText = "$p$displayAlias"
              if ($p -eq $currentPath) {
                  $displayText += " (Current)"
              }
@@ -38,11 +54,8 @@ class SwitchPathCommand : INavigationCommand {
              $options += @{ Value = $p; DisplayText = $displayText }
         }
         
-        if ($options.Count -eq 0) {
-            $context.Renderer.RenderWarning("No additional repository paths configured. Go to Preferences > Manage Repository Paths.")
-            Start-Sleep -Seconds 1
-            return
-        }
+        # Always add option to type custom path
+        $options += @{ Value = "TYPE_CUSTOM"; DisplayText = "[+] Type Custom Path..." }
         
         $config = [SelectionOptions]::new()
         $config.Title = "Switch Repository Path"
@@ -53,8 +66,26 @@ class SwitchPathCommand : INavigationCommand {
         
         $selectedPath = $context.OptionSelector.Show($config)
         
-        if ($null -ne $selectedPath -and $selectedPath -ne $currentPath) {
+        if ($selectedPath -eq "TYPE_CUSTOM") {
+            $context.Console.ClearScreen()
+            $context.Renderer.RenderHeader("SWITCH PATH")
+            Write-Host ""
+            Write-Host "  Enter absolute path:" -ForegroundColor Yellow
+            $context.Console.ShowCursor()
+            $inputPath = Read-Host "  > "
+            $context.Console.HideCursor()
+            
+            if (-not [string]::IsNullOrWhiteSpace($inputPath)) {
+                $selectedPath = $inputPath
+            } else {
+                return 
+            }
+        }
+        
+        if ($null -ne $selectedPath -and ($selectedPath -ne $currentPath -or $selectedPath -eq $inputPath)) {
+            # Normalize
             if (Test-Path $selectedPath) {
+                $selectedPath = (Resolve-Path $selectedPath).Path
                 $context.Renderer.RenderSuccess("Switching to: $selectedPath")
                 
                 # Update Context and State
@@ -79,6 +110,9 @@ class SwitchPathCommand : INavigationCommand {
                 $context.State.ViewportStart = 0
                 $context.State.SelectionChanged = $false
                 $context.State.MarkForFullRedraw()
+                
+                # 6. Ensure this new path is in preferences (if it was typed manually)
+                $context.PreferencesService.EnsurePathInPreferences($selectedPath)
                 
             } else {
                 $context.Renderer.RenderError("Path not found: $selectedPath")

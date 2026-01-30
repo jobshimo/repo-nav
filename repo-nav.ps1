@@ -180,9 +180,21 @@ function Start-RepositoryNavigator {
 #region Execute
 # When script is run directly (not dot-sourced), start the navigator
 if ($MyInvocation.InvocationName -ne '.') {
-    # Use provided BasePath or default from Constants
+    # Use provided BasePath or default from Constants/Preferences
     if (-not $BasePath) {
-        $BasePath = [Constants]::ReposBasePath
+        # Try to load from preferences
+        try {
+            $tempPrefs = [UserPreferencesService]::new()
+            $defPath = $tempPrefs.GetPreference("repository", "defaultPath")
+            if (-not [string]::IsNullOrWhiteSpace($defPath) -and (Test-Path $defPath)) {
+                $BasePath = $defPath
+            }
+        } catch {}
+        
+        # Fallback to default constant if still empty
+        if (-not $BasePath) {
+            $BasePath = [Constants]::ReposBasePath
+        }
     }
     
     # Start the navigator

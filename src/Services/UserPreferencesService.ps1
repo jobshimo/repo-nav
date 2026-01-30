@@ -105,7 +105,17 @@ class UserPreferencesService {
         }
         
         if (-not ($preferences.general.PSObject.Properties.Name -contains 'language')) {
+
             $preferences.general | Add-Member -NotePropertyName 'language' -NotePropertyValue "en" -Force
+        }
+        
+        # Repository Section
+        if (-not ($preferences.PSObject.Properties.Name -contains 'repository')) {
+            $preferences | Add-Member -NotePropertyName 'repository' -NotePropertyValue ([PSCustomObject]@{}) -Force
+        }
+        
+        if (-not ($preferences.repository.PSObject.Properties.Name -contains 'defaultPath')) {
+            $preferences.repository | Add-Member -NotePropertyName 'defaultPath' -NotePropertyValue "" -Force
         }
 
         # Display Section
