@@ -120,7 +120,7 @@ class OptionSelector : ConsoleView {
             $viewportStart = 0
             # Reserve space for Footer (Safe margin: 6 lines + optional detail space)
             # Structure: Newline, Cancel, Newline, Newline, Hint -> 5 lines + 1 safety
-            $reservedFooter = 8 # Increased to allow space for detail
+            $reservedFooter = 12 # Increased safety margin to prevent scrolling
             
             # Force first render logic
             $forceRender = $true
@@ -208,14 +208,13 @@ class OptionSelector : ConsoleView {
                 
                 # Render keys hint at the very bottom or fixed position? 
                 # Let's put it after the detail area.
-                $this.Console.Write("`n`n")
-                $this.ClearLine()
-                $this.WriteLineColored("  Use Arrows | Enter | Q/Esc", [Constants]::ColorMenuText)
-                
-                # Clear line below just in case
+                # Render keys hint
                 $this.NewLine()
                 $this.ClearLine()
-                $this.Console.SetCursorPosition(0, $this.Console.GetCursorTop() - 1)
+                # Hint: Use WriteLineColored carefully. 
+                # If we are strictly at the bottom, this might scroll.
+                # Since we reserve space, it should be fine.
+                $this.WriteLineColored("  Use Arrows | Enter | Q/Esc", [Constants]::ColorMenuText)
                 
                 $lastSelectedIndex = $selectedIndex
                 $forceRender = $false
