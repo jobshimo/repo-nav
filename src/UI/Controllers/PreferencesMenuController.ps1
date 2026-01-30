@@ -868,8 +868,20 @@ class PreferencesMenuController {
                      $preferences = $this.PreferencesService.LoadPreferences()
                 }
                 elseif ($action -eq "REMOVE") {
-                     # Use PathManager for safe path removal
-                     $this.PathManager.RemovePath($selectedPath)
+                     # Use PathManager for safe path removal (with fallback)
+                     if ($null -ne $this.PathManager) {
+                         $this.PathManager.RemovePath($selectedPath)
+                     } else {
+                         # Fallback: manual removal
+                         $currentPaths = @($preferences.repository.paths | Where-Object { $_ -ne $selectedPath -and -not [string]::IsNullOrWhiteSpace($_) })
+                         $this.PreferencesService.SetPreference("repository", "paths", $currentPaths)
+                         
+                         # Clear defaultPath if needed
+                         if ($preferences.repository.defaultPath -eq $selectedPath -or $currentPaths.Count -eq 0) {
+                             $newDefault = if ($currentPaths.Count -gt 0) { $currentPaths[0] } else { "" }
+                             $this.PreferencesService.SetPreference("repository", "defaultPath", $newDefault)
+                         }
+                     }
                      
                      # Also remove alias if exists
                      if ($preferences.repository.pathAliases.$selectedPath) {
