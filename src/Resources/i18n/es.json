@@ -325,5 +325,14 @@
     "Pref.PathDisplay": "Modo Visualización Ruta",
     "Pref.PathDisplay.Path": "Solo Ruta",
     "Pref.PathDisplay.Alias": "Solo Alias",
-    "Pref.PathDisplay.Both": "Ruta y Alias"
+    "Pref.PathDisplay.Both": "Ruta y Alias",
+    
+    "Onboarding.Title": "BIENVENIDO A REPO-NAV",
+    "Onboarding.NoRepos": "No se encontraron repositorios en: {0}",
+    "Onboarding.InitialSetup": "Se requiere configuración inicial.",
+    "Onboarding.PromptConfig": "¿Quieres configurar una ruta de repositorios ahora?",
+    "Onboarding.EnterPath": "Introduce la ruta absoluta de tus repositorios:",
+    "Onboarding.InvalidPath": "Ruta inválida.",
+    "Onboarding.Success": "¡Ruta configurada! Cargando...",
+    "Onboarding.ErrorLoad": "Fallo al cargar repositorios de: {0}"
 }

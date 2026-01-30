@@ -38,48 +38,16 @@ function Start-NavigationLoop {
     
     $repos = $RepoManager.GetRepositories()
     if ($repos.Count -eq 0) {
-        $Console.ClearScreen()
-        $Renderer.RenderHeader("WELCOME TO REPO-NAV")
-        Write-Host ""
+        $OnboardingService = $Context.OnboardingService
+        $newPath = $OnboardingService.HandleEmptyState($BasePath)
         
-        $msg = if ([string]::IsNullOrWhiteSpace($BasePath)) { "Initial setup required." } else { "No repositories found in: $BasePath" }
-        $Renderer.RenderWarning("  $msg")
-        Write-Host ""
-        
-        if ($OptionSelector.SelectYesNo("Would you like to configure a repository path now?", $LocalizationService, $false)) {
-            $Console.ShowCursor()
-            Write-Host ""
-            Write-Host "  Enter absolute path to your repositories:" -ForegroundColor Yellow
-            $newPath = Read-Host "  > "
-            $Console.HideCursor()
-            
-            $newPath = $newPath.TrimStart('"').TrimEnd('"')
-            
-            if (-not [string]::IsNullOrWhiteSpace($newPath) -and (Test-Path $newPath)) {
-                $resolvedPath = (Resolve-Path $newPath).Path
-                
-                # Update Context
-                $Context.BasePath = $resolvedPath
-                
-                # Save to Preferences
-                $PreferencesService.EnsurePathInPreferences($resolvedPath)
-                $PreferencesService.SetPreference("repository", "defaultPath", $resolvedPath)
-                
-                $Renderer.RenderSuccess("Path configured! Loading...")
-                Start-Sleep -Seconds 1
-                
-                # Recursive restart with updated context
-                Start-NavigationLoop -Context $Context
-                return
-            } else {
-                $Renderer.RenderError("Invalid path provided.")
-                Start-Sleep -Seconds 2
-                return
-            }
-        } else {
-            return
+        if ($newPath) {
+            $Context.BasePath = $newPath
+            Start-NavigationLoop -Context $Context
         }
+        return
     }
+
     
     try {
         $Console.HideCursor()

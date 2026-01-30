@@ -86,6 +86,16 @@ class AppBuilder {
         $colorSelector = [ColorSelector]::new($renderer, $consoleHelper, $optionSelector)
         [ServiceRegistry]::Register('ColorSelector', $colorSelector)
         
+        # 5b. Onboarding Service
+        $onboardingService = [OnboardingService]::new(
+            $renderer,
+            $consoleHelper,
+            $localizationService,
+            $optionSelector,
+            $preferencesService
+        )
+        [ServiceRegistry]::Register('OnboardingService', $onboardingService)
+        
         # 6. Infrastructure (Logger)
         $logger = [LoggerService]::new([Constants]::ScriptRoot)
         [ServiceRegistry]::Register('LoggerService', $logger)
@@ -98,6 +108,7 @@ class AppBuilder {
             Logger              = $logger
             ColorSelector       = $colorSelector
             OptionSelector      = $optionSelector
+            OnboardingService   = $onboardingService
             LocalizationService = $localizationService
             PreferencesService  = $preferencesService
             HiddenReposService  = [ServiceRegistry]::Resolve('HiddenReposService')

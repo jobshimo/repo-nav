@@ -106,6 +106,7 @@ $srcPath = Join-Path $scriptRoot "src"
 # ─────────────────────────────────────────────────────────────────────────────
 . "$srcPath\Core\Services\GitStatusManager.ps1"
 . "$srcPath\Core\Services\RepositorySorter.ps1"
+. "$srcPath\Core\Services\OnboardingService.ps1"
 . "$srcPath\Core\RepositoryManager.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
