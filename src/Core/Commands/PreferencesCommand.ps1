@@ -20,11 +20,16 @@ class PreferencesCommand : INavigationCommand {
             $controller = [PreferencesMenuController]::new($context)
             $controller.Show()
             
-            # Use PathManager as Single Source of Truth
+            # Use PathManager as Single Source of Truth (with null guard)
             $pathManager = $context.PathManager
-            $pathManager.Refresh()  # Sync from file after preferences changes
-            
-            $newDefaultPath = $pathManager.GetCurrentPath()
+            if ($null -ne $pathManager) {
+                $pathManager.Refresh()  # Sync from file after preferences changes
+                $newDefaultPath = $pathManager.GetCurrentPath()
+            } else {
+                # Fallback to direct preferences read if PathManager not available
+                $prefs = $context.PreferencesService.LoadPreferences()
+                $newDefaultPath = $prefs.repository.defaultPath
+            }
             
             # Check if we still have a valid path
             if ([string]::IsNullOrWhiteSpace($newDefaultPath)) {
@@ -34,7 +39,7 @@ class PreferencesCommand : INavigationCommand {
                 return
             }
             
-            # Update context with new path (PathManager is authoritative)
+            # Update context with new path
             $context.BasePath = $newDefaultPath
             
             # Reload repositories with the updated path
@@ -50,12 +55,10 @@ class PreferencesCommand : INavigationCommand {
                 # Reset selection to first item after preference changes
                 $state.SetCurrentIndex(0)
             }
-            
-            # Mark for full redraw
-            $state.MarkForFullRedraw()
         }
         finally {
-            # Resume navigation loop
+            # ALWAYS mark for full redraw and resume, even if error occurred
+            $state.MarkForFullRedraw()
             $state.Resume()
         }
     }
