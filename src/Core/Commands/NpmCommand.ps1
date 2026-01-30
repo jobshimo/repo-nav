@@ -180,7 +180,8 @@ class NpmCommand : INavigationCommand {
         $view.ClearAndRenderHeader("Removing", $repo)
         if (-not ($view.ConfirmRemoval("node_modules"))) {
             $view.ShowOperationCancelled()
-            return $false
+            # Return true = screen was modified, needs refresh even though cancelled
+            return $true
         }
         $removeLock = $false
         if ($service.HasPackageLock($repo.FullPath)) {
