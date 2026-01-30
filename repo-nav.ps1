@@ -192,10 +192,7 @@ if ($MyInvocation.InvocationName -ne '.') {
             }
         } catch {}
         
-        # 2. Fallback to script parent directory (standard behavior)
-        if (-not $BasePath) {
-             $BasePath = (Split-Path -Parent $PSScriptRoot)
-        }
+    
     }
     
     # Start the navigator

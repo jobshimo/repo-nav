@@ -90,11 +90,11 @@ class AppBuilder {
         $renderer = [UIRenderer]::new($consoleHelper, $preferencesService, $localizationService)
         [ServiceRegistry]::Register('UIRenderer', $renderer)
         
-        $colorSelector = [ColorSelector]::new($renderer, $consoleHelper)
-        [ServiceRegistry]::Register('ColorSelector', $colorSelector)
-        
         $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
         [ServiceRegistry]::Register('OptionSelector', $optionSelector)
+        
+        $colorSelector = [ColorSelector]::new($renderer, $consoleHelper, $optionSelector)
+        [ServiceRegistry]::Register('ColorSelector', $colorSelector)
         
         # 6. Infrastructure (Logger)
         $logger = [LoggerService]::new([Constants]::ScriptRoot)
