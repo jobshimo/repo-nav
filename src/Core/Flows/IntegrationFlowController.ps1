@@ -15,6 +15,34 @@ class IntegrationFlowController : FlowControllerBase {
     }
 
     [string] Start() {
+        # 0. Check for uncommitted changes BEFORE doing anything
+        $hasChanges = $this.GitService.HasUncommittedChanges($this.Repo.FullPath)
+        if ($hasChanges) {
+            $this.Context.Console.ClearScreen()
+            $warningTitle = $this.Context.LocalizationService.Get("Flow.Error.UncommittedTitle", "UNCOMMITTED CHANGES DETECTED")
+            $this.Context.Renderer.RenderHeader($warningTitle)
+            $this.Context.Console.NewLine()
+            
+            $currentBranch = $this.GitService.GetCurrentBranch($this.Repo.FullPath)
+            $fmtBranch = $this.Context.LocalizationService.Get("Flow.Quick.Current", "Current Branch: {0}")
+            $this.Context.Console.WriteLineColored("  $($fmtBranch -f $currentBranch)", [Constants]::ColorWarning)
+            $this.Context.Console.NewLine()
+            
+            $msgWarning = $this.Context.LocalizationService.Get("Flow.Error.UncommittedWarning", "You have uncommitted changes in your working directory.")
+            $this.Context.Console.WriteLineColored("  [!] $msgWarning", [Constants]::ColorError)
+            $this.Context.Console.NewLine()
+            
+            $msgHint = $this.Context.LocalizationService.Get("Flow.Error.UncommittedHint", "Please commit or stash your changes before starting the integration flow.")
+            $this.Context.Console.WriteLineColored("  $msgHint", [Constants]::ColorHint)
+            $this.Context.Console.NewLine()
+            
+            $msgPress = $this.Context.LocalizationService.Get("Flow.Status.PressAnyKey", "Press any key to return to menu...")
+            $this.Context.Console.WriteLineColored("  $msgPress", [Constants]::ColorMenuText)
+            $this.Context.Console.ReadKey()
+            
+            return $this.Context.LocalizationService.Get("Flow.Status.AbortedUncommitted", "Aborted: Uncommitted changes detected")
+        }
+        
         # 1. Init (Fetch)
         $this.Initialize()
         
