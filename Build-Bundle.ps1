@@ -125,6 +125,7 @@ $loadOrder = @(
     "Core\Commands\PreferencesCommand.ps1",
     "Core\Commands\CreateFolderCommand.ps1",
     "Core\Commands\SearchCommand.ps1",
+    "Core\Commands\SwitchPathCommand.ps1",
     
     # Layer 10: Flows
     "Core\Flows\FlowControllerBase.ps1",
