@@ -4,14 +4,23 @@
 
 .DESCRIPTION
     This script creates a 'dist' folder containing:
-    - repo-nav.ps1 (the bundled version)
-    - Setup.ps1 (installer for the bundle)
+    - repo-nav-bundle.ps1 (the bundled version)
+    - Setup-Bundle.ps1 (installer for the bundle)
     
-    The dist folder can be copied to any machine for installation.
+    FEATURES:
+    - Auto-discovers imports from repo-nav.ps1 and _index.ps1 files
+    - Pre-build validation (checks all files exist)
+    - Single Source of Truth (no manual file list to maintain)
+    
+    Generated: $(Get-Date -Format "yyyy-MM-dd")
 
 .EXAMPLE
     .\Build-Bundle.ps1
     Creates dist/ folder with bundled repo-nav and Setup.ps1
+    
+.EXAMPLE
+    .\Build-Bundle.ps1 -Minify
+    Creates minified bundle (no comments, smaller size)
 
 .NOTES
     Run this script after any code changes to regenerate the distribution.
@@ -25,6 +34,7 @@ $ErrorActionPreference = 'Stop'
 $scriptRoot = $PSScriptRoot
 $srcPath = Join-Path $scriptRoot "src"
 $distPath = Join-Path $scriptRoot "dist"
+$mainScript = Join-Path $scriptRoot "repo-nav.ps1"
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -32,8 +42,137 @@ Write-Host "  REPO-NAV DISTRIBUTION BUILDER" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+#region Auto-Discovery Functions
+
+function Get-ImportsFromFile {
+    <#
+    .SYNOPSIS
+        Extracts all dot-sourced imports from a PowerShell file.
+    #>
+    param([string]$FilePath, [string]$BaseDir)
+    
+    $imports = @()
+    $content = Get-Content $FilePath -ErrorAction SilentlyContinue
+    $fileDir = Split-Path $FilePath -Parent
+    
+    # Pre-calculate common path variables (simulating what the script does)
+    $parentDir = Split-Path $fileDir -Parent
+    
+    foreach ($line in $content) {
+        # Match dot-source patterns: . "path" or . "$variable\path"
+        if ($line -match '^\s*\.\s+"([^"]+)"') {
+            $importPath = $matches[1]
+            
+            # Resolve variables in path
+            $importPath = $importPath -replace '\$scriptRoot', $scriptRoot
+            $importPath = $importPath -replace '\$srcPath', $srcPath
+            $importPath = $importPath -replace '\$PSScriptRoot', $fileDir
+            
+            # Layer-specific path variables (same dir)
+            $importPath = $importPath -replace '\$commandsPath', $fileDir
+            $importPath = $importPath -replace '\$servicesPath', $fileDir
+            $importPath = $importPath -replace '\$configPath', $fileDir
+            $importPath = $importPath -replace '\$modelsPath', $fileDir
+            $importPath = $importPath -replace '\$uiPath', $fileDir
+            $importPath = $importPath -replace '\$enginePath', $fileDir
+            $importPath = $importPath -replace '\$flowsPath', $fileDir
+            $importPath = $importPath -replace '\$startupPath', $fileDir
+            
+            # Join-Path calculated variables (relative to parent)
+            # $corePath = Join-Path (Split-Path $modelsPath -Parent) "Core"
+            $importPath = $importPath -replace '\$corePath', (Join-Path $parentDir "Core")
+            # $appPath = Join-Path (Split-Path $startupPath -Parent) "App"
+            $importPath = $importPath -replace '\$appPath', (Join-Path $parentDir "App")
+            
+            # Normalize path
+            $importPath = $importPath -replace '\\\\', '\'
+            
+            $imports += $importPath
+        }
+    }
+    
+    return $imports
+}
+
+function Resolve-AllImports {
+    <#
+    .SYNOPSIS
+        Recursively resolves all imports, following _index.ps1 files.
+    #>
+    param([string]$StartFile)
+    
+    $allFiles = [System.Collections.ArrayList]::new()
+    $processed = @{}
+    $queue = [System.Collections.Queue]::new()
+    
+    $queue.Enqueue($StartFile)
+    
+    while ($queue.Count -gt 0) {
+        $currentFile = $queue.Dequeue()
+        
+        # Skip if already processed
+        if ($processed.ContainsKey($currentFile)) { continue }
+        $processed[$currentFile] = $true
+        
+        # Skip the main entry script (we don't bundle that, we parse it)
+        if ($currentFile -eq $mainScript) {
+            $imports = Get-ImportsFromFile -FilePath $currentFile -BaseDir $scriptRoot
+            foreach ($imp in $imports) {
+                if (-not $processed.ContainsKey($imp)) {
+                    $queue.Enqueue($imp)
+                }
+            }
+            continue
+        }
+        
+        # Check if file exists
+        if (-not (Test-Path $currentFile)) {
+            Write-Host "        [WARN] Missing file: $currentFile" -ForegroundColor Yellow
+            continue
+        }
+        
+        # If it's an _index.ps1 file, don't add it but process its imports
+        if ($currentFile -match '_index\.ps1$') {
+            $imports = Get-ImportsFromFile -FilePath $currentFile -BaseDir (Split-Path $currentFile -Parent)
+            foreach ($imp in $imports) {
+                if (-not $processed.ContainsKey($imp)) {
+                    $queue.Enqueue($imp)
+                }
+            }
+        } else {
+            # Regular .ps1 file - add to bundle list
+            [void]$allFiles.Add($currentFile)
+        }
+    }
+    
+    return $allFiles
+}
+
+#endregion
+
+#region Pre-Build Validation
+
+Write-Host "  [1/5] Validating imports..." -ForegroundColor Yellow
+
+$allFiles = Resolve-AllImports -StartFile $mainScript
+
+$missingFiles = $allFiles | Where-Object { -not (Test-Path $_) }
+if ($missingFiles.Count -gt 0) {
+    Write-Host ""
+    Write-Host "  BUILD FAILED - Missing files:" -ForegroundColor Red
+    foreach ($f in $missingFiles) {
+        Write-Host "    - $f" -ForegroundColor Red
+    }
+    Write-Host ""
+    exit 1
+}
+
+Write-Host "        $($allFiles.Count) files discovered" -ForegroundColor DarkGray
+
+#endregion
+
 #region Create dist folder
-Write-Host "  [1/4] Creating dist folder..." -ForegroundColor Yellow
+Write-Host "  [2/5] Creating dist folder..." -ForegroundColor Yellow
 
 if (Test-Path $distPath) {
     Remove-Item -Path $distPath -Recurse -Force
@@ -44,104 +183,7 @@ Write-Host "        $distPath" -ForegroundColor DarkGray
 #endregion
 
 #region Build Bundle
-Write-Host "  [2/4] Building repo-nav-bundle.ps1..." -ForegroundColor Yellow
-
-# Define the exact load order (matches repo-nav.ps1 import order)
-$loadOrder = @(
-    # Layer 1: Config
-    "Config\Constants.ps1",
-    "Config\ColorPalette.ps1",
-    
-    # Layer 2: Models
-    "Models\GitStatusModel.ps1",
-    "Models\AliasInfo.ps1",
-    "Models\RepositoryModel.ps1",
-    "Models\IntegrationFlowModel.ps1",
-    "Core\Common\OperationResult.ps1",
-    
-    # Layer 3: Core Infrastructure
-    "Core\Interfaces\IProgressReporter.ps1",
-    "Services\WindowSizeCalculator.ps1",
-    "Core\State\NavigationState.ps1",
-    
-    # Layer 4: Services
-    "Services\ConfigurationService.ps1",
-    "Services\UserPreferencesService.ps1",
-    "Services\LocalizationService.ps1",
-    "Services\AliasManager.ps1",
-    "Services\GitReadService.ps1",
-    "Services\GitWriteService.ps1",
-    "Services\GitService.ps1",
-    "Services\NpmService.ps1",
-    "Services\ParallelGitLoader.ps1",
-    "Services\RepositoryOperationsService.ps1",
-    "Services\FavoriteService.ps1",
-    "Services\SearchService.ps1",
-    "Services\RenderOrchestrator.ps1",
-    "Services\LoggerService.ps1",
-    "Services\HiddenReposService.ps1",
-    
-    # Layer 5: UI Base & Framework
-    "UI\Base\ConsoleHelper.ps1",
-    "UI\Framework\ConsoleView.ps1",
-    
-    # Layer 6: UI Components
-    "UI\ViewModels\RepositoryViewModel.ps1",
-    "UI\UIRenderer.ps1",
-    "UI\Components\ProgressIndicator.ps1",
-    "UI\Components\ColorSelector.ps1",
-    "UI\Components\SelectionOptions.ps1",
-    "UI\Components\OptionSelector.ps1",
-    "UI\Renderers\FilteredListRenderer.ps1",
-    "UI\Renderers\IntegrationFlowRenderer.ps1",
-    "UI\Components\FilteredListSelector.ps1",
-    "UI\Dashboards\IntegrationFlowDashboard.ps1",
-    "UI\Services\ConsoleProgressReporter.ps1",
-    
-    # Layer 7: Core Managers
-    "Core\Services\GitStatusManager.ps1",
-    "Core\Services\RepositorySorter.ps1",
-    "Core\Services\OnboardingService.ps1",
-    "Core\Services\PathManager.ps1",
-    "Core\RepositoryManager.ps1",
-    
-    # Layer 8: UI Controllers & Views
-    "UI\Controllers\PreferencesMenuController.ps1",
-    "UI\Views\RepositoryManagementView.ps1",
-    "UI\Views\AliasView.ps1",
-    "UI\Views\SearchView.ps1",
-    
-    # Layer 9: Commands
-    "Core\State\CommandContext.ps1",
-    "Core\Commands\INavigationCommand.ps1",
-    "Core\Commands\ExitCommand.ps1",
-    "Core\Commands\NavigationCommand.ps1",
-    "Core\Commands\RepositoryCommand.ps1",
-    "Core\Commands\GitCommand.ps1",
-    "Core\Commands\FavoriteCommand.ps1",
-    "Core\Commands\AliasCommand.ps1",
-    "Core\Commands\NpmCommand.ps1",
-    "Core\Commands\RepositoryManagementCommand.ps1",
-    "Core\Commands\PreferencesCommand.ps1",
-    "Core\Commands\CreateFolderCommand.ps1",
-    "Core\Commands\SearchCommand.ps1",
-    "Core\Commands\SwitchPathCommand.ps1",
-    
-    # Layer 10: Flows
-    "Core\Flows\FlowControllerBase.ps1",
-    "Core\Flows\IntegrationFlowController.ps1",
-    "Core\Flows\QuickChangeFlowController.ps1",
-    "Core\Flows\GitFlowCommand.ps1",
-    
-    # Layer 11: Engine
-    "Core\Engine\CommandFactory.ps1",
-    "Core\Engine\InputHandler.ps1",
-    "Core\Engine\NavigationLoop.ps1",
-    
-    # Layer 12: Startup
-    "Startup\ServiceRegistry.ps1",
-    "App\AppBuilder.ps1"
-)
+Write-Host "  [3/5] Building repo-nav-bundle.ps1..." -ForegroundColor Yellow
 
 $bundleContent = [System.Text.StringBuilder]::new()
 
@@ -159,6 +201,7 @@ $header = @"
     for faster startup (~2x speedup vs development version).
     
     Generated: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+    Files bundled: $($allFiles.Count)
     
 .PARAMETER BasePath
     The base path where repositories are located.
@@ -185,13 +228,8 @@ param(
 # Process each file
 $processedCount = 0
 
-foreach ($relativePath in $loadOrder) {
-    $fullPath = Join-Path $srcPath $relativePath
-    
-    if (-not (Test-Path $fullPath)) {
-        Write-Host "        [WARN] Missing: $relativePath" -ForegroundColor Yellow
-        continue
-    }
+foreach ($fullPath in $allFiles) {
+    $relativePath = $fullPath.Replace($srcPath, "").TrimStart("\")
     
     $fileContent = Get-Content $fullPath -Raw -Encoding UTF8
     
@@ -294,7 +332,7 @@ Write-Host "        $processedCount files bundled ($bundleSize KB)" -ForegroundC
 #endregion
 
 #region Generate Setup-Bundle.ps1
-Write-Host "  [3/4] Generating Setup-Bundle.ps1..." -ForegroundColor Yellow
+Write-Host "  [4/5] Generating Setup-Bundle.ps1..." -ForegroundColor Yellow
 
 # Copy the original Setup.ps1 and modify it for bundle
 $originalSetup = Get-Content (Join-Path $scriptRoot "Setup.ps1") -Raw -Encoding UTF8
@@ -309,7 +347,7 @@ Write-Host "        Setup-Bundle.ps1 generated" -ForegroundColor DarkGray
 #endregion
 
 #region Copy Resources (translations)
-Write-Host "  [4/4] Copying Resources (translations)..." -ForegroundColor Yellow
+Write-Host "  [5/5] Copying Resources (translations)..." -ForegroundColor Yellow
 
 $resourcesSrc = Join-Path $srcPath "Resources"
 $resourcesDst = Join-Path $distPath "Resources"
@@ -359,7 +397,7 @@ Write-Host "  Distribution folder: $distPath" -ForegroundColor White
 Write-Host ""
 Write-Host "  Contents:" -ForegroundColor Cyan
 Write-Host "    - Install.bat          (run this first)" -ForegroundColor Gray
-Write-Host "    - repo-nav-bundle.ps1  ($bundleSize KB)" -ForegroundColor Gray
+Write-Host "    - repo-nav-bundle.ps1  ($bundleSize KB, $processedCount files)" -ForegroundColor Gray
 Write-Host "    - Setup-Bundle.ps1" -ForegroundColor Gray
 Write-Host "    - Resources/i18n/      (translations)" -ForegroundColor Gray
 Write-Host ""
