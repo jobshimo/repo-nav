@@ -190,14 +190,14 @@ class OptionSelector : ConsoleView {
                 $this.NewLine()
                 
                 # Render Detail (Dynamic via Callback)
-                if ($null -ne $onSelectionChanged -and ($selectedIndex -ne $lastSelectedIndex -or $forceRender)) {
+                # Always render detail to prevent ghosting of footer below it
+                if ($null -ne $onSelectionChanged) {
                     $detailStartTop = $this.Console.GetCursorTop()
                     $this.Console.SetCursorPosition(0, $detailStartTop)
-                    # Clear a few lines for detail
+                    
+                    # Force clear a dedicated area for details (e.g. 1 line)
+                    # Ideally the callback handles its own clearing, but we help it here
                     $this.ClearLine()
-                    $this.Console.Write("`n")
-                    $this.ClearLine()
-                    $this.Console.SetCursorPosition(0, $detailStartTop)
                     
                     try {
                         & $onSelectionChanged $options[$selectedIndex]
@@ -210,7 +210,12 @@ class OptionSelector : ConsoleView {
                 # Let's put it after the detail area.
                 $this.Console.Write("`n`n")
                 $this.ClearLine()
-                $this.WriteLineColored("  Use Arrows | Enter | Q/Esc", [Constants]::ColorHint)
+                $this.WriteLineColored("  Use Arrows | Enter | Q/Esc", [Constants]::ColorMenuText)
+                
+                # Clear line below just in case
+                $this.NewLine()
+                $this.ClearLine()
+                $this.Console.SetCursorPosition(0, $this.Console.GetCursorTop() - 1)
                 
                 $lastSelectedIndex = $selectedIndex
                 $forceRender = $false
