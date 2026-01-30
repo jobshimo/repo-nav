@@ -53,18 +53,24 @@ class UIRenderer {
     # Render header
     # Render header
     # Render header
+    # Render header
     # Overload 1: Title only
     [void] RenderHeader([string]$title) {
-        $this.RenderHeader($title, "", "")
+        $this.RenderHeader($title, "", "", [Constants]::ColorFavorite)
     }
 
     # Overload 2: Title + Subtitle
     [void] RenderHeader([string]$title, [string]$subtitle) {
-        $this.RenderHeader($title, $subtitle, "")
+        $this.RenderHeader($title, $subtitle, "", [Constants]::ColorFavorite)
     }
 
-    # Overload 3: Title + Subtitle + Highlight
+    # Overload 3: Title + Subtitle + Highlight (Default Color)
     [void] RenderHeader([string]$title, [string]$subtitle, [string]$highlight) {
+        $this.RenderHeader($title, $subtitle, $highlight, [Constants]::ColorFavorite)
+    }
+
+    # Overload 4: Title + Subtitle + Highlight + Color
+    [void] RenderHeader([string]$title, [string]$subtitle, [string]$highlight, [ConsoleColor]$highlightColor) {
         if ($this.ShouldShowHeaders()) {
             $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
             $this.Console.WriteLineColored("    $title", [Constants]::ColorHeader)
@@ -75,7 +81,7 @@ class UIRenderer {
                 # Render subtitle logic with optional highlight
                 $this.Console.WriteColored("    $subtitle", [Constants]::ColorValue)
                 if (-not [string]::IsNullOrEmpty($highlight)) {
-                    $this.Console.WriteColored(" [$highlight]", [Constants]::ColorFavorite)
+                    $this.Console.WriteColored(" [$highlight]", $highlightColor)
                 }
                 $this.Console.NewLine()
             }

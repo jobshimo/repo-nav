@@ -275,7 +275,7 @@ class UserPreferencesService {
         if ([string]::IsNullOrWhiteSpace($path)) { return }
         
         $preferences = $this.LoadPreferences()
-        $currentPaths = if ($preferences.repository.paths) { [array]$preferences.repository.paths } else { @() }
+        $currentPaths = @($preferences.repository.paths)
         
         # Normalize
         try {

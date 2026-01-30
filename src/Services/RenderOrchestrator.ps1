@@ -130,36 +130,57 @@ class RenderOrchestrator {
         $subText = ""
         
         # Check for alias
-        $alias = $null
+        $aliasText = $null
+        $aliasColor = [Constants]::ColorFavorite # Default
+        
         if ($prefs.repository.pathAliases) {
             # Robust property access for paths which may contain spaces/special chars
             if ($prefs.repository.pathAliases.PSObject.Properties.Match($currentPath).Count -gt 0) {
-                $alias = $prefs.repository.pathAliases."$currentPath"
+                $aliasRaw = $prefs.repository.pathAliases."$currentPath"
+                
+                # Check if it's an object (New style) or string (Legacy)
+                if ($aliasRaw -is [string]) {
+                    $aliasText = $aliasRaw
+                } 
+                elseif ($aliasRaw.PSObject.Properties.Name -contains 'Text') {
+                    $aliasText = $aliasRaw.Text
+                    if ($aliasRaw.PSObject.Properties.Name -contains 'Color') {
+                         # Convert string color to ConsoleColor
+                         try {
+                             $aliasColor = [System.Enum]::Parse([System.ConsoleColor], $aliasRaw.Color)
+                         } catch {
+                             $aliasColor = [Constants]::ColorFavorite
+                         }
+                    }
+                }
             }
         }
         
         $highlight = ""
+        $highlightColor = $aliasColor
         
         switch ($pathDisplayMode) {
             "Path" { 
                 $subText = $currentPath 
             }
             "Alias" { 
-                if ($alias) {
-                    $subText = $alias
+                if ($aliasText) {
+                    $subText = $aliasText
+                    # If showing alias only, usually it's in Value color, but maybe we want custom color?
+                    # For now keep uniform Value color for subtitle main text
                 } else {
                     $subText = $currentPath
                 }
             }
             "Both" { 
                 $subText = $currentPath
-                if ($alias) { 
-                    $highlight = $alias
+                if ($aliasText) { 
+                    $highlight = $aliasText
                 }
             }
         }
         
-        $this.Renderer.RenderHeader($headerText, $subText, $highlight)
+        $this.Renderer.RenderHeader($headerText, $subText, $highlight, $highlightColor)
         
         # Render breadcrumb if we're inside a container
         $breadcrumbLines = 0

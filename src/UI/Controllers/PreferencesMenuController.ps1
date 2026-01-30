@@ -764,7 +764,14 @@ class PreferencesMenuController {
                 $display = "$p"
                 
                 # Check for alias
-                if ($pathAliases.$p) { $display += " [$($pathAliases.$p)]" }
+                if ($pathAliases.$p) { 
+                    $aliasVal = $pathAliases.$p
+                    if ($aliasVal -is [string]) {
+                        $display += " [$aliasVal]"
+                    } elseif ($aliasVal.PSObject.Properties.Name -contains 'Text') {
+                        $display += " [$($aliasVal.Text)]"
+                    }
+                }
                 
                 if (-not $exists) { $display += " (Missing)" }
                 
@@ -811,7 +818,8 @@ class PreferencesMenuController {
                             $fullPath = (Resolve-Path $inputPath).Path
                             
                             # Add to preferences if not exists
-                            $currentPaths = if ($preferences.repository.paths) { [array]$preferences.repository.paths } else { @() }
+                            # Force array context using @() to prevent string concatenation
+                            $currentPaths = @($preferences.repository.paths)
                             
                             if ($currentPaths -contains $fullPath) {
                                 $statusMessage = "[Warning] Path already exists."
@@ -881,12 +889,35 @@ class PreferencesMenuController {
                              $statusMessage = "[Success] Alias removed."
                          }
                      } else {
-                         if ($currentAliases.PSObject.Properties.Name -contains $selectedPath) {
-                             $currentAliases.$selectedPath = $newAlias
-                         } else {
-                             $currentAliases | Add-Member -NotePropertyName $selectedPath -NotePropertyValue $newAlias -Force
+                         # Ask for Color
+                         $colors = @()
+                         $colors += @{ DisplayText = "Cyan (Default)"; Value = "Cyan" }
+                         $colors += @{ DisplayText = "Green"; Value = "Green" }
+                         $colors += @{ DisplayText = "Yellow"; Value = "Yellow" }
+                         $colors += @{ DisplayText = "Magenta"; Value = "Magenta" }
+                         $colors += @{ DisplayText = "Red"; Value = "Red" }
+                         $colors += @{ DisplayText = "White"; Value = "White" }
+                         
+                         $colorConfig = [SelectionOptions]::new()
+                         $colorConfig.Title = "SELECT ALIAS COLOR"
+                         $colorConfig.Options = $colors
+                         $colorConfig.CurrentValue = "Cyan"
+                         
+                         $selectedColor = $this.OptionSelector.Show($colorConfig)
+                         if ($null -eq $selectedColor) { $selectedColor = "Cyan" }
+                         
+                         # Create Alias Object
+                         $aliasObj = [PSCustomObject]@{
+                             Text = $newAlias
+                             Color = $selectedColor
                          }
-                         $statusMessage = "[Success] Alias set to '$newAlias'."
+                         
+                         if ($currentAliases.PSObject.Properties.Name -contains $selectedPath) {
+                             $currentAliases.$selectedPath = $aliasObj
+                         } else {
+                             $currentAliases | Add-Member -NotePropertyName $selectedPath -NotePropertyValue $aliasObj -Force
+                         }
+                         $statusMessage = "[Success] Alias set to '$newAlias' ($selectedColor)."
                      }
                      
                      $this.PreferencesService.SetPreference("repository", "pathAliases", $currentAliases)
