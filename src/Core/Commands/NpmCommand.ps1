@@ -155,11 +155,16 @@ class NpmCommand : INavigationCommand {
     }
     hidden [void] InvokeRemove($context, $repo, $view, $service) {
         $nodeModulesPath = Join-Path $repo.FullPath "node_modules"
+        
+        # 1. Validation (Improved UX: No screen clear)
         if (-not ($service.HasNodeModules($repo.FullPath))) {
-            $view.ClearAndRenderHeader("Removing", $repo)
-            $view.ShowError("Error.Repo.NoNodeModules", "No node_modules folder found.", $null)
+            # Just show error in-place without clearing entire workflow
+            $msgFormat = $view.GetLoc("Error.Repo.NoNodeModules", "No node_modules folder found in {0}")
+            $msg = $msgFormat -f $repo.Name
+            $view.ShowError("Error.Repo.NoNodeModules", $msg, $null)
             return
         }
+
         $view.ClearAndRenderHeader("Removing", $repo)
         if (-not ($view.ConfirmRemoval("node_modules"))) {
             $view.ShowOperationCancelled()
@@ -235,10 +240,17 @@ class NpmCommand : INavigationCommand {
         $repoManager = $context.RepoManager
         $state = $context.State
         $context.Console.ClearForWorkflow()
+        
         if ($null -ne $repoManager) {
+            # Force refresh of the specific repository state (CheckNodeModules etc)
+            $repoManager.RefreshRepository($currentRepo)
+            
+            # Reload list ensuring filters apply to updated state
             $repoManager.LoadRepositories($context.BasePath)
             $updatedRepos = $repoManager.GetRepositories()
             $state.SetRepositories($updatedRepos)
+            
+            # Restore selection
             $newIndex = 0
             for ($i = 0; $i -lt $updatedRepos.Count; $i++) {
                 if ($updatedRepos[$i].Path -eq $currentRepo.Path) {
