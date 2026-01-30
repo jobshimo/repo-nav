@@ -23,13 +23,15 @@ class RenderOrchestrator {
     [object] $Console      # ConsoleHelper
     [int] $CursorStartLine # Calculated line where repository list starts
     [UserPreferencesService] $PreferencesService # For Menu Mode
+    [HiddenReposService] $HiddenReposService # For visibility indicator
     
     # Constructor with Dependency Injection
-    RenderOrchestrator([object]$renderer, [object]$console, [int]$initialCursorStartLine) {
+    RenderOrchestrator([object]$renderer, [object]$console, [int]$initialCursorStartLine, [HiddenReposService]$hiddenReposService) {
         $this.Renderer = $renderer
         $this.Console = $console
         $this.CursorStartLine = $initialCursorStartLine
         $this.PreferencesService = [UserPreferencesService]::new()
+        $this.HiddenReposService = $hiddenReposService
     }
     
     #region Public Rendering Methods
@@ -58,16 +60,52 @@ class RenderOrchestrator {
 
         if ($state.RequiresFullRedraw) {
             $this.RenderFull($state)
-            # Clearing flags logic might need to be specific if methods exist, 
-            # but usually bool properties can be set to false directly if accessible
             $state.RequiresFullRedraw = $false
+            $state.RequiresListRedraw = $false
+        }
+        elseif ($state.RequiresListRedraw) {
+            $this.RenderListOnly($state)
+            $state.RequiresListRedraw = $false
+            # Should also clear selection changed as we redrew everything
+            $state.SelectionChanged = $false
         }
         elseif ($state.SelectionChanged -or $state.ViewportChanged) {
             $this.RenderPartial($state)
             $state.SelectionChanged = $false
-            # ViewportChanged is cleared inside RenderPartial, but to be safe:
             $state.ViewportChanged = $false
         }
+    }
+    
+    <#
+    .SYNOPSIS
+        Renders the repository list and footer (no header/menu redraw)
+        Used when list changes but layout doesn't require full screen clear
+    #>
+    [void] RenderListOnly([object]$state) {
+        $this.Console.HideCursor()
+        
+        # Ensure correct start position
+        $startLine = $this.CursorStartLine
+        $this.Console.SetCursorPosition(0, $startLine)
+        
+        # Render list (UIRenderer now clears extra lines if list is shorter)
+        $this.Renderer.RenderRepositoryList($state, $startLine)
+        
+        # Update footer to reflect new totals and visibility state
+        # No flickering here since we don't ClearScreen
+        $footerLine = $startLine + $state.PageSize + 1
+        $this.Console.SetCursorPosition(0, $footerLine)
+        
+        $totalItems = $state.GetTotalCount()
+        $totalRepos = $state.GetRepoCount()
+        $loadedRepos = $state.GetLoadedCount()
+        
+        $showHidden = $false
+        if ($this.HiddenReposService) {
+             $showHidden = $this.HiddenReposService.GetShowHiddenState()
+        }
+        
+        $this.Renderer.RenderGitStatusFooter($state.GetSelectedRepository(), $totalItems, $totalRepos, $loadedRepos, $state.SelectedIndex, $showHidden)
     }
     
     <#
@@ -125,7 +163,13 @@ class RenderOrchestrator {
         $totalRepos = $state.GetRepoCount()
         $loadedRepos = $state.GetLoadedCount()
         $currentIndex = $state.GetCurrentIndex()
-        $this.Renderer.RenderGitStatusFooter($selectedRepo, $totalItems, $totalRepos, $loadedRepos, $currentIndex)
+        
+        $showHidden = $false
+        if ($this.HiddenReposService) {
+             $showHidden = $this.HiddenReposService.GetShowHiddenState()
+        }
+        
+        $this.Renderer.RenderGitStatusFooter($selectedRepo, $totalItems, $totalRepos, $loadedRepos, $currentIndex, $showHidden)
     }
     
     <#
@@ -208,7 +252,13 @@ class RenderOrchestrator {
         $totalItems = $state.GetTotalCount()
         $totalRepos = $state.GetRepoCount()
         $loadedRepos = $state.GetLoadedCount()
-        $this.Renderer.RenderGitStatusFooter($state.GetSelectedRepository(), $totalItems, $totalRepos, $loadedRepos, $state.SelectedIndex)
+        
+        $showHidden = $false
+        if ($this.HiddenReposService) {
+             $showHidden = $this.HiddenReposService.GetShowHiddenState()
+        }
+        
+        $this.Renderer.RenderGitStatusFooter($state.GetSelectedRepository(), $totalItems, $totalRepos, $loadedRepos, $state.SelectedIndex, $showHidden)
     }
     
     #endregion

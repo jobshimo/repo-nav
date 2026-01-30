@@ -227,7 +227,15 @@ class PreferencesMenuController {
         $display = & $GetLoc $displayKey $mode
         $items += @{ Id = "autoLoadGit"; Name = (& $GetLoc "Pref.AutoLoadGit" "Auto-load Git Status"); CurrentValue = $display }
         
-        # 5: Menu Mode
+        # 5: Hidden Repos Visibility (REMOVED as per user request - always manual via V)
+        # $hiddenDefault = ...
+        # $items += @{ Id = "hiddenDefaultVisibility"; ... }
+        
+        # 5.1: Manage Hidden List
+        $hiddenCount = if ($preferences.hidden.hiddenRepos) { $preferences.hidden.hiddenRepos.Count } else { 0 }
+        $items += @{ Id = "manageHidden"; Name = (& $GetLoc "Pref.ManageHidden"); CurrentValue = "($hiddenCount)"; IsAction = $true }
+
+        # 6: Menu Mode
         $menuModeDisplay = if ($preferences.display.menuMode) { $preferences.display.menuMode } else { "Full" }
         $items += @{ Id = "menuMode"; Name = (& $GetLoc "Pref.MenuMode" "Menu Display"); CurrentValue = $menuModeDisplay }
 
@@ -258,6 +266,15 @@ class PreferencesMenuController {
                     }
                 }
         }
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # DEV ONLY: Build Bundle option (only visible when running from source)
+        # ═══════════════════════════════════════════════════════════════════════════
+        $devToolsPath = Join-Path ([Constants]::ScriptRoot) "src\Dev\DevToolsCommand.ps1"
+        if (Test-Path $devToolsPath) {
+            $items += @{ Id = "buildBundle"; Name = "--- DEV: Build Bundle ---"; CurrentValue = ""; IsAction = $true; IsDev = $true }
+        }
+
         return $items
     }
 
@@ -331,7 +348,11 @@ class PreferencesMenuController {
                 $opts += @{ DisplayText = "$d ($l)"; Value = $l } 
             }
             
-            $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectLanguage"), $opts, $this.LocalizationService.GetCurrentLanguage(), "Cancel")
+            $config = [SelectionOptions]::new()
+            $config.Title = (& $GetLoc "Prompt.SelectLanguage")
+            $config.Options = $opts
+            $config.CurrentValue = $this.LocalizationService.GetCurrentLanguage()
+            $newVal = $this.OptionSelector.Show($config)
             if ($newVal) {
                 $this.LocalizationService.SetLanguage($newVal)
                 $this.PreferencesService.SetPreference("general", "language", $newVal)
@@ -350,7 +371,11 @@ class PreferencesMenuController {
         }
         elseif ($item.Id -eq "favoritesOnTop") {
             $opts = @( @{ DisplayText = (& $GetLoc "Pref.Value.Top"); Value = $true }, @{ DisplayText = (& $GetLoc "Pref.Value.Original"); Value = $false } )
-            $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Pref.FavoritesPos"), $opts, $preferences.display.favoritesOnTop, "Cancel")
+            $config = [SelectionOptions]::new()
+            $config.Title = (& $GetLoc "Pref.FavoritesPos")
+            $config.Options = $opts
+            $config.CurrentValue = $preferences.display.favoritesOnTop
+            $newVal = $this.OptionSelector.Show($config)
             if ($null -ne $newVal) {
                  $this.PreferencesService.SetPreference("display", "favoritesOnTop", $newVal)
                  $msg = (& $GetLoc "Msg.FavoritesPosUpdated")
@@ -364,7 +389,11 @@ class PreferencesMenuController {
                  $txt = if ($bg -eq 'None') { & $GetLoc "Color.None" "No background" } else { & $GetLoc "Color.$bg" $bg }
                  $opts += @{ DisplayText = $txt; Value = $bg }
             }
-            $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Pref.SelectedBg"), $opts, $preferences.display.selectedBackground, "Cancel")
+            $config = [SelectionOptions]::new()
+            $config.Title = (& $GetLoc "Pref.SelectedBg")
+            $config.Options = $opts
+            $config.CurrentValue = $preferences.display.selectedBackground
+            $newVal = $this.OptionSelector.Show($config)
             if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "selectedBackground", $newVal)
                  $msg = (& $GetLoc "Msg.BackgroundUpdated")
@@ -375,7 +404,11 @@ class PreferencesMenuController {
         elseif ($item.Id -eq "selectedDelimiter") {
              $opts = @()
              foreach ($d in [Constants]::AvailableDelimiters) { $opts += @{ DisplayText = $d.Name; Value = $d.Name } }
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Pref.SelectedDelim"), $opts, $preferences.display.selectedDelimiter, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Pref.SelectedDelim")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.display.selectedDelimiter
+             $newVal = $this.OptionSelector.Show($config)
              if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "selectedDelimiter", $newVal)
                  $msg = (& $GetLoc "Msg.DelimiterUpdated")
@@ -388,7 +421,11 @@ class PreferencesMenuController {
                  @{ DisplayText = (& $GetLoc "Pref.Value.After" "After Name"); Value = "After" },
                  @{ DisplayText = (& $GetLoc "Pref.Value.Before" "Before Name"); Value = "Before" }
              )
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasPos" "Select Alias Position"), $opts, $preferences.display.aliasPosition, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Prompt.SelectAliasPos" "Select Alias Position")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.display.aliasPosition
+             $newVal = $this.OptionSelector.Show($config)
              if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "aliasPosition", $newVal)
                  $msg = (& $GetLoc "Msg.AliasPosUpdated" "Alias position updated")
@@ -403,7 +440,11 @@ class PreferencesMenuController {
                  @{ DisplayText = (& $GetLoc "Pref.Value.SepPipe" "Pipe ( | )"); Value = " | " },
                  @{ DisplayText = (& $GetLoc "Pref.Value.None" "None"); Value = "None" }
              )
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasSep" "Select Alias Separator"), $opts, $preferences.display.aliasSeparator, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Prompt.SelectAliasSep" "Select Alias Separator")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.display.aliasSeparator
+             $newVal = $this.OptionSelector.Show($config)
              if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "aliasSeparator", $newVal)
                  $msg = (& $GetLoc "Msg.AliasSepUpdated" "Alias separator updated")
@@ -418,7 +459,11 @@ class PreferencesMenuController {
                  @{ DisplayText = (& $GetLoc "Pref.Value.WrapBrackets" "Brackets [alias]"); Value = "Brackets" },
                  @{ DisplayText = (& $GetLoc "Pref.Value.WrapBraces" "Braces {alias]"); Value = "Braces" }
              )
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasWrap" "Select Alias Style"), $opts, $preferences.display.aliasWrapper, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Prompt.SelectAliasWrap" "Select Alias Style")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.display.aliasWrapper
+             $newVal = $this.OptionSelector.Show($config)
              if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "aliasWrapper", $newVal)
                  $msg = (& $GetLoc "Msg.AliasWrapUpdated" "Alias style updated")
@@ -426,13 +471,23 @@ class PreferencesMenuController {
                  $timeout = 2
              }
         }
+        # hiddenDefaultVisibility REMOVED
+        elseif ($item.Id -eq "manageHidden") {
+             $this.ManageHiddenRepos($preferences, $GetLoc)
+             $updated = $true
+             $msg = "" # Message handled inside manager or just refresh
+        }
         elseif ($item.Id -eq "autoLoadGit") {
              $opts = @(
                  @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.None" "None"); Value = "None" },
                  @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.Favorites" "Favorites"); Value = "Favorites" },
                  @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.All" "All Repositories"); Value = "All" }
              )
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Pref.AutoLoadGit"), $opts, $preferences.git.autoLoadGitStatusMode, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Pref.AutoLoadGit")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.git.autoLoadGitStatusMode
+             $newVal = $this.OptionSelector.Show($config)
              if ($null -ne $newVal) {
                  $this.PreferencesService.SetPreference("git", "autoLoadGitStatusMode", $newVal)
                  $msg = (& $GetLoc "Msg.AutoLoadUpdated")
@@ -447,7 +502,11 @@ class PreferencesMenuController {
                  @{ DisplayText = (& $GetLoc "Pref.MenuMode.Custom"); Value = "Custom" },
                  @{ DisplayText = (& $GetLoc "Pref.MenuMode.Hidden"); Value = "Hidden" }
              )
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Pref.MenuMode"), $opts, $preferences.display.menuMode, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Pref.MenuMode")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.display.menuMode
+             $newVal = $this.OptionSelector.Show($config)
              if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "menuMode", $newVal)
                  $msg = (& $GetLoc "Msg.MenuModeUpdated")
@@ -471,7 +530,184 @@ class PreferencesMenuController {
              $updated = $true
              $timeout = 1
         }
+        # ═══════════════════════════════════════════════════════════════════════════
+        # DEV ONLY: Build Bundle (dynamically loaded, not in bundle)
+        # ═══════════════════════════════════════════════════════════════════════════
+        elseif ($item.Id -eq "buildBundle") {
+            $devToolsPath = Join-Path ([Constants]::ScriptRoot) "src\Dev\DevToolsCommand.ps1"
+            if (Test-Path $devToolsPath) {
+                . $devToolsPath
+                # Use dynamic invocation to avoid type resolution at parse time
+                $consoleRef = $this.Console
+                Invoke-Expression '[DevToolsCommand]::BuildBundle($consoleRef)'
+            }
+            $updated = $true
+        }
 
         return [PSCustomObject]@{ Updated = $updated; Message = $msg; Timeout = $timeout }
+    }
+
+    # Manage hidden repositories
+    [void] ManageHiddenRepos([PSCustomObject]$preferences, [scriptblock]$GetLoc) {
+        $hiddenService = $this.RepoManager.HiddenReposService
+        if ($null -eq $hiddenService) { return }
+        
+        $running = $true
+        $statusMessage = $null
+        
+        while ($running) {
+            $hiddenList = $hiddenService.GetHiddenList()
+            
+            if ($hiddenList.Count -eq 0) {
+                $this.Console.WriteLineColored("  " + (& $GetLoc "Msg.NoHiddenRepos"), [Constants]::ColorInfo)
+                Start-Sleep -Seconds 1
+                return
+            }
+            
+            # Create rich options by hydrating temporary RepositoryModels
+            $options = @()
+            $aliases = $this.RepoManager.AliasManager.GetAllAliases()
+            
+            foreach ($path in $hiddenList) {
+                if (Test-Path $path) {
+                    $item = Get-Item $path
+                    $repo = [RepositoryModel]::new($item)
+                    
+                    # Hydrate basic info needed for display
+                    if ($this.RepoManager.GitService.IsContainerDirectory($path)) {
+                        $count = $this.RepoManager.GitService.CountContainedRepositories($path)
+                        $repo.MarkAsContainer($count)
+                    }
+                    
+                    if ($aliases.ContainsKey($path)) {
+                        $repo.SetAlias($aliases[$path])
+                    }
+                    
+                    # Favorites might be tricky if based on Name vs FullPath, 
+                    # but FavoriteService now uses FullPath, so update model
+                    $this.RepoManager.FavoriteService.UpdateRepositoryModel($repo)
+
+                    $options += @{ Value = $repo; DisplayText = $repo.Name }
+                } else {
+                    # Path not found (maybe deleted outside), show as text
+                    $options += @{ Value = $path; DisplayText = "$path (Missing)" }
+                }
+            }
+            
+            $title = & $GetLoc "Menu.ManageHidden"
+            $description = "Select a repository to UNHIDE (restore to list)"
+            if ($null -ne $statusMessage) {
+                $description += "`n`n$statusMessage"
+            }
+            
+            $cancelText = & $GetLoc "Cmd.Back"
+            
+            # ... (Callback definitions) ...
+            $capturedConsole = $this.Console # Capture for closure
+            $onSelectionChanged = {
+                param($selectedOption)
+                $val = $selectedOption.Value
+                if ($val -is [RepositoryModel]) {
+                    $capturedConsole.WriteLineColored("    $($val.FullPath)", [Constants]::ColorHint)
+                } else {
+                    $capturedConsole.WriteLineColored("    $val", [Constants]::ColorHint)
+                }
+            }
+
+            # Callback for rich item rendering
+            # $option is the hashtable from $options array
+            $onRenderItem = {
+                param($option, $isSelected, $prefix)
+                
+                $val = $option.Value
+                
+                if ($val -is [RepositoryModel]) {
+                   $repo = $val
+                   
+                   # Build display string similar to UIRenderer
+                   $icon = if ($repo.IsContainer) { "[+]" } elseif ($repo.IsFavorite) { "[*]" } else { "   " }
+                   $text = $repo.Name
+                   
+                   # Alias - Robust check
+                   $aliasStr = ""
+                   if (-not [string]::IsNullOrEmpty($repo.Alias)) {
+                       $aliasStr = " ($($repo.Alias))"
+                   }
+                   
+                   # Container count - Robust check
+                   $countStr = ""
+                   if ($repo.IsContainer) {
+                       $countVal = if ($null -ne $repo.ContainerRepoCount) { $repo.ContainerRepoCount } else { 0 }
+                       $countStr = " ($countVal)"
+                   }
+                   
+                   # Colors logic
+                   $baseColor = [Constants]::ColorRepo
+                   
+                   if ($repo.IsContainer) { 
+                        $baseColor = [Constants]::ColorContainer 
+                   }
+                   
+                   if ($isSelected) { 
+                        $baseColor = [Constants]::ColorSelected 
+                   } elseif ($repo.IsFavorite) {
+                        # Only show favorite color if not selected (and not container override? usually favorite overrides repo color)
+                        $baseColor = [Constants]::ColorFavorite
+                   }
+                   
+                   # Safety for null color
+                   if ($null -eq $baseColor) { $baseColor = [Constants]::ColorRepo }
+
+                   # Construct line
+                   $capturedConsole.ClearLine()
+                   $line = "  $prefix $icon $text$aliasStr$countStr"
+                   
+                   try {
+                       $capturedConsole.WriteLineColored($line, $baseColor)
+                   } catch {
+                       # Fallback if color is somehow invalid
+                       $capturedConsole.WriteLineColored($line, [ConsoleColor]::Gray)
+                   }
+                   
+                } else {
+                   # Fallback for missing items or strings
+                   $capturedConsole.ClearLine()
+                   $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+                   # Ensure color is valid
+                   if ($null -eq $color) { $color = [ConsoleColor]::Gray }
+                   
+                   $displayText = if ($option.DisplayText) { $option.DisplayText } else { $option.Value }
+                   $capturedConsole.WriteLineColored("  $prefix $displayText", $color)
+                }
+            }
+            
+            $selector = [OptionSelector]::new($this.Console, $this.Renderer)
+            # Pass onRenderItem as last argument
+            $config = [SelectionOptions]::new()
+            $config.Title = $title
+            $config.Options = $options
+            $config.CancelText = $cancelText
+            $config.ShowCurrentMarker = $false
+            $config.Description = $description
+            $config.DescriptionColor = [Constants]::ColorInfo
+            $config.OnSelectionChanged = $onSelectionChanged
+            $config.OnRenderItem = $onRenderItem
+            $selectedResult = $selector.Show($config)
+            
+            $selectedPath = if ($null -ne $selectedResult) { 
+                if ($selectedResult -is [RepositoryModel]) { $selectedResult.FullPath } else { $selectedResult }
+            } else { $null }
+            
+            if ($null -eq $selectedPath) {
+                $running = $false
+            } else {
+                # Unhide selected
+                $hiddenService.RemoveFromHidden($selectedPath)
+                $name = Split-Path -Path $selectedPath -Leaf
+                $statusMessage = "  [Success] Unhided: $name"
+                
+                # Loop continues immediately
+            }
+        }
     }
 }

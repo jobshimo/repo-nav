@@ -113,14 +113,18 @@ class AliasView {
         $yesText = $this.GetLoc("Prompt.Yes", "Yes")
         $noText = $this.GetLoc("Prompt.No", "No")
         
-        $options = @(
-            @{ DisplayText = $yesText; Value = $true; Description = $description },
-            @{ DisplayText = $noText; Value = $false; Description = "" }
+        # Use SelectionOptions for type-safe, readable configuration
+        $config = [SelectionOptions]::new()
+        $config.Title = $title
+        $config.Options = @(
+            @{ DisplayText = $yesText; Value = $true },
+            @{ DisplayText = $noText; Value = $false }
         )
+        $config.CancelText = $noText
+        $config.ShowCurrentMarker = $false
+        $config.Description = $description
         
-        # Call ShowSelection with all required arguments
-        # ShowSelection($title, $options, $currentValue, $cancelText, $showCurrentMarker, $description)
-        $result = $this.OptionSelector.ShowSelection($title, $options, $null, $noText, $false, "")
+        $result = $this.OptionSelector.Show($config)
         
         if ($null -eq $result) { return $false } 
         return $result

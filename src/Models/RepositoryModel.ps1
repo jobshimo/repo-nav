@@ -36,6 +36,9 @@ class RepositoryModel {
     [int] $ContainedRepoCount
     [string] $ParentPath
     
+    # Other flags
+    [bool] $IsHidden
+    
     # Constructor
     RepositoryModel([System.IO.DirectoryInfo]$directoryInfo) {
         $this.DirectoryInfo = $directoryInfo
@@ -49,6 +52,7 @@ class RepositoryModel {
         $this.LastStatusCheck = [DateTime]::MinValue
         $this.HasNodeModules = $false
         $this.IsFavorite = $false
+        $this.IsHidden = $false
         
         # Container defaults
         $this.IsContainer = $false
@@ -56,6 +60,11 @@ class RepositoryModel {
         $this.ParentPath = $null
     }
     
+    # Method to mark as hidden
+    [void] MarkAsHidden([bool]$isHidden) {
+        $this.IsHidden = $isHidden
+    }
+
     # Set alias information
     [void] SetAlias([AliasInfo]$aliasInfo) {
         if ($aliasInfo -and $aliasInfo.IsValid()) {

@@ -79,6 +79,7 @@ $loadOrder = @(
     "Services\SearchService.ps1",
     "Services\RenderOrchestrator.ps1",
     "Services\LoggerService.ps1",
+    "Services\HiddenReposService.ps1",
     
     # Layer 5: UI Base & Framework
     "UI\Base\ConsoleHelper.ps1",
@@ -89,6 +90,7 @@ $loadOrder = @(
     "UI\UIRenderer.ps1",
     "UI\Components\ProgressIndicator.ps1",
     "UI\Components\ColorSelector.ps1",
+    "UI\Components\SelectionOptions.ps1",
     "UI\Components\OptionSelector.ps1",
     "UI\Renderers\FilteredListRenderer.ps1",
     "UI\Renderers\IntegrationFlowRenderer.ps1",
@@ -197,19 +199,45 @@ foreach ($relativePath in $loadOrder) {
     $fileContent = $fileContent -replace 'src\\Resources\\i18n', 'Resources\i18n'
     $fileContent = $fileContent -replace 'src/Resources/i18n', 'Resources/i18n'
     
-    [void]$bundleContent.AppendLine("#region $relativePath")
-    
     if ($Minify) {
-        $lines = $fileContent -split "`n" | Where-Object { 
-            $trimmed = $_.Trim()
-            $trimmed -ne '' -and -not ($trimmed -match '^#(?!>)') -and -not ($trimmed -match '^<#')
-        }
+        # ─────────────────────────────────────────────────────────────────
+        # AGGRESSIVE MINIFICATION
+        # ─────────────────────────────────────────────────────────────────
+        
+        # Remove multi-line comment blocks <# ... #>
+        $fileContent = $fileContent -replace '(?s)<#.*?#>', ''
+        
+        # Process line by line
+        $lines = $fileContent -split "`n" | ForEach-Object {
+            $line = $_
+            
+            # Remove trailing whitespace
+            $line = $line.TrimEnd()
+            
+            # Skip empty lines
+            if ([string]::IsNullOrWhiteSpace($line)) { return $null }
+            
+            # Skip single-line comments (but keep #region/#endregion for structure)
+            $trimmed = $line.Trim()
+            if ($trimmed -match '^#(?!region|endregion)' -and $trimmed -notmatch '^#>') {
+                return $null
+            }
+            
+            return $line
+        } | Where-Object { $_ -ne $null }
+        
         $fileContent = $lines -join "`n"
+        
+        # Don't add region markers in minified mode
+        [void]$bundleContent.AppendLine($fileContent)
     }
-    
-    [void]$bundleContent.AppendLine($fileContent)
-    [void]$bundleContent.AppendLine("#endregion")
-    [void]$bundleContent.AppendLine("")
+    else {
+        # Normal mode: keep regions for readability
+        [void]$bundleContent.AppendLine("#region $relativePath")
+        [void]$bundleContent.AppendLine($fileContent)
+        [void]$bundleContent.AppendLine("#endregion")
+        [void]$bundleContent.AppendLine("")
+    }
     
     $processedCount++
 }
@@ -292,6 +320,32 @@ if (Test-Path $resourcesSrc) {
 }
 #endregion
 
+#region Generate Install.bat
+$installBatContent = @"
+@echo off
+echo.
+echo ============================================
+echo   REPO-NAV INSTALLER
+echo ============================================
+echo.
+echo This will configure PowerShell to run scripts
+echo and then launch the Setup wizard.
+echo.
+pause
+
+:: Enable script execution for the current user
+powershell -Command "Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force"
+
+:: Run the Setup
+powershell -ExecutionPolicy Bypass -File "%~dp0Setup-Bundle.ps1"
+
+pause
+"@
+
+$installBatPath = Join-Path $distPath "Install.bat"
+$installBatContent | Set-Content -Path $installBatPath -Encoding ASCII -Force
+#endregion
+
 #region Summary
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
@@ -301,12 +355,13 @@ Write-Host ""
 Write-Host "  Distribution folder: $distPath" -ForegroundColor White
 Write-Host ""
 Write-Host "  Contents:" -ForegroundColor Cyan
+Write-Host "    - Install.bat          (run this first)" -ForegroundColor Gray
 Write-Host "    - repo-nav-bundle.ps1  ($bundleSize KB)" -ForegroundColor Gray
 Write-Host "    - Setup-Bundle.ps1" -ForegroundColor Gray
 Write-Host "    - Resources/i18n/      (translations)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  To distribute:" -ForegroundColor Yellow
 Write-Host "    1. Copy the 'dist' folder to target machine" -ForegroundColor Gray
-Write-Host "    2. Run: .\Setup-Bundle.ps1" -ForegroundColor Gray
+Write-Host "    2. Double-click Install.bat (or run .\Setup-Bundle.ps1)" -ForegroundColor Gray
 Write-Host ""
 #endregion

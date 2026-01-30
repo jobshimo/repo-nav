@@ -23,6 +23,7 @@ $uiPath = $PSScriptRoot
 . "$uiPath\UIRenderer.ps1"
 . "$uiPath\Components\ProgressIndicator.ps1"
 . "$uiPath\Components\ColorSelector.ps1"
+. "$uiPath\Components\SelectionOptions.ps1"
 . "$uiPath\Components\OptionSelector.ps1"
 . "$uiPath\Renderers\FilteredListRenderer.ps1"
 . "$uiPath\Renderers\IntegrationFlowRenderer.ps1"

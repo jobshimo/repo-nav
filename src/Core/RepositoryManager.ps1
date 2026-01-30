@@ -33,9 +33,14 @@ class RepositoryManager {
     [IProgressReporter] $ProgressReporter
     [GitStatusManager] $GitStatusManager
     [RepositorySorter] $Sorter
+    [HiddenReposService] $HiddenReposService
     
     # Cache for loaded repositories
     [System.Collections.ArrayList] $Repositories
+    
+    # Internal Cache
+    [System.Collections.ArrayList] $RawRepositoriesCache
+    [string] $CachedBasePath
     
     # GitStatusCache is now managed by GitStatusManager
     
@@ -53,7 +58,8 @@ class RepositoryManager {
         [RepositoryOperationsService]$repoOperationsService,
         [IProgressReporter]$progressReporter,
         [GitStatusManager]$gitStatusManager,
-        [RepositorySorter]$sorter
+        [RepositorySorter]$sorter,
+        [HiddenReposService]$hiddenReposService
     ) {
         $this.GitService = $gitService
         $this.GitReadService = $gitReadService
@@ -68,7 +74,10 @@ class RepositoryManager {
         $this.ProgressReporter = $progressReporter
         $this.GitStatusManager = $gitStatusManager
         $this.Sorter = $sorter
+        $this.HiddenReposService = $hiddenReposService
         $this.Repositories = [System.Collections.ArrayList]::new()
+        $this.RawRepositoriesCache = [System.Collections.ArrayList]::new()
+        $this.CachedBasePath = ""
     }
     
     # Clone a new repository (delegates to RepositoryOperationsService)
@@ -126,14 +135,30 @@ class RepositoryManager {
         return $result
     }
 
-    # Load all repositories from base path
+    # Reload using cached base path (Perf optimization / Convenience)
+    [void] LoadRepositories() {
+        if (-not [string]::IsNullOrEmpty($this.CachedBasePath)) {
+            $this.LoadRepositoriesInternal($this.CachedBasePath, $null, $false)
+        }
+    }
+
+    # Load repositories from base path
     # Now supports container folders (folders with repos inside)
+    # Accepts optional forceReload flag to bypass cache
     [void] LoadRepositories([string]$basePath) {
-        $this.LoadRepositoriesInternal($basePath, $null)
+        $this.LoadRepositoriesInternal($basePath, $null, $false)
+    }
+    
+    [void] LoadRepositories([string]$basePath, [bool]$forceReload) {
+        $this.LoadRepositoriesInternal($basePath, $null, $forceReload)
     }
     
     # Load repositories with optional parent path (for hierarchical navigation)
     [void] LoadRepositoriesInternal([string]$basePath, [string]$parentPath) {
+        $this.LoadRepositoriesInternal($basePath, $parentPath, $false)
+    }
+
+    [void] LoadRepositoriesInternal([string]$basePath, [string]$parentPath, [bool]$forceReload) {
         $oldRepos = @{}
         foreach ($repo in $this.Repositories) {
             $oldRepos[$repo.Name] = $repo
@@ -141,48 +166,72 @@ class RepositoryManager {
         
         $this.Repositories.Clear()
         
-        $directories = Get-ChildItem -Directory -Path $basePath | 
-                       Where-Object { $_.Name -notin @('envs', 'classes', 'repo-nav') }
-        
-        if ($directories.Count -eq 0) {
-            return
+        # Get hidden repos list and visibility state
+        $hiddenRepos = @()
+        $showHidden = $true
+        if ($null -ne $this.HiddenReposService) {
+            $hiddenRepos = $this.HiddenReposService.GetHiddenList()
+            $showHidden = $this.HiddenReposService.GetShowHiddenState()
         }
         
-        $aliases = $this.AliasManager.GetAllAliases()
+        # Cache Logic: Load from disk only if needed
+        if ($forceReload -or ($basePath -ne $this.CachedBasePath) -or ($this.RawRepositoriesCache.Count -eq 0)) {
+            $this.RawRepositoriesCache.Clear()
+            $this.CachedBasePath = $basePath
+            
+            $directories = Get-ChildItem -Directory -Path $basePath | 
+                           Where-Object { $_.Name -notin @('envs', 'classes', 'repo-nav') }
+                           
+            $aliases = $this.AliasManager.GetAllAliases()
+
+            if ($directories.Count -gt 0) {
+                 foreach ($dir in $directories) {
+                    $repo = [RepositoryModel]::new($dir)
+                    
+                    # Basic initialization that doesn't depend on filters
+                    if ($this.GitService.IsContainerDirectory($dir.FullName)) {
+                        $repoCount = $this.GitService.CountContainedRepositories($dir.FullName)
+                        $repo.MarkAsContainer($repoCount)
+                    }
+                    
+                    if ($parentPath) {
+                        $repo.SetParentPath($parentPath)
+                    }
+                    
+                    # Alias
+                    if ($aliases.ContainsKey($repo.FullPath)) {
+                        $repo.SetAlias($aliases[$repo.FullPath])
+                    } elseif ($aliases.ContainsKey($repo.Name)) {
+                        $repo.SetAlias($aliases[$repo.Name])
+                    }
+                    
+                    # NPM (Only for non-containers)
+                    if (-not $repo.IsContainer) {
+                        $this.NpmService.UpdateRepositoryModel($repo)
+                    }
+                    
+                    # Add to raw cache
+                    $this.RawRepositoriesCache.Add($repo) | Out-Null
+                 }
+            }
+        }
         
-        foreach ($dir in $directories) {
-            $repo = [RepositoryModel]::new($dir)
-            
-            # Check if this is a container (has repos inside but is not a repo itself)
-            # With new logic in GitService, any non-git-repo directory is a container
-            if ($this.GitService.IsContainerDirectory($dir.FullName)) {
-                $repoCount = $this.GitService.CountContainedRepositories($dir.FullName)
-                $repo.MarkAsContainer($repoCount)
-            }
-            
-            # Set parent path if provided (for back navigation)
-            if ($parentPath) {
-                $repo.SetParentPath($parentPath)
-            }
-            
-            if ($aliases.ContainsKey($repo.FullPath)) {
-                $repo.SetAlias($aliases[$repo.FullPath])
-            } elseif ($aliases.ContainsKey($repo.Name)) {
-                $repo.SetAlias($aliases[$repo.Name])
-            }
-            
-            # Delegate favorite check to FavoriteService
+        # Apply Filters (Hidden, Favorites, GitStatus) to items from Cache
+        foreach ($repo in $this.RawRepositoriesCache) {
+            # Update dynamic properties (Favorites can change)
             $this.FavoriteService.UpdateRepositoryModel($repo)
             
-            # Only check node_modules for non-container folders
-            if (-not $repo.IsContainer) {
-                $this.NpmService.UpdateRepositoryModel($repo)
+            # Update hidden status check
+            $isHidden = $repo.FullPath -in $hiddenRepos
+            $repo.MarkAsHidden($isHidden)
+            
+            # Filter
+            if ($showHidden -or -not $isHidden) {
+                # Hydrate Git Status (Cached in GitStatusManager, so fast)
+                $this.GitStatusManager.HydrateFromCache($repo)
+                
+                $this.Repositories.Add($repo) | Out-Null
             }
-            
-            # Hydrate from GitStatusManager cache
-            $this.GitStatusManager.HydrateFromCache($repo)
-            
-            $this.Repositories.Add($repo) | Out-Null
         }
         
         # Get user preference for favorites position
@@ -197,7 +246,7 @@ class RepositoryManager {
     
     # Load repositories from a container folder (for hierarchical navigation)
     [void] LoadContainerRepositories([string]$containerPath, [string]$parentPath) {
-        $this.LoadRepositoriesInternal($containerPath, $parentPath)
+        $this.LoadRepositoriesInternal($containerPath, $parentPath, $false)
     }
     
     # Get all loaded repositories
@@ -328,9 +377,9 @@ class RepositoryManager {
         return $false
     }
     
-    # Toggle favorite status (delegates to FavoriteService)
+    # Toggle favorite status
     [bool] ToggleFavorite([RepositoryModel]$repository) {
-        $result = $this.FavoriteService.ToggleFavorite($repository.Name)
+        $result = $this.FavoriteService.ToggleFavorite($repository.FullPath)
         if ($result) {
             $repository.MarkAsFavorite(-not $repository.IsFavorite)
         }

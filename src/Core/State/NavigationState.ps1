@@ -33,8 +33,9 @@ class NavigationState {
     
     # Rendering optimization flags
     [bool] $RequiresFullRedraw
+    [bool] $RequiresListRedraw
     [bool] $SelectionChanged
-    [bool] $ViewportChanged  # New flag for scroll detection
+    [bool] $ViewportChanged 
     [int] $PreviousIndex
     
     # Hierarchical navigation state (for container folders)
@@ -265,10 +266,21 @@ class NavigationState {
     
     <#
     .SYNOPSIS
+        Marks that the repository list needs redrawing (but not the whole screen)
+    #>
+    [void] MarkForListRedraw() {
+        if (-not $this.RequiresFullRedraw) {
+            $this.RequiresListRedraw = $true
+        }
+    }
+    
+    <#
+    .SYNOPSIS
         Clears all redraw flags after rendering
     #>
     [void] ClearRedrawFlags() {
         $this.RequiresFullRedraw = $false
+        $this.RequiresListRedraw = $false
         $this.SelectionChanged = $false
     }
     

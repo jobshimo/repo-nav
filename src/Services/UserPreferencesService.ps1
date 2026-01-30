@@ -64,6 +64,9 @@ class UserPreferencesService {
     # Create default preferences structure
     [PSCustomObject] CreateDefaultPreferences() {
         $defaults = [PSCustomObject]@{
+            hidden = [PSCustomObject]@{
+                hiddenRepos = @()
+            }
             general = [PSCustomObject]@{
                 language = "en"
             }
@@ -177,6 +180,19 @@ class UserPreferencesService {
         
         if (-not ($preferences.git.PSObject.Properties.Name -contains 'autoLoadGitStatusMode')) {
             $preferences.git | Add-Member -NotePropertyName 'autoLoadGitStatusMode' -NotePropertyValue "None" -Force
+        }
+        
+        # Hidden Section
+        if (-not ($preferences.PSObject.Properties.Name -contains 'hidden')) {
+            $preferences | Add-Member -NotePropertyName 'hidden' -NotePropertyValue ([PSCustomObject]@{
+                hiddenRepos = @()
+            }) -Force
+        }
+        
+        # defaultVisibility removed
+        
+        if (-not ($preferences.hidden.PSObject.Properties.Name -contains 'hiddenRepos')) {
+            $preferences.hidden | Add-Member -NotePropertyName 'hiddenRepos' -NotePropertyValue @() -Force
         }
         
         return $preferences

@@ -99,10 +99,21 @@ cd repo-nav
 # Generar el bundle
 .\Build-Bundle.ps1
 
-# Copiar la carpeta dist/ al destino
-# Ejecutar el setup del bundle
-.\dist\Setup-Bundle.ps1
+# O con minificación (25% más pequeño)
+.\Build-Bundle.ps1 -Minify
 ```
+
+La carpeta `dist/` contendrá:
+- `Install.bat` — Ejecutar primero (configura PowerShell automáticamente)
+- `repo-nav-bundle.ps1` — La aplicación
+- `Setup-Bundle.ps1` — Asistente de configuración
+- `Resources/` — Traducciones
+
+**Para instalar en otro equipo:**
+1. Copia la carpeta `dist/` al equipo destino
+2. Haz doble clic en `Install.bat`
+
+> **Nota**: Si Windows bloquea la ejecución de scripts .ps1, el Install.bat lo soluciona automáticamente configurando las políticas de ejecución.
 
 El asistente de Setup:
 - Verifica que tengas PowerShell, Git y npm

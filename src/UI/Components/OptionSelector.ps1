@@ -1,77 +1,21 @@
-<#
-.SYNOPSIS
-    OptionSelector - Reusable component for selecting from multiple options
-    
-.DESCRIPTION
-    Following SOLID principles:
-    - SRP: Only responsible for displaying and selecting from a list of options
-    - OCP: Open for extension (can handle any type of options)
-    - ISP: Focused interface for option selection
-    - DIP: Depends on Console and Renderer abstractions
-    
-    This component provides:
-    - Display of multiple options in a list
-    - Navigation with arrow keys
-    - Selection with Enter
-    - Cancel with Esc/Q
-#>
-
 class OptionSelector : ConsoleView {
     [UIRenderer] $Renderer
-    
-    # Constructor with dependency injection
-    # Breaking cyclical dependency typing in constructor by using [object]
     OptionSelector([ConsoleHelper]$console, [object]$renderer) : base($console) {
         $this.Renderer = $renderer
     }
     
-    <#
-    .SYNOPSIS
-        Show a selection menu and return the selected option
-    
-    .PARAMETER Title
-        Title to display at the top
-    
-    .PARAMETER Options
-        Array of option objects with DisplayText and Value properties
-        Example: @(
-            @{ DisplayText = "Option 1"; Value = "value1" },
-            @{ DisplayText = "Option 2"; Value = "value2" }
-        )
-    
-    .PARAMETER CurrentValue
-        The currently selected value (will be highlighted)
-    
-    .PARAMETER CancelText
-        Text to show for the cancel option (default: "Cancel")
-
-    .PARAMETER ShowCurrentMarker
-        Whether to append "(current)" text to the currently selected item (default: $true)
-
-    .PARAMETER Description
-        Optional text to display below the header (default: empty)
-    
-    .RETURNS
-        Selected option value, or $null if cancelled
-    #>
-    # Overload for backward compatibility (4 arguments)
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText) {
-        return $this.ShowSelection($title, $options, $currentValue, $cancelText, $true, "", [Constants]::ColorWarning, $true)
-    }
-
-    # Main method with all options
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [ConsoleColor]$descriptionColor, [bool]$clearScreen = $true) {
-        if ($options.Count -eq 0) {
+    # ═══════════════════════════════════════════════════════════════════════════
+    # NEW: Main entry point using SelectionOptions (recommended)
+    # ═══════════════════════════════════════════════════════════════════════════
+    [object] Show([SelectionOptions]$config) {
+        if ($config.Options.Count -eq 0) {
             return $null
         }
         
-        # Default color handling
-        if ($descriptionColor -eq 0) { $descriptionColor = [Constants]::ColorWarning }
-        
-        # Find current option index
+        $descColor = if ($config.DescriptionColor -eq 0) { [Constants]::ColorWarning } else { $config.DescriptionColor }
         $selectedIndex = 0
-        for ($i = 0; $i -lt $options.Count; $i++) {
-            if ($options[$i].Value -eq $currentValue) {
+        for ($i = 0; $i -lt $config.Options.Count; $i++) {
+            if ($config.Options[$i].Value -eq $config.CurrentValue) {
                 $selectedIndex = $i
                 break
             }
@@ -82,179 +26,119 @@ class OptionSelector : ConsoleView {
         
         try {
             $this.Console.HideCursor()
-            
-            # Clear screen once and render header
-            if ($clearScreen) {
+            if ($config.ClearScreen) {
                 $this.Console.ClearScreen()
             }
-            $this.Renderer.RenderHeader($title)
-            
-            # If headers are hidden, we must still show the "Title" (Prompt/Question) 
-            # as part of the content body
+            $this.Renderer.RenderHeader($config.Title)
             $preferences = $this.Renderer.PreferencesService.LoadPreferences()
             $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
-            
             if (-not $showHeaders) {
-                # Render prompt as high-visibility content
-                $this.WriteLineColored("  $title", [Constants]::ColorHighlight)
+                $this.WriteLineColored("  $($config.Title)", [Constants]::ColorHighlight)
                 $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)
             }
-            
             $this.NewLine()
-            
-            if (-not [string]::IsNullOrWhiteSpace($description)) {
-                $this.WriteLineColored("  $description", $descriptionColor)
+            if (-not [string]::IsNullOrWhiteSpace($config.Description)) {
+                $this.WriteLineColored("  $($config.Description)", $descColor)
                 $this.NewLine()
             }
             
-            # Store the starting position of the list to avoid full screen clears
             $listStartTop = $this.Console.GetCursorTop()
-            
-            # Initialize viewport state
             $viewportStart = 0
-            # Reserve space for Footer (Safe margin: 6 lines)
-            # Structure: Newline, Cancel, Newline, Newline, Hint -> 5 lines + 1 safety
             $reservedFooter = 6
-
+            
             while ($running) {
-                # 1. Logic (Update Viewport)
-                $pageSize = $this.CalculatePageSize($options.Count, $listStartTop, $reservedFooter)
-                $viewportStart = $this.CalculateViewportStart($selectedIndex, $viewportStart, $pageSize, $options.Count)
-
-                # 2. Render
-                
-                # Reset cursor to the start of the list
+                $pageSize = $this.CalculatePageSize($config.Options.Count, $listStartTop, $reservedFooter)
+                $viewportStart = $this.CalculateViewportStart($selectedIndex, $viewportStart, $pageSize, $config.Options.Count)
                 $this.Console.SetCursorPosition(0, $listStartTop)
-
-                # Display options (Windowed)
+                
                 for ($i = 0; $i -lt $pageSize; $i++) {
                     $optionIndex = $viewportStart + $i
-                    $option = $options[$optionIndex]
+                    $option = $config.Options[$optionIndex]
+                    $isSelected = ($optionIndex -eq $selectedIndex)
+                    $prefix = if ($isSelected) { ">" } else { " " }
                     
-                    $prefix = if ($optionIndex -eq $selectedIndex) { ">" } else { " " }
-                    $color = if ($optionIndex -eq $selectedIndex) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
-                    
-                    # Add indicator if this is the current value
-                    $currentMarker = if ($showCurrentMarker -and $option.Value -eq $currentValue) { " (current)" } else { "" }
-                    
-                    $displayLine = "  $prefix $($option.DisplayText)$currentMarker"
-                    
-                    $isColorPreview = $false
-                    if ($option.Value -ne 'None' -and ($option.Value -as [System.ConsoleColor])) {
-                        $isColorPreview = $true
-                    }
-
-                    # Clear line first to prevent ghosting
-                    $this.ClearLine()
-
-                    if ($isColorPreview) {
-                        # Show color preview
-                        $this.WriteLineColored($displayLine, $option.Value)
+                    if ($null -ne $config.OnRenderItem) {
+                        & $config.OnRenderItem $option $isSelected $prefix
                     } else {
-                        $this.WriteLineColored($displayLine, $color)
+                        $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+                        $currentMarkerStr = if ($config.ShowCurrentMarker -and $option.Value -eq $config.CurrentValue) { " (current)" } else { "" }
+                        $displayLine = "  $prefix $($option.DisplayText)$currentMarkerStr"
+                        
+                        $isColorPreview = $false
+                        if ($option.Value -ne 'None' -and ($option.Value -as [System.ConsoleColor])) {
+                            $isColorPreview = $true
+                        }
+                        $this.ClearLine()
+                        if ($isColorPreview) {
+                            $this.WriteLineColored($displayLine, $option.Value)
+                        } else {
+                            $this.WriteLineColored($displayLine, $color)
+                        }
                     }
                 }
                 
-                # Footer
+                if ($null -ne $config.OnSelectionChanged) {
+                    & $config.OnSelectionChanged $config.Options[$selectedIndex]
+                }
+
                 $this.NewLine()
                 $this.ClearLine()
-                $this.WriteLineColored("  $cancelText", [Constants]::ColorHint)
+                $this.WriteLineColored("  $($config.CancelText)", [Constants]::ColorHint)
                 $this.NewLine()
-                
                 $this.NewLine()
                 $this.ClearLine()
                 $this.WriteLineColored("  Use Arrows to navigate | Enter to select | Q/Esc to cancel", [Constants]::ColorHint)
                 
-                # 3. Input
                 $key = $this.Console.ReadKey()
-                
                 switch ($key.VirtualKeyCode) {
                     ([Constants]::KEY_UP_ARROW) {
-                        if ($selectedIndex -gt 0) {
-                            $selectedIndex--
-                        } else {
-                            $selectedIndex = $options.Count - 1
-                        }
+                        if ($selectedIndex -gt 0) { $selectedIndex-- }
+                        else { $selectedIndex = $config.Options.Count - 1 }
                     }
-                    
                     ([Constants]::KEY_DOWN_ARROW) {
-                        if ($selectedIndex -lt ($options.Count - 1)) {
-                            $selectedIndex++
-                        } else {
-                            $selectedIndex = 0
-                        }
+                        if ($selectedIndex -lt ($config.Options.Count - 1)) { $selectedIndex++ }
+                        else { $selectedIndex = 0 }
                     }
-                    
                     ([Constants]::KEY_ENTER) {
-                        $result = $options[$selectedIndex].Value
+                        $result = $config.Options[$selectedIndex].Value
                         $running = $false
                     }
-                    
-                    ([Constants]::KEY_Q) {
-                        $running = $false
-                    }
-                    
-                    ([Constants]::KEY_ESC) {
-                        $running = $false
-                    }
+                    ([Constants]::KEY_Q) { $running = $false }
+                    ([Constants]::KEY_ESC) { $running = $false }
                 }
             }
         }
         finally {
-            # Ensure cursor remains hidden when returning to main UI
-            # (Unless explicitly expecting input next, but the main loop handles that)
             $this.Console.HideCursor()
         }
-        
         return $result
     }
-    
-    <#
-    .SYNOPSIS
-        Show a simple Yes/No confirmation dialog
-    
-    .PARAMETER question
-        The question to ask
-        
-    .PARAMETER localizationService
-        Optional LocalizationService for translated texts
-    
-    .RETURNS
-        $true if Yes selected, $false if No or cancelled
-    #>
+
     [bool] SelectYesNo([string]$question, [object]$localizationService, [bool]$clearScreen = $true) {
-        # Get localized texts or use defaults
         $yesText = "Yes"
         $noText = "No"
         $cancelText = "Cancel"
-        
         if ($null -ne $localizationService) {
             $yesText = $localizationService.Get("Prompt.Yes")
             $noText = $localizationService.Get("Prompt.No")
             $cancelText = $localizationService.Get("Prompt.Cancel")
         }
-        
-        $options = @(
+        $config = [SelectionOptions]::new()
+        $config.Title = $question
+        $config.Options = @(
             @{ DisplayText = $yesText; Value = $true },
             @{ DisplayText = $noText; Value = $false }
         )
-        
-        # Pass clearScreen and default color
-        $result = $this.ShowSelection($question, $options, $false, $cancelText, $false, "", [Constants]::ColorWarning, $clearScreen)
-        
-        if ($null -eq $result) {
-            return $false
-        }
-        
+        $config.CancelText = $cancelText
+        $config.ShowCurrentMarker = $false
+        $config.ClearScreen = $clearScreen
+        $result = $this.Show($config)
+        if ($null -eq $result) { return $false }
         return $result
     }
-    
-    # Overload without localization for backward compatibility
     [bool] SelectYesNo([string]$question) {
         return $this.SelectYesNo($question, $null, $true)
     }
-    
-    # Overload with just clearScreen
     [bool] SelectYesNo([string]$question, [bool]$clearScreen) {
         return $this.SelectYesNo($question, $null, $clearScreen)
     }

@@ -36,7 +36,7 @@ class FavoriteCommand : INavigationCommand {
             # Find the new position of the repository after sorting
             $newIndex = 0
             for ($i = 0; $i -lt $sorted.Count; $i++) {
-                if ($sorted[$i].Name -eq $repoName) {
+                if ($sorted[$i].FullPath -eq $currentRepo.FullPath) {
                     $newIndex = $i
                     break
                 }

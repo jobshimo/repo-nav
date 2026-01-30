@@ -22,6 +22,7 @@ $servicesPath = $PSScriptRoot
 . "$servicesPath\ParallelGitLoader.ps1"
 . "$servicesPath\RepositoryOperationsService.ps1"
 . "$servicesPath\FavoriteService.ps1"
+. "$servicesPath\HiddenReposService.ps1"
 . "$servicesPath\SearchService.ps1"
 . "$servicesPath\RenderOrchestrator.ps1"
 . "$servicesPath\LoggerService.ps1"

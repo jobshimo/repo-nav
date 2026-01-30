@@ -110,6 +110,11 @@ class ConsoleHelper {
         Write-Host (" " * $currentLength) -NoNewline
         $this.SetCursorPosition(0, $rawUI.CursorPosition.Y)
     }
+
+    # Alias for ClearCurrentLine (Common name)
+    [void] ClearLine() {
+        $this.ClearCurrentLine()
+    }
     # Get window height
     [int] GetWindowHeight() {
         try {

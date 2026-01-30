@@ -16,14 +16,13 @@ function Start-NavigationLoop {
     # Unpack context for local usage
     $RepoManager = $Context.RepoManager
     $Renderer = $Context.Renderer
-    $RepoManager = $Context.RepoManager
-    $Renderer = $Context.Renderer
     $Console = $Context.Console
     $Logger = $Context.Logger
     $ColorSelector = $Context.ColorSelector
     $OptionSelector = $Context.OptionSelector
     $LocalizationService = $Context.LocalizationService
     $PreferencesService = $Context.PreferencesService
+    $HiddenReposService = $Context.HiddenReposService
     $BasePath = $Context.BasePath
     
     # Load repositories
@@ -42,7 +41,7 @@ function Start-NavigationLoop {
         $state = [NavigationState]::new($repos, $BasePath)
         
         $cursorStartLine = [Constants]::CursorStartLine
-        $renderOrchestrator = [RenderOrchestrator]::new($Renderer, $Console, $cursorStartLine)
+        $renderOrchestrator = [RenderOrchestrator]::new($Renderer, $Console, $cursorStartLine, $HiddenReposService)
         
         $progressIndicator = [ProgressIndicator]::new($Console)
         
@@ -68,6 +67,7 @@ function Start-NavigationLoop {
         $commandContext.OptionSelector = $OptionSelector
         $commandContext.LocalizationService = $LocalizationService
         $commandContext.PreferencesService = $PreferencesService
+        $commandContext.HiddenReposService = $HiddenReposService
         $commandContext.BasePath = $BasePath
         
         # Initial full render and layout calculation
@@ -77,7 +77,7 @@ function Start-NavigationLoop {
         while (-not $state.ShouldExit()) {
             # Ensure cursor is hidden at the start of each loop iteration
             $Console.HideCursor()
-
+            
             $keyPress = $Console.ReadKey()
             
             # Delegate input handling to InputHandler

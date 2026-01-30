@@ -37,33 +37,15 @@ class FavoriteService {
         return $favorites
     }
     
-    <#
-    .SYNOPSIS
-        Checks if a repository is marked as favorite
-        
-    .PARAMETER repoName
-        The repository name to check
-        
-    .RETURNS
-        True if the repository is a favorite
-    #>
-    [bool] IsFavorite([string]$repoName) {
+    # Check if a repository is marked as favorite
+    [bool] IsFavorite([string]$repoPath) {
         [string[]]$favorites = $this.GetFavorites()
-        return $favorites -contains $repoName
+        return $favorites -contains $repoPath
     }
     
-    <#
-    .SYNOPSIS
-        Adds a repository to favorites
-        
-    .PARAMETER repoName
-        The repository name to add
-        
-    .RETURNS
-        True if successfully added (or already exists)
-    #>
-    [bool] AddFavorite([string]$repoName) {
-        if ([string]::IsNullOrWhiteSpace($repoName)) {
+    # Add a repository to favorites
+    [bool] AddFavorite([string]$repoPath) {
+        if ([string]::IsNullOrWhiteSpace($repoPath)) {
             return $false
         }
         
@@ -71,104 +53,62 @@ class FavoriteService {
         [string[]]$currentFavorites = @($config.favorites)
         
         # Already a favorite
-        if ($currentFavorites -contains $repoName) {
+        if ($currentFavorites -contains $repoPath) {
             return $true
         }
         
         # Add and save
-        $config.favorites = @($currentFavorites + $repoName)
+        $config.favorites = @($currentFavorites + $repoPath)
         return $this.ConfigService.SaveConfiguration($config)
     }
     
-    <#
-    .SYNOPSIS
-        Removes a repository from favorites
-        
-    .PARAMETER repoName
-        The repository name to remove
-        
-    .RETURNS
-        True if successfully removed (or didn't exist)
-    #>
-    [bool] RemoveFavorite([string]$repoName) {
+    # Remove a repository from favorites
+    [bool] RemoveFavorite([string]$repoPath) {
         $config = $this.ConfigService.LoadConfiguration()
         [string[]]$currentFavorites = @($config.favorites)
         
         # Not a favorite
-        if ($currentFavorites -notcontains $repoName) {
+        if ($currentFavorites -notcontains $repoPath) {
             return $true
         }
         
         # Remove and save
-        $config.favorites = @($currentFavorites | Where-Object { $_ -ne $repoName })
+        $config.favorites = @($currentFavorites | Where-Object { $_ -ne $repoPath })
         return $this.ConfigService.SaveConfiguration($config)
     }
     
-    <#
-    .SYNOPSIS
-        Toggles the favorite status of a repository
-        
-    .PARAMETER repoName
-        The repository name to toggle
-        
-    .RETURNS
-        True if operation succeeded
-    #>
-    [bool] ToggleFavorite([string]$repoName) {
-        if ($this.IsFavorite($repoName)) {
-            return $this.RemoveFavorite($repoName)
+    # Toggle favorite status
+    [bool] ToggleFavorite([string]$repoPath) {
+        if ($this.IsFavorite($repoPath)) {
+            return $this.RemoveFavorite($repoPath)
         }
         else {
-            return $this.AddFavorite($repoName)
+            return $this.AddFavorite($repoPath)
         }
     }
     
-    <#
-    .SYNOPSIS
-        Gets the count of favorites
-        
-    .RETURNS
-        Number of favorite repositories
-    #>
+    # Get favorite count
     [int] GetFavoriteCount() {
         return $this.GetFavorites().Count
     }
     
-    <#
-    .SYNOPSIS
-        Clears all favorites
-        
-    .RETURNS
-        True if successfully cleared
-    #>
+    # Clear all favorites
     [bool] ClearAllFavorites() {
         $config = $this.ConfigService.LoadConfiguration()
         $config.favorites = @()
         return $this.ConfigService.SaveConfiguration($config)
     }
     
-    <#
-    .SYNOPSIS
-        Updates repository model with favorite status
-        
-    .PARAMETER repository
-        The RepositoryModel to update
-    #>
+    # Update repository model with favorite status
     [void] UpdateRepositoryModel([RepositoryModel]$repository) {
-        $repository.MarkAsFavorite($this.IsFavorite($repository.Name))
+        $repository.MarkAsFavorite($this.IsFavorite($repository.FullPath))
     }
     
-    <#
-    .SYNOPSIS
-        Updates multiple repository models with favorite status
-        
-    .PARAMETER repositories
-        Array of RepositoryModel objects to update
-    #>
+    # Update multiple repository models
     [void] UpdateRepositoryModels([array]$repositories) {
         $favorites = $this.GetFavorites()
         foreach ($repo in $repositories) {
-            $repo.MarkAsFavorite($favorites -contains $repo.Name)
+            $repo.MarkAsFavorite($favorites -contains $repo.FullPath)
         }
     }
 }

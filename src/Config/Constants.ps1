@@ -40,6 +40,8 @@ class Constants {
     static [int] $KEY_RIGHT_ARROW = 39
     static [int] $KEY_N = 78
     static [int] $KEY_B = 66
+    static [int] $KEY_H = 72      # Hide repository
+    static [int] $KEY_V = 86      # Toggle hidden visibility
     static [int] $KEY_HOME = 36
     static [int] $KEY_END = 35
     

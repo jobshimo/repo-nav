@@ -210,8 +210,10 @@ class UIRenderer {
         $grpRepo = $this.GetLoc("UI.Group.Repo", "Repository")
         $cmdClone = $this.GetLoc("Cmd.Desc.RepoMgmt", "C=clone | Del=delete")
         $cmdFav = $this.GetLoc("Cmd.Desc.Favorite", "Space=favorite")
+        $cmdHide = $this.GetLoc("Cmd.Desc.Hide", "H=hide | V=vis")
+        
         $lblRepo = "${grpRepo}:".PadRight($labelWidth)
-        $this.Console.WriteLineColored("  $lblRepo $cmdClone | $cmdFav", [Constants]::ColorMenuText)
+        $this.Console.WriteLineColored("  $lblRepo $cmdClone | $cmdFav | $cmdHide", [Constants]::ColorMenuText)
         return 1
     }
     
@@ -273,7 +275,11 @@ class UIRenderer {
         $vm = [RepositoryViewModel]::new($repo, $preferences)
         
         # Get color from ViewModel
-        $nameColor = $vm.GetNameColor($isSelected)
+        $nameColor = if ($repo.IsHidden -and -not $isSelected) { 
+            [Constants]::ColorHint 
+        } else { 
+            $vm.GetNameColor($isSelected) 
+        }
         
         # Get prefix from ViewModel
         $prefix = $vm.GetPrefix($isSelected)
@@ -353,6 +359,18 @@ class UIRenderer {
             $this.Console.WriteColored($repo.Name, $nameColor)
         }
         
+        # Render (Hidden) suffix if applicable
+        if ($repo.IsHidden) {
+             $hiddenSuffix = " [Hidden]"
+             $suffixColor = if ($isSelected) { $selectedTextColor } else { [Constants]::ColorHint }
+             
+             if ($backgroundColor) {
+                 $this.Console.WriteWithBackground($hiddenSuffix, $suffixColor, $backgroundColor)
+             } else {
+                 $this.Console.WriteColored($hiddenSuffix, $suffixColor)
+             }
+        }
+        
         # Render right delimiter
         if ($rightDelimiter -ne '') {
             if ($backgroundColor) {
@@ -387,16 +405,13 @@ class UIRenderer {
         for ($i = 0; $i -lt $limit; $i++) {
              $currentLine = $startLine + $i
              $this.Console.SetCursorPosition(0, $currentLine)
-             $this.Console.SetCursorPosition(0, $currentLine)
-             # Optimized: Removed ClearCurrentLine() to prevent flickering. 
-             # RenderRepositoryItem now handles clearing the tail.
-
              
              $repoIndex = $start + $i
              if ($repoIndex -lt $total) {
                  $this.RenderRepositoryItem($repos[$repoIndex], ($repoIndex -eq $state.SelectedIndex))
              } else {
-                 # Just ensure the line is empty (handled by ClearCurrentLine above)
+                 # Clear the line if there's no repo to display (prevents ghost items)
+                 $this.Console.ClearCurrentLine()
              }
         }
     }
@@ -461,7 +476,7 @@ class UIRenderer {
     
     # Render git status footer
     # Now receives additional counts: totalItems (all), totalRepos (only non-containers), loadedRepos (git status loaded)
-    [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalItems, [int]$totalRepos, [int]$loadedRepos, [int]$currentIndex) {
+    [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalItems, [int]$totalRepos, [int]$loadedRepos, [int]$currentIndex, [bool]$showHidden) {
         # Line 1: Separator
         $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
         
@@ -474,6 +489,12 @@ class UIRenderer {
         if ($totalRepos -ne $totalItems) {
             $this.Console.WriteColored(" | Repos: ", [Constants]::ColorLabel)
             $this.Console.WriteColored("$totalRepos", [Constants]::ColorValue)
+        }
+        
+        # Hidden visual indicator
+        if ($showHidden) {
+             $this.Console.WriteColored(" | ", [Constants]::ColorLabel)
+             $this.Console.WriteColored("SHOW HIDDEN", [Constants]::ColorWarning)
         }
         
         $this.Console.WriteColored(" | Git Info: ", [Constants]::ColorLabel)
