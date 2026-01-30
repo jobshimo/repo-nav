@@ -497,7 +497,13 @@ class PreferencesMenuController {
                  @{ DisplayText = (& $GetLoc "Pref.PathDisplay.Both"); Value = "Both" }
              )
              $current = if ($preferences.display.pathDisplayMode) { $preferences.display.pathDisplayMode } else { "Path" }
-             $newVal = $this.ShowOptionSelector((& $GetLoc "Pref.PathDisplay"), $opts, $current)
+             
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Pref.PathDisplay")
+             $config.Options = $opts
+             $config.CurrentValue = $current
+             
+             $newVal = $this.OptionSelector.Show($config)
              
              if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "pathDisplayMode", $newVal)
