@@ -196,11 +196,6 @@ if ($MyInvocation.InvocationName -ne '.') {
         if (-not $BasePath) {
              $BasePath = (Split-Path -Parent $PSScriptRoot)
         }
-        
-        # 3. Last resort fallback (should rarely happen if script is on disk)
-        if (-not $BasePath) {
-            $BasePath = [Constants]::ReposBasePath
-        }
     }
     
     # Start the navigator

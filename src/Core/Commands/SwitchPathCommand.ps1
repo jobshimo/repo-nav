@@ -31,6 +31,7 @@ class SwitchPathCommand : INavigationCommand {
         }
         
         $pathAliases = if ($preferences.repository.pathAliases) { $preferences.repository.pathAliases } else { ([PSCustomObject]@{}) }
+        $defaultPath = if ($preferences.repository.defaultPath) { $preferences.repository.defaultPath } else { "" }
         
         foreach ($p in $paths) {
              # Resolve Alias
@@ -45,8 +46,11 @@ class SwitchPathCommand : INavigationCommand {
              }
         
              $displayText = "$p$displayAlias"
-             if ($p -eq $currentPath) {
-                 $displayText += " (Current)"
+             
+             # OptionSelector automatically adds (current) when ShowCurrentMarker is true
+             
+             if ($p -eq $defaultPath) {
+                 $displayText += " (Default)"
              }
              if (-not (Test-Path $p)) {
                  $displayText += " (Missing)"

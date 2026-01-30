@@ -10,8 +10,6 @@
 
 class Constants {
     # Paths (loaded from config file)
-    static [string] $ReposBasePath
-    static [string] $UserName
     static [string] $AliasFileName = ".repo-aliases.json"
     
     # Script root path

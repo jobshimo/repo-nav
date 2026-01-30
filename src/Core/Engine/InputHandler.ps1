@@ -69,8 +69,13 @@ class InputHandler {
                 $context.State.SetFocus("List")
                 return $true
             }
-            elseif ($keyPress.Key -eq 'UpArrow' -or $keyPress.Key -eq 'DownArrow') {
-                 # Consume navigation keys when focus is on Header
+            elseif ($keyPress.VirtualKeyCode -eq [Constants]::KEY_UP_ARROW -or 
+                    $keyPress.VirtualKeyCode -eq [Constants]::KEY_DOWN_ARROW -or 
+                    $keyPress.VirtualKeyCode -eq [Constants]::KEY_LEFT_ARROW -or 
+                    $keyPress.VirtualKeyCode -eq [Constants]::KEY_RIGHT_ARROW -or
+                    $keyPress.VirtualKeyCode -eq [Constants]::KEY_HOME -or 
+                    $keyPress.VirtualKeyCode -eq [Constants]::KEY_END) {
+                 # Consume all navigation keys when focus is on Header to prevent list scrolling
                  return $true
             }
         }

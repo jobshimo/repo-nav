@@ -14,17 +14,14 @@ class AppBuilder {
         $configService = [ConfigurationService]::new()
         [ServiceRegistry]::Register('ConfigurationService', $configService)
 
-        try {
-            $envConfig = $configService.LoadEnvironmentConfig()
-            [Constants]::ReposBasePath = $envConfig.reposBasePath
-            [Constants]::UserName = $envConfig.userName
-            
-            # If no BasePath provided by arguments, use config default
-            if ([string]::IsNullOrWhiteSpace($BasePath)) {
-                $BasePath = [Constants]::ReposBasePath
-            }
-        } catch {
-            Write-Warning "Could not load environment config: $_"
+        # 0. Load Configuration (Centralized)
+        $configService = [ConfigurationService]::new()
+        [ServiceRegistry]::Register('ConfigurationService', $configService)
+
+        # If no BasePath provided by arguments, try to deduce it or fallback
+        if ([string]::IsNullOrWhiteSpace($BasePath)) {
+            Write-Warning "No BasePath provided to AppBuilder. Defaulting to script parent."
+            $BasePath = (Split-Path -Parent ([Constants]::ScriptRoot))
         }
 
         # 1. Base Services (No dependencies)
