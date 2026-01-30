@@ -479,7 +479,7 @@ class UIRenderer {
     
     # Render git status footer
     # Now receives additional counts: totalItems (all), totalRepos (only non-containers), loadedRepos (git status loaded)
-    [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalItems, [int]$totalRepos, [int]$loadedRepos, [int]$currentIndex) {
+    [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalItems, [int]$totalRepos, [int]$loadedRepos, [int]$currentIndex, [bool]$showHidden) {
         # Line 1: Separator
         $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
         
@@ -492,6 +492,12 @@ class UIRenderer {
         if ($totalRepos -ne $totalItems) {
             $this.Console.WriteColored(" | Repos: ", [Constants]::ColorLabel)
             $this.Console.WriteColored("$totalRepos", [Constants]::ColorValue)
+        }
+        
+        # Hidden visual indicator
+        if ($showHidden) {
+             $this.Console.WriteColored(" | ", [Constants]::ColorLabel)
+             $this.Console.WriteColored("SHOW HIDDEN", [Constants]::ColorWarning)
         }
         
         $this.Console.WriteColored(" | Git Info: ", [Constants]::ColorLabel)

@@ -41,7 +41,7 @@ function Start-NavigationLoop {
         $state = [NavigationState]::new($repos, $BasePath)
         
         $cursorStartLine = [Constants]::CursorStartLine
-        $renderOrchestrator = [RenderOrchestrator]::new($Renderer, $Console, $cursorStartLine)
+        $renderOrchestrator = [RenderOrchestrator]::new($Renderer, $Console, $cursorStartLine, $HiddenReposService)
         
         $progressIndicator = [ProgressIndicator]::new($Console)
         

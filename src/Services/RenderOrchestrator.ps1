@@ -23,13 +23,15 @@ class RenderOrchestrator {
     [object] $Console      # ConsoleHelper
     [int] $CursorStartLine # Calculated line where repository list starts
     [UserPreferencesService] $PreferencesService # For Menu Mode
+    [HiddenReposService] $HiddenReposService # For visibility indicator
     
     # Constructor with Dependency Injection
-    RenderOrchestrator([object]$renderer, [object]$console, [int]$initialCursorStartLine) {
+    RenderOrchestrator([object]$renderer, [object]$console, [int]$initialCursorStartLine, [HiddenReposService]$hiddenReposService) {
         $this.Renderer = $renderer
         $this.Console = $console
         $this.CursorStartLine = $initialCursorStartLine
         $this.PreferencesService = [UserPreferencesService]::new()
+        $this.HiddenReposService = $hiddenReposService
     }
     
     #region Public Rendering Methods
@@ -100,7 +102,13 @@ class RenderOrchestrator {
         $totalItems = $state.GetTotalCount()
         $totalRepos = $state.GetRepoCount()
         $loadedRepos = $state.GetLoadedCount()
-        $this.Renderer.RenderGitStatusFooter($state.GetSelectedRepository(), $totalItems, $totalRepos, $loadedRepos, $state.SelectedIndex)
+        
+        $showHidden = $false
+        if ($this.HiddenReposService) {
+             $showHidden = $this.HiddenReposService.GetShowHiddenState()
+        }
+        
+        $this.Renderer.RenderGitStatusFooter($state.GetSelectedRepository(), $totalItems, $totalRepos, $loadedRepos, $state.SelectedIndex, $showHidden)
     }
     
     <#
@@ -158,7 +166,13 @@ class RenderOrchestrator {
         $totalRepos = $state.GetRepoCount()
         $loadedRepos = $state.GetLoadedCount()
         $currentIndex = $state.GetCurrentIndex()
-        $this.Renderer.RenderGitStatusFooter($selectedRepo, $totalItems, $totalRepos, $loadedRepos, $currentIndex)
+        
+        $showHidden = $false
+        if ($this.HiddenReposService) {
+             $showHidden = $this.HiddenReposService.GetShowHiddenState()
+        }
+        
+        $this.Renderer.RenderGitStatusFooter($selectedRepo, $totalItems, $totalRepos, $loadedRepos, $currentIndex, $showHidden)
     }
     
     <#
@@ -241,7 +255,13 @@ class RenderOrchestrator {
         $totalItems = $state.GetTotalCount()
         $totalRepos = $state.GetRepoCount()
         $loadedRepos = $state.GetLoadedCount()
-        $this.Renderer.RenderGitStatusFooter($state.GetSelectedRepository(), $totalItems, $totalRepos, $loadedRepos, $state.SelectedIndex)
+        
+        $showHidden = $false
+        if ($this.HiddenReposService) {
+             $showHidden = $this.HiddenReposService.GetShowHiddenState()
+        }
+        
+        $this.Renderer.RenderGitStatusFooter($state.GetSelectedRepository(), $totalItems, $totalRepos, $loadedRepos, $state.SelectedIndex, $showHidden)
     }
     
     #endregion
