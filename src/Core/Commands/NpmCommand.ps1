@@ -58,7 +58,12 @@ class NpmView {
                 @{ DisplayText = $yes; Value = $true },
                 @{ DisplayText = $no; Value = $false }
             )
-            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $warning, [Constants]::ColorWarning, $true)
+            $config = [SelectionOptions]::new()
+            $config.Title = $prompt
+            $config.Options = $options
+            $config.ShowCurrentMarker = $false
+            $config.Description = $warning
+            $result = $this.OptionSelector.Show($config)
             return ($result -eq $true)
         } else {
             Write-Host $warning -ForegroundColor ([Constants]::ColorWarning)
@@ -74,7 +79,11 @@ class NpmView {
                 @{ DisplayText = $yes; Value = $true },
                 @{ DisplayText = $no; Value = $false }
             )
-            $result = $this.OptionSelector.ShowSelection($prompt, $options, $false, "Cancel", $false, $null, [Constants]::ColorWarning, $true)
+            $config = [SelectionOptions]::new()
+            $config.Title = $prompt
+            $config.Options = $options
+            $config.ShowCurrentMarker = $false
+            $result = $this.OptionSelector.Show($config)
             return ($result -eq $true)
         } else {
             return $this.Console.ConfirmAction($prompt, $false)

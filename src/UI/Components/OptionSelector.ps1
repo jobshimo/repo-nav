@@ -113,45 +113,7 @@ class OptionSelector : ConsoleView {
         }
         return $result
     }
-    
-    # ═══════════════════════════════════════════════════════════════════════════
-    # LEGACY: Overloads for backwards compatibility (will be deprecated)
-    # ═══════════════════════════════════════════════════════════════════════════
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText) {
-        $config = [SelectionOptions]::new()
-        $config.Title = $title
-        $config.Options = $options
-        $config.CurrentValue = $currentValue
-        $config.CancelText = $cancelText
-        return $this.Show($config)
-    }
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [ConsoleColor]$descriptionColor, [bool]$clearScreen = $true) {
-        $config = [SelectionOptions]::new()
-        $config.Title = $title
-        $config.Options = $options
-        $config.CurrentValue = $currentValue
-        $config.CancelText = $cancelText
-        $config.ShowCurrentMarker = $showCurrentMarker
-        $config.Description = $description
-        $config.DescriptionColor = if ($descriptionColor -eq 0) { [Constants]::ColorWarning } else { $descriptionColor }
-        $config.ClearScreen = $clearScreen
-        return $this.Show($config)
-    }
 
-    [object] ShowSelection([string]$title, [array]$options, [object]$currentValue, [string]$cancelText, [bool]$showCurrentMarker, [string]$description, [ConsoleColor]$descriptionColor, [bool]$clearScreen, [scriptblock]$onSelectionChanged, [scriptblock]$onRenderItem) {
-        $config = [SelectionOptions]::new()
-        $config.Title = $title
-        $config.Options = $options
-        $config.CurrentValue = $currentValue
-        $config.CancelText = $cancelText
-        $config.ShowCurrentMarker = $showCurrentMarker
-        $config.Description = $description
-        $config.DescriptionColor = if ($descriptionColor -eq 0) { [Constants]::ColorWarning } else { $descriptionColor }
-        $config.ClearScreen = $clearScreen
-        $config.OnSelectionChanged = $onSelectionChanged
-        $config.OnRenderItem = $onRenderItem
-        return $this.Show($config)
-    }
     [bool] SelectYesNo([string]$question, [object]$localizationService, [bool]$clearScreen = $true) {
         $yesText = "Yes"
         $noText = "No"
@@ -161,14 +123,17 @@ class OptionSelector : ConsoleView {
             $noText = $localizationService.Get("Prompt.No")
             $cancelText = $localizationService.Get("Prompt.Cancel")
         }
-        $options = @(
+        $config = [SelectionOptions]::new()
+        $config.Title = $question
+        $config.Options = @(
             @{ DisplayText = $yesText; Value = $true },
             @{ DisplayText = $noText; Value = $false }
         )
-        $result = $this.ShowSelection($question, $options, $false, $cancelText, $false, "", [Constants]::ColorWarning, $clearScreen)
-        if ($null -eq $result) {
-            return $false
-        }
+        $config.CancelText = $cancelText
+        $config.ShowCurrentMarker = $false
+        $config.ClearScreen = $clearScreen
+        $result = $this.Show($config)
+        if ($null -eq $result) { return $false }
         return $result
     }
     [bool] SelectYesNo([string]$question) {

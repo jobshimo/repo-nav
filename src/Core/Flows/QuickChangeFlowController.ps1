@@ -82,7 +82,14 @@ class QuickChangeFlowController : FlowControllerBase {
                  if ($hasChanges) { $descColor = [Constants]::ColorWarning } else { $descColor = [ConsoleColor]::Gray }
             }
             
-            $selection = $this.Context.OptionSelector.ShowSelection($title, $options, $null, $hintText, $false, $desc, $descColor, $true)
+            $config = [SelectionOptions]::new()
+            $config.Title = $title
+            $config.Options = $options
+            $config.CancelText = $hintText
+            $config.ShowCurrentMarker = $false
+            $config.Description = $desc
+            $config.DescriptionColor = $descColor
+            $selection = $this.Context.OptionSelector.Show($config)
             
             # Clear temporary message after showing once
             $tempMessage = ""

@@ -339,7 +339,11 @@ class PreferencesMenuController {
                 $opts += @{ DisplayText = "$d ($l)"; Value = $l } 
             }
             
-            $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectLanguage"), $opts, $this.LocalizationService.GetCurrentLanguage(), "Cancel")
+            $config = [SelectionOptions]::new()
+            $config.Title = (& $GetLoc "Prompt.SelectLanguage")
+            $config.Options = $opts
+            $config.CurrentValue = $this.LocalizationService.GetCurrentLanguage()
+            $newVal = $this.OptionSelector.Show($config)
             if ($newVal) {
                 $this.LocalizationService.SetLanguage($newVal)
                 $this.PreferencesService.SetPreference("general", "language", $newVal)
@@ -358,7 +362,11 @@ class PreferencesMenuController {
         }
         elseif ($item.Id -eq "favoritesOnTop") {
             $opts = @( @{ DisplayText = (& $GetLoc "Pref.Value.Top"); Value = $true }, @{ DisplayText = (& $GetLoc "Pref.Value.Original"); Value = $false } )
-            $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Pref.FavoritesPos"), $opts, $preferences.display.favoritesOnTop, "Cancel")
+            $config = [SelectionOptions]::new()
+            $config.Title = (& $GetLoc "Pref.FavoritesPos")
+            $config.Options = $opts
+            $config.CurrentValue = $preferences.display.favoritesOnTop
+            $newVal = $this.OptionSelector.Show($config)
             if ($null -ne $newVal) {
                  $this.PreferencesService.SetPreference("display", "favoritesOnTop", $newVal)
                  $msg = (& $GetLoc "Msg.FavoritesPosUpdated")
@@ -372,7 +380,11 @@ class PreferencesMenuController {
                  $txt = if ($bg -eq 'None') { & $GetLoc "Color.None" "No background" } else { & $GetLoc "Color.$bg" $bg }
                  $opts += @{ DisplayText = $txt; Value = $bg }
             }
-            $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Pref.SelectedBg"), $opts, $preferences.display.selectedBackground, "Cancel")
+            $config = [SelectionOptions]::new()
+            $config.Title = (& $GetLoc "Pref.SelectedBg")
+            $config.Options = $opts
+            $config.CurrentValue = $preferences.display.selectedBackground
+            $newVal = $this.OptionSelector.Show($config)
             if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "selectedBackground", $newVal)
                  $msg = (& $GetLoc "Msg.BackgroundUpdated")
@@ -383,7 +395,11 @@ class PreferencesMenuController {
         elseif ($item.Id -eq "selectedDelimiter") {
              $opts = @()
              foreach ($d in [Constants]::AvailableDelimiters) { $opts += @{ DisplayText = $d.Name; Value = $d.Name } }
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Pref.SelectedDelim"), $opts, $preferences.display.selectedDelimiter, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Pref.SelectedDelim")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.display.selectedDelimiter
+             $newVal = $this.OptionSelector.Show($config)
              if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "selectedDelimiter", $newVal)
                  $msg = (& $GetLoc "Msg.DelimiterUpdated")
@@ -396,7 +412,11 @@ class PreferencesMenuController {
                  @{ DisplayText = (& $GetLoc "Pref.Value.After" "After Name"); Value = "After" },
                  @{ DisplayText = (& $GetLoc "Pref.Value.Before" "Before Name"); Value = "Before" }
              )
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasPos" "Select Alias Position"), $opts, $preferences.display.aliasPosition, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Prompt.SelectAliasPos" "Select Alias Position")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.display.aliasPosition
+             $newVal = $this.OptionSelector.Show($config)
              if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "aliasPosition", $newVal)
                  $msg = (& $GetLoc "Msg.AliasPosUpdated" "Alias position updated")
@@ -411,7 +431,11 @@ class PreferencesMenuController {
                  @{ DisplayText = (& $GetLoc "Pref.Value.SepPipe" "Pipe ( | )"); Value = " | " },
                  @{ DisplayText = (& $GetLoc "Pref.Value.None" "None"); Value = "None" }
              )
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasSep" "Select Alias Separator"), $opts, $preferences.display.aliasSeparator, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Prompt.SelectAliasSep" "Select Alias Separator")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.display.aliasSeparator
+             $newVal = $this.OptionSelector.Show($config)
              if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "aliasSeparator", $newVal)
                  $msg = (& $GetLoc "Msg.AliasSepUpdated" "Alias separator updated")
@@ -426,7 +450,11 @@ class PreferencesMenuController {
                  @{ DisplayText = (& $GetLoc "Pref.Value.WrapBrackets" "Brackets [alias]"); Value = "Brackets" },
                  @{ DisplayText = (& $GetLoc "Pref.Value.WrapBraces" "Braces {alias]"); Value = "Braces" }
              )
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Prompt.SelectAliasWrap" "Select Alias Style"), $opts, $preferences.display.aliasWrapper, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Prompt.SelectAliasWrap" "Select Alias Style")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.display.aliasWrapper
+             $newVal = $this.OptionSelector.Show($config)
              if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "aliasWrapper", $newVal)
                  $msg = (& $GetLoc "Msg.AliasWrapUpdated" "Alias style updated")
@@ -446,7 +474,11 @@ class PreferencesMenuController {
                  @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.Favorites" "Favorites"); Value = "Favorites" },
                  @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.All" "All Repositories"); Value = "All" }
              )
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Pref.AutoLoadGit"), $opts, $preferences.git.autoLoadGitStatusMode, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Pref.AutoLoadGit")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.git.autoLoadGitStatusMode
+             $newVal = $this.OptionSelector.Show($config)
              if ($null -ne $newVal) {
                  $this.PreferencesService.SetPreference("git", "autoLoadGitStatusMode", $newVal)
                  $msg = (& $GetLoc "Msg.AutoLoadUpdated")
@@ -461,7 +493,11 @@ class PreferencesMenuController {
                  @{ DisplayText = (& $GetLoc "Pref.MenuMode.Custom"); Value = "Custom" },
                  @{ DisplayText = (& $GetLoc "Pref.MenuMode.Hidden"); Value = "Hidden" }
              )
-             $newVal = $this.OptionSelector.ShowSelection((& $GetLoc "Pref.MenuMode"), $opts, $preferences.display.menuMode, "Cancel")
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Pref.MenuMode")
+             $config.Options = $opts
+             $config.CurrentValue = $preferences.display.menuMode
+             $newVal = $this.OptionSelector.Show($config)
              if ($newVal) {
                  $this.PreferencesService.SetPreference("display", "menuMode", $newVal)
                  $msg = (& $GetLoc "Msg.MenuModeUpdated")
@@ -625,7 +661,16 @@ class PreferencesMenuController {
             
             $selector = [OptionSelector]::new($this.Console, $this.Renderer)
             # Pass onRenderItem as last argument
-            $selectedResult = $selector.ShowSelection($title, $options, $null, $cancelText, $false, $description, [Constants]::ColorInfo, $true, $onSelectionChanged, $onRenderItem)
+            $config = [SelectionOptions]::new()
+            $config.Title = $title
+            $config.Options = $options
+            $config.CancelText = $cancelText
+            $config.ShowCurrentMarker = $false
+            $config.Description = $description
+            $config.DescriptionColor = [Constants]::ColorInfo
+            $config.OnSelectionChanged = $onSelectionChanged
+            $config.OnRenderItem = $onRenderItem
+            $selectedResult = $selector.Show($config)
             
             $selectedPath = if ($null -ne $selectedResult) { 
                 if ($selectedResult -is [RepositoryModel]) { $selectedResult.FullPath } else { $selectedResult }

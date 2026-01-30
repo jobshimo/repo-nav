@@ -300,7 +300,13 @@ class IntegrationFlowController : FlowControllerBase {
                  @{ DisplayText = $noText;  Value = $false }
              )
              
-             $updateChoice = $this.Context.OptionSelector.ShowSelection($promptTitle, $yesNoOptions, $false, $cancelText, $false, $desc, [Constants]::ColorWarning, $true)
+             $config = [SelectionOptions]::new()
+             $config.Title = $promptTitle
+             $config.Options = $yesNoOptions
+             $config.CancelText = $cancelText
+             $config.ShowCurrentMarker = $false
+             $config.Description = $desc
+             $updateChoice = $this.Context.OptionSelector.Show($config)
              
              if ($true -eq $updateChoice) {
                  $this.Context.Console.NewLine()
