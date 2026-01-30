@@ -404,7 +404,7 @@ function Update-PowerShellProfile {
     
     # Build the command
     $repoNavPath = Join-Path $ScriptPath "repo-nav.ps1"
-    $functionCode = "function $CommandName { & '$repoNavPath' -BasePath '$ReposPath' }"
+    $functionCode = "function $CommandName { & '$repoNavPath' }"
     
     # Check if function already exists
     $profileContent = Get-Content $PROFILE -Raw -ErrorAction SilentlyContinue
@@ -451,25 +451,7 @@ function Update-ConfigurationFiles {
     
     Write-InfoMessage "Updating configuration files..."
     
-    # Create .repo-config.json
-    $configPath = Join-Path $ScriptPath ".repo-config.json"
-    
-    # Extract username from path or use current user
-    $userName = $env:USERNAME
-    if ($ReposPath -match '\\Users\\([^\\]+)\\') {
-        $userName = $Matches[1]
-    }
-    
-    $config = @{
-        reposBasePath = $ReposPath
-        userName = $userName
-    }
-    
-    $config | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath -Encoding UTF8
-    
-    Write-SuccessMessage "Configuration saved: .repo-config.json"
-    
-    # Handle existing alias file migration
+    # Handle existing alias file migration (Legacy support)
     $oldAliasPath = Join-Path $ReposPath ".repo-aliases.json"
     $newAliasPath = Join-Path $ScriptPath ".repo-aliases.json"
     
@@ -479,25 +461,40 @@ function Update-ConfigurationFiles {
         Write-SuccessMessage "Aliases migrated to app folder."
     }
     
-    # Ensure selected path is in preferences
+    # Ensure selected path is in preferences and set as DEFAULT
     $prefsPath = Join-Path $ScriptPath ".repo-preferences.json"
-    if (Test-Path $prefsPath) {
-        $json = Get-Content $prefsPath -Raw | ConvertFrom-Json
-        
-        # Ensure structural integrity
-        if (-not $json.repository) { $json | Add-Member -Name "repository" -Value @{} -MemberType NoteProperty }
-        if (-not $json.repository.paths) { $json.repository | Add-Member -Name "paths" -Value @() -MemberType NoteProperty }
-        
-        # Add path if missing
-        $p = (Resolve-Path $ReposPath).Path
-        $paths = $json.repository.paths
-        if ($paths -notcontains $p) {
-            $paths += $p
-            $json.repository.paths = $paths
-            $json | ConvertTo-Json -Depth 10 | Set-Content $prefsPath -Encoding UTF8
-            Write-SuccessMessage "Added '$p' to preference paths."
+    
+    # Initialize JSON object or load existing
+    $json = if (Test-Path $prefsPath) { 
+        try {
+            Get-Content $prefsPath -Raw | ConvertFrom-Json 
+        } catch {
+            [PSCustomObject]@{} 
         }
+    } else { 
+        [PSCustomObject]@{} 
     }
+    
+    # Ensure structural integrity
+    if (-not $json.repository) { $json | Add-Member -Name "repository" -Value ([PSCustomObject]@{}) -MemberType NoteProperty -Force }
+    if (-not $json.repository.paths) { $json.repository | Add-Member -Name "paths" -Value @() -MemberType NoteProperty -Force }
+    
+    # Add path if missing
+    $p = (Resolve-Path $ReposPath).Path
+    $paths = $json.repository.paths
+    if ($paths -notcontains $p) {
+        $paths += $p
+        $json.repository.paths = $paths
+        Write-SuccessMessage "Added '$p' to preference paths."
+    }
+    
+    # Set as Default Path (Critical fix)
+    $json.repository | Add-Member -Name "defaultPath" -Value $p -MemberType NoteProperty -Force
+    Write-SuccessMessage "Set '$p' as Default Path."
+    
+    # Save preferences
+    $json | ConvertTo-Json -Depth 10 | Set-Content $prefsPath -Encoding UTF8
+    Write-SuccessMessage "Preferences updated: .repo-preferences.json"
 }
 #endregion
 
