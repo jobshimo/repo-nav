@@ -124,6 +124,7 @@ $srcPath = Join-Path $scriptRoot "src"
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 8: COMMAND SYSTEM
 # ─────────────────────────────────────────────────────────────────────────────
+. "$srcPath\Core\State\ApplicationContext.ps1"
 . "$srcPath\Core\State\CommandContext.ps1"
 . "$srcPath\Core\Commands\_index.ps1"
 

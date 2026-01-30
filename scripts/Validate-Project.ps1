@@ -174,9 +174,114 @@ if ($orphanFiles.Count -gt 0) {
 }
 #endregion
 
-#region 4. Build Validation
+#region 4. Layer Dependency Validation
+Write-Host "  [4/5] Layer dependency validation..." -ForegroundColor Yellow
+
+$layerMap = @{
+    'src\Config' = 1
+    'src\Models' = 2
+    'src\Core\Interfaces' = 3
+    'src\Core\State\NavigationState.ps1' = 3
+    'src\Startup\ServiceRegistry.ps1' = 3
+    'src\Services' = 4
+    'src\UI' = 5 # Defaults for UI Base/Components
+    'src\Core\Services' = 6
+    'src\Core\RepositoryManager.ps1' = 6
+    'src\UI\Controllers' = 7
+    'src\UI\Views' = 7
+    'src\Core\State\CommandContext.ps1' = 8
+    'src\Core\State\ApplicationContext.ps1' = 8
+    'src\Core\Commands' = 8
+    'src\Core\Flows' = 9
+    'src\Core\Engine' = 10
+    'src\App' = 11
+    'src\Startup' = 11 # Default for Startup
+}
+
+function Get-LayerId {
+    param([string]$FilePath)
+    
+    $relPath = $FilePath.Replace($repoRoot, "").TrimStart('\')
+    
+    # Check specific file overrides first
+    foreach ($key in $layerMap.Keys) {
+        if ($key.EndsWith('.ps1') -and $relPath.EndsWith($key)) {
+            return $layerMap[$key]
+        }
+    }
+    
+    # Check directory matches (longest match wins)
+    $bestMatch = 0
+    $bestLen = 0
+    
+    foreach ($key in $layerMap.Keys) {
+        if (-not $key.EndsWith('.ps1') -and $relPath -match [regex]::Escape($key)) {
+            if ($key.Length -gt $bestLen) {
+                $bestLen = $key.Length
+                $bestMatch = $layerMap[$key]
+            }
+        }
+    }
+    
+    if ($bestMatch -gt 0) { return $bestMatch }
+    return 99 # Unknown layer
+}
+
+$layerErrors = 0
+
+foreach ($file in $allSourceFiles) {
+    if ($file.Name -eq "_index.ps1") { continue }
+    
+    $fileLayer = Get-LayerId $file.FullName
+    if ($fileLayer -eq 99) { continue }
+    
+    $content = Get-Content $file.FullName -ErrorAction SilentlyContinue
+    
+    foreach ($line in $content) {
+        if ($line -match '^\s*\.\s+"([^"]+)"') {
+            $rawImport = $matches[1]
+            
+            # Resolve generic path for checking
+            $importPath = $rawImport
+            $importPath = $importPath -replace '\$scriptRoot', $repoRoot
+            $importPath = $importPath -replace '\$srcPath', $srcPath
+            $importPath = $importPath -replace '\$PSScriptRoot', (Split-Path $file.FullName -Parent)
+            
+            # Simple heuristic for variable expansion if exact path not found
+            # (Limitation: dynamic paths hard to resolve statically without full eval)
+            
+            # Try to resolve to a file if possible
+            if (-not (Test-Path $importPath)) {
+                # Attempt to guess common vars
+                $parentDir = Split-Path $file.FullName -Parent
+                $grandParent = Split-Path $parentDir -Parent
+                
+                $checkPath = $importPath.Replace('$uiPath', $parentDir) # Assumption for _index files
+                if (Test-Path $checkPath) { $importPath = $checkPath }
+            }
+            
+            if (Test-Path $importPath) {
+                $importLayer = Get-LayerId $importPath
+                
+                if ($importLayer -lt 99 -and $importLayer -gt $fileLayer) {
+                    Write-Host "      [FAIL] Layer Violation in $($file.Name)" -ForegroundColor Red
+                    Write-Host "             Layer $fileLayer imports Layer $importLayer ($($importPath | Split-Path -Leaf))" -ForegroundColor DarkRed
+                    $layerErrors++
+                    $totalErrors++
+                }
+            }
+        }
+    }
+}
+
+if ($layerErrors -eq 0) {
+    Write-Host "      [OK] No layer violations found" -ForegroundColor Green
+}
+#endregion
+
+#region 5. Build Validation
 if (-not $SkipBuild) {
-    Write-Host "  [4/4] Build validation..." -ForegroundColor Yellow
+    Write-Host "  [5/5] Build validation..." -ForegroundColor Yellow
     
     $buildScript = Join-Path $repoRoot "Build-Bundle.ps1"
     $buildOutput = & powershell -ExecutionPolicy Bypass -File $buildScript 2>&1

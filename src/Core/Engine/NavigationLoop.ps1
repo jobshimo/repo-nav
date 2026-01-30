@@ -10,7 +10,7 @@
 function Start-NavigationLoop {
     param(
         [Parameter(Mandatory = $true)]
-        [PSCustomObject]$Context
+        [ApplicationContext]$Context
     )
     
     # Unpack context for local usage
