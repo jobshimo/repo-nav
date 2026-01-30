@@ -20,13 +20,30 @@ class PreferencesCommand : INavigationCommand {
             $controller = [PreferencesMenuController]::new($context)
             $controller.Show()
             
-            # Reload repositories after preferences change
-            # (sorting order may have changed)
+            # Sync BasePath from preferences (it may have changed)
+            $prefs = $context.PreferencesService.LoadPreferences()
+            $newDefaultPath = $prefs.repository.defaultPath
+            
+            # Check if we still have a valid path
+            if ([string]::IsNullOrWhiteSpace($newDefaultPath)) {
+                # No valid path - restart to trigger onboarding
+                $state.RequestExit("Restart")
+                $context.BasePath = ""
+                return
+            }
+            
+            # Update context with new path
+            $context.BasePath = $newDefaultPath
+            
+            # Reload repositories with the updated path
             $repoManager = $context.RepoManager
             if ($null -ne $repoManager) {
-                $repoManager.LoadRepositories($context.BasePath)
+                $repoManager.LoadRepositories($newDefaultPath)
                 $updatedRepos = $repoManager.GetRepositories()
                 $state.SetRepositories($updatedRepos)
+                
+                # Update state's base path reference
+                $state.SetBasePath($newDefaultPath)
                 
                 # Reset selection to first item after preference changes
                 $state.SetCurrentIndex(0)

@@ -124,6 +124,12 @@ function Start-NavigationLoop {
                 Set-Location $selectedRepo.FullPath
             }
         }
+        elseif ($exitState -eq "Restart") {
+            # Restart loop with updated context (triggers onboarding if no path)
+            $Context.BasePath = $PreferencesService.GetPreference("repository", "defaultPath")
+            Start-NavigationLoop -Context $Context
+            return
+        }
         elseif ($exitState -eq "Cancelled") {
             $Console.ClearScreen()
             $Renderer.RenderWarning("Navigation cancelled.")
