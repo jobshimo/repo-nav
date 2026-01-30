@@ -230,10 +230,84 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
 ---
 
+## Arquitectura
+
+El proyecto sigue **principios SOLID** con una arquitectura por capas:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    STARTUP LAYER                        │
+│  AppBuilder → ServiceRegistry → Context                 │
+├─────────────────────────────────────────────────────────┤
+│                    ENGINE LAYER                         │
+│  NavigationLoop → InputHandler → CommandFactory         │
+├─────────────────────────────────────────────────────────┤
+│                   COMMAND LAYER                         │
+│  ExitCommand, GitCommand, SearchCommand, ...            │
+├─────────────────────────────────────────────────────────┤
+│                      UI LAYER                           │
+│  UIRenderer → OptionSelector → Views                    │
+├─────────────────────────────────────────────────────────┤
+│                   SERVICE LAYER                         │
+│  PathManager, GitService, UserPreferencesService, ...   │
+├─────────────────────────────────────────────────────────┤
+│                   MODEL LAYER                           │
+│  RepositoryModel, GitStatusModel, AliasInfo             │
+├─────────────────────────────────────────────────────────┤
+│                   CONFIG LAYER                          │
+│  Constants, ColorPalette                                │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Patrones Implementados
+
+| Patrón | Uso |
+|--------|-----|
+| **Command** | Cada tecla ejecuta un Command independiente |
+| **Factory** | CommandFactory crea y gestiona comandos |
+| **Singleton** | ServiceRegistry para inyección de dependencias |
+| **State** | NavigationState encapsula estado de la UI |
+| **Observer** | Dirty flags para renderizado optimizado |
+
+---
+
+## Desarrollo
+
+### Scripts Útiles
+
+```powershell
+# Validar proyecto antes de commit
+.\scripts\Validate-Project.ps1
+
+# Test rápido en desarrollo
+.\scripts\Test-Dev.ps1
+
+# Generar bundle de distribución
+.\Build-Bundle.ps1
+```
+
+### Para Contribuir
+
+Ver [CONTRIBUTING.md](CONTRIBUTING.md) para:
+- Convenciones de código
+- Cómo añadir comandos/servicios
+- Checklist antes de PR
+
+### Workflows para AI
+
+El directorio `.agent/workflows/` contiene guías para asistentes de IA:
+- `add-command.md` - Añadir nuevo comando
+- `add-service.md` - Añadir nuevo servicio
+- `add-ui-component.md` - Añadir componente UI
+- `troubleshooting.md` - Solución de problemas comunes
+
+---
+
 ## Historial
 
 | Versión | Cambios |
 |---------|---------|
+| **2.3** | PathManager centralizado, auto-discovery en build, workflows AI |
 | **2.2** | Sistema de bundling para distribución, optimización 60% más rápido |
 | **2.1** | Git Flow, preferencias de UI, navegación mejorada |
 | **2.0** | Rediseño completo con principios SOLID |
