@@ -14,16 +14,6 @@ class AppBuilder {
         $configService = [ConfigurationService]::new()
         [ServiceRegistry]::Register('ConfigurationService', $configService)
 
-        # 0. Load Configuration (Centralized)
-        $configService = [ConfigurationService]::new()
-        [ServiceRegistry]::Register('ConfigurationService', $configService)
-
-        # If no BasePath provided by arguments, try to deduce it or fallback
-        if ([string]::IsNullOrWhiteSpace($BasePath)) {
-            Write-Warning "No BasePath provided to AppBuilder. Defaulting to script parent."
-            $BasePath = (Split-Path -Parent ([Constants]::ScriptRoot))
-        }
-
         # 1. Base Services (No dependencies)
         [ServiceRegistry]::Register('GitService', [GitService]::new())
         [ServiceRegistry]::Register('GitReadService', [GitReadService]::new())

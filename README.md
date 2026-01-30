@@ -205,9 +205,8 @@ repo-nav/
 
 | Archivo | Para qué sirve | ¿Se sube a Git? |
 |---------|----------------|-----------------|
-| `.repo-config.json` | Tu ruta de repos y nombre de usuario | No |
 | `.repo-aliases.json` | Tus alias y favoritos | No |
-| `.repo-preferences.json` | Preferencias de interfaz | No |
+| `.repo-preferences.json` | Preferencias de interfaz y ruta por defecto | No |
 | `dist/` | Bundle generado | No |
 
 ---
