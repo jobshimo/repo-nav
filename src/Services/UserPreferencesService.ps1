@@ -61,7 +61,7 @@ class UserPreferencesService {
         }
     }
     
-    # Create default preferences structure
+    # Create default preferences structure (in-memory only, not persisted)
     [PSCustomObject] CreateDefaultPreferences() {
         $defaults = [PSCustomObject]@{
             hidden = [PSCustomObject]@{
@@ -92,8 +92,7 @@ class UserPreferencesService {
             }
         }
         
-        $this.SavePreferences($defaults)
-        
+        # Note: Do NOT auto-save here. Let the onboarding flow handle persistence.
         return $defaults
     }
     
@@ -285,7 +284,9 @@ class UserPreferencesService {
         if ([string]::IsNullOrWhiteSpace($path)) { return }
         
         $preferences = $this.LoadPreferences()
-        $currentPaths = @($preferences.repository.paths)
+        
+        # Filter out null/empty values from existing paths
+        $currentPaths = @($preferences.repository.paths) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
         
         # Normalize
         try {

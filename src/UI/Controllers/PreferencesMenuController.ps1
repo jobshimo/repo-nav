@@ -867,9 +867,22 @@ class PreferencesMenuController {
                 }
                 elseif ($action -eq "REMOVE") {
                      $currentPaths = [array]$preferences.repository.paths
-                     $newPaths = $currentPaths | Where-Object { $_ -ne $selectedPath }
+                     $newPaths = @($currentPaths | Where-Object { $_ -ne $selectedPath })
+                     
+                     # Ensure newPaths is always an array (not $null)
+                     if ($null -eq $newPaths -or $newPaths.Count -eq 0) {
+                         $newPaths = @()
+                     }
                      
                      $this.PreferencesService.SetPreference("repository", "paths", $newPaths)
+                     
+                     # Clear defaultPath if it was the removed path or if no paths remain
+                     $currentDefault = $preferences.repository.defaultPath
+                     if ($currentDefault -eq $selectedPath -or $newPaths.Count -eq 0) {
+                         # Set to first remaining path, or empty if none
+                         $newDefault = if ($newPaths.Count -gt 0) { $newPaths[0] } else { "" }
+                         $this.PreferencesService.SetPreference("repository", "defaultPath", $newDefault)
+                     }
                      
                      # Also remove alias if exists
                      if ($preferences.repository.pathAliases.$selectedPath) {

@@ -60,8 +60,10 @@ function Start-NavigationLoop {
         
         $progressIndicator = [ProgressIndicator]::new($Console)
         
-        # Ensure this path is in preferences
-        $PreferencesService.EnsurePathInPreferences($BasePath)
+        # Ensure this path is in preferences (only if valid)
+        if (-not [string]::IsNullOrWhiteSpace($BasePath)) {
+            $PreferencesService.EnsurePathInPreferences($BasePath)
+        }
         
         $autoLoadFavorites = $PreferencesService.GetPreference("git", "autoLoadFavoritesStatus")
         if ($null -ne $autoLoadFavorites) {
