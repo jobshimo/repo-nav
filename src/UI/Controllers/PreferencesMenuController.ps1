@@ -266,6 +266,15 @@ class PreferencesMenuController {
                     }
                 }
         }
+
+        # ═══════════════════════════════════════════════════════════════════════════
+        # DEV ONLY: Build Bundle option (only visible when running from source)
+        # ═══════════════════════════════════════════════════════════════════════════
+        $devToolsPath = Join-Path ([Constants]::ScriptRoot) "src\Dev\DevToolsCommand.ps1"
+        if (Test-Path $devToolsPath) {
+            $items += @{ Id = "buildBundle"; Name = "--- DEV: Build Bundle ---"; CurrentValue = ""; IsAction = $true; IsDev = $true }
+        }
+
         return $items
     }
 
@@ -520,6 +529,19 @@ class PreferencesMenuController {
              $msg = (& $GetLoc "Msg.SectionToggled") -f $displayName, $statusText
              $updated = $true
              $timeout = 1
+        }
+        # ═══════════════════════════════════════════════════════════════════════════
+        # DEV ONLY: Build Bundle (dynamically loaded, not in bundle)
+        # ═══════════════════════════════════════════════════════════════════════════
+        elseif ($item.Id -eq "buildBundle") {
+            $devToolsPath = Join-Path ([Constants]::ScriptRoot) "src\Dev\DevToolsCommand.ps1"
+            if (Test-Path $devToolsPath) {
+                . $devToolsPath
+                # Use dynamic invocation to avoid type resolution at parse time
+                $consoleRef = $this.Console
+                Invoke-Expression '[DevToolsCommand]::BuildBundle($consoleRef)'
+            }
+            $updated = $true
         }
 
         return [PSCustomObject]@{ Updated = $updated; Message = $msg; Timeout = $timeout }

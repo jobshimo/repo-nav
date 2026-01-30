@@ -79,6 +79,7 @@ $loadOrder = @(
     "Services\SearchService.ps1",
     "Services\RenderOrchestrator.ps1",
     "Services\LoggerService.ps1",
+    "Services\HiddenReposService.ps1",
     
     # Layer 5: UI Base & Framework
     "UI\Base\ConsoleHelper.ps1",
@@ -89,6 +90,7 @@ $loadOrder = @(
     "UI\UIRenderer.ps1",
     "UI\Components\ProgressIndicator.ps1",
     "UI\Components\ColorSelector.ps1",
+    "UI\Components\SelectionOptions.ps1",
     "UI\Components\OptionSelector.ps1",
     "UI\Renderers\FilteredListRenderer.ps1",
     "UI\Renderers\IntegrationFlowRenderer.ps1",
