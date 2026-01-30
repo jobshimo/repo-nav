@@ -104,13 +104,20 @@ class NpmCommand : INavigationCommand {
         try {
             $view = [NpmView]::new($context)
             $npmService = $context.RepoManager.NpmService
+            $needsRefresh = $false
+            
             if ($key -eq [Constants]::KEY_I) {
                 $this.InvokeInstall($context, $currentRepo, $view, $npmService)
+                $needsRefresh = $true
             }
             elseif ($key -eq [Constants]::KEY_X) {
-                $this.InvokeRemove($context, $currentRepo, $view, $npmService)
+                $needsRefresh = $this.InvokeRemove($context, $currentRepo, $view, $npmService)
             }
-            $this.RefreshRepositoryState($context, $currentRepo)
+            
+            # Only refresh if an action was actually performed
+            if ($needsRefresh) {
+                $this.RefreshRepositoryState($context, $currentRepo)
+            }
         }
         finally {
             $state.Resume()
@@ -153,22 +160,27 @@ class NpmCommand : INavigationCommand {
             $view.ShowError("Error.Npm.Exception", "Error running npm: ", $_)
         }
     }
-    hidden [void] InvokeRemove($context, $repo, $view, $service) {
+    hidden [bool] InvokeRemove($context, $repo, $view, $service) {
         $nodeModulesPath = Join-Path $repo.FullPath "node_modules"
         
-        # 1. Validation (Improved UX: No screen clear)
+        # 1. Validation: Show non-blocking inline error if no node_modules
         if (-not ($service.HasNodeModules($repo.FullPath))) {
-            # Just show error in-place without clearing entire workflow
+            # Get localized message with repo name
             $msgFormat = $view.GetLoc("Error.Repo.NoNodeModules", "No node_modules folder found in {0}")
             $msg = $msgFormat -f $repo.Name
-            $view.ShowError("Error.Repo.NoNodeModules", $msg, $null)
-            return
+            
+            # Show non-blocking notification - just return without any redraw
+            # The message will persist until next navigation action clears it
+            $context.Console.WriteLineColored("  [!] $msg", [Constants]::ColorWarning)
+            
+            # Return false = no refresh needed, no action was taken
+            return $false
         }
 
         $view.ClearAndRenderHeader("Removing", $repo)
         if (-not ($view.ConfirmRemoval("node_modules"))) {
             $view.ShowOperationCancelled()
-            return
+            return $false
         }
         $removeLock = $false
         if ($service.HasPackageLock($repo.FullPath)) {
@@ -235,6 +247,7 @@ class NpmCommand : INavigationCommand {
             try { [Console]::CursorVisible = $true } catch {}
         }
         Start-Sleep -Seconds 2
+        return $true
     }
     hidden [void] RefreshRepositoryState($context, $currentRepo) {
         $repoManager = $context.RepoManager
