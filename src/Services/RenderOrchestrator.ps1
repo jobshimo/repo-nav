@@ -132,23 +132,34 @@ class RenderOrchestrator {
         # Check for alias
         $alias = $null
         if ($prefs.repository.pathAliases) {
-            $alias = $prefs.repository.pathAliases[$currentPath]
+            # Robust property access for paths which may contain spaces/special chars
+            if ($prefs.repository.pathAliases.PSObject.Properties.Match($currentPath).Count -gt 0) {
+                $alias = $prefs.repository.pathAliases."$currentPath"
+            }
         }
+        
+        $highlight = ""
         
         switch ($pathDisplayMode) {
             "Path" { 
                 $subText = $currentPath 
             }
             "Alias" { 
-                $subText = if ($alias) { $alias } else { $currentPath }
+                if ($alias) {
+                    $subText = $alias
+                } else {
+                    $subText = $currentPath
+                }
             }
             "Both" { 
-                $subText = "$currentPath"
-                if ($alias) { $subText += " [$alias]" }
+                $subText = $currentPath
+                if ($alias) { 
+                    $highlight = $alias
+                }
             }
         }
         
-        $this.Renderer.RenderHeader($headerText, $subText)
+        $this.Renderer.RenderHeader($headerText, $subText, $highlight)
         
         # Render breadcrumb if we're inside a container
         $breadcrumbLines = 0

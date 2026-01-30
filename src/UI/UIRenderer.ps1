@@ -52,18 +52,32 @@ class UIRenderer {
 
     # Render header
     # Render header
+    # Render header
+    # Overload 1: Title only
     [void] RenderHeader([string]$title) {
-        $this.RenderHeader($title, "")
+        $this.RenderHeader($title, "", "")
     }
 
+    # Overload 2: Title + Subtitle
     [void] RenderHeader([string]$title, [string]$subtitle) {
+        $this.RenderHeader($title, $subtitle, "")
+    }
+
+    # Overload 3: Title + Subtitle + Highlight
+    [void] RenderHeader([string]$title, [string]$subtitle, [string]$highlight) {
         if ($this.ShouldShowHeaders()) {
             $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
             $this.Console.WriteLineColored("    $title", [Constants]::ColorHeader)
             
             if (-not [string]::IsNullOrEmpty($subtitle)) {
                 $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)
-                $this.Console.WriteLineColored("    $subtitle", [Constants]::ColorValue)
+                
+                # Render subtitle logic with optional highlight
+                $this.Console.WriteColored("    $subtitle", [Constants]::ColorValue)
+                if (-not [string]::IsNullOrEmpty($highlight)) {
+                    $this.Console.WriteColored(" [$highlight]", [Constants]::ColorFavorite)
+                }
+                $this.Console.NewLine()
             }
             
             $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
