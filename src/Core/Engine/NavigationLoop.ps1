@@ -88,6 +88,7 @@ function Start-NavigationLoop {
         $commandContext.LocalizationService = $LocalizationService
         $commandContext.PreferencesService = $PreferencesService
         $commandContext.HiddenReposService = $HiddenReposService
+        $commandContext.PathManager = $Context.PathManager
         $commandContext.BasePath = $BasePath
         
         # Initial full render and layout calculation

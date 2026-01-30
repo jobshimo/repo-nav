@@ -90,6 +90,7 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Core\Interfaces\IProgressReporter.ps1"
 . "$srcPath\Services\WindowSizeCalculator.ps1"
 . "$srcPath\Core\State\NavigationState.ps1"
+. "$srcPath\Startup\ServiceRegistry.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 4: SERVICES
@@ -113,6 +114,8 @@ $srcPath = Join-Path $scriptRoot "src"
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 7: UI CONTROLLERS & VIEWS
 # ─────────────────────────────────────────────────────────────────────────────
+. "$srcPath\UI\Controllers\PreferencesActionDispatcher.ps1"
+. "$srcPath\UI\Controllers\PreferencesMenuRenderer.ps1"
 . "$srcPath\UI\Controllers\PreferencesMenuController.ps1"
 . "$srcPath\UI\Views\RepositoryManagementView.ps1"
 . "$srcPath\UI\Views\AliasView.ps1"

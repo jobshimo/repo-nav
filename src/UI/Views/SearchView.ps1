@@ -20,6 +20,7 @@ class SearchView {
     [SearchService] $SearchService
     [LocalizationService] $LocalizationService
     [WindowSizeCalculator] $WindowCalculator
+    [ViewportManager] $Viewport
     
     # Layout constants
     [int] $HeaderLines = 3          # Title separator lines
@@ -35,6 +36,7 @@ class SearchView {
         $this.SearchService = [SearchService]::new()
         $this.LocalizationService = $localizationService
         $this.WindowCalculator = [WindowSizeCalculator]::new()
+        $this.Viewport = [ViewportManager]::new()
     }
     
     # Helper for localization
@@ -85,7 +87,6 @@ class SearchView {
         # State variables
         $searchText = ""
         $filteredRepos = $allRepos
-        $selectedIndex = 0
         $focusMode = "input"  # "input" or "list"
         $running = $true
         $cancelled = $false
@@ -97,23 +98,23 @@ class SearchView {
         $headerOffset = if ($showHeaders) { 3 } else { 0 }
         $this.HeaderLines = $headerOffset
         
-        # Viewport state
-        $viewportStart = 0
-        $pageSize = $this.CalculatePageSize()
-        
-        # If we have a current repo, try to find it in the list
-        if ($null -ne $currentRepo) {
-            $selectedIndex = $this.SearchService.FindRepositoryIndex($filteredRepos, $currentRepo)
-        }
-        
         # Calculate line positions
         $listStartLine = $this.HeaderLines + $this.SearchInputLines + $this.CounterLines + $this.SeparatorLines
+        
+        # Initialize Viewport
+        $pageSize = $this.CalculatePageSize()
+        $initialIndex = 0
+        if ($null -ne $currentRepo) {
+            $initialIndex = $this.SearchService.FindRepositoryIndex($filteredRepos, $currentRepo)
+            if ($initialIndex -eq -1) { $initialIndex = 0 }
+        }
+        $this.Viewport.Initialize($filteredRepos.Count, $pageSize, $initialIndex)
         
         try {
             $this.Console.HideCursor()
             
             # Initial full render
-            $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+            $this.RenderFull($searchText, $filteredRepos, $focusMode, $allRepos.Count, $listStartLine)
             
             # Get label for cursor position calculation
             $searchLabel = $this.GetLoc("Search.Label", "Search")
@@ -131,6 +132,13 @@ class SearchView {
                     $this.Console.HideCursor()
                 }
                 
+                # Update Page Size if window resized (simple check)
+                $newPageSize = $this.CalculatePageSize()
+                if ($newPageSize -ne $this.Viewport.PageSize) {
+                    $this.Viewport.SetPageSize($newPageSize)
+                    $this.RenderFull($searchText, $filteredRepos, $focusMode, $allRepos.Count, $listStartLine)
+                }
+                
                 # Read key
                 $key = $this.Console.ReadKey()
                 $keyCode = $key.VirtualKeyCode
@@ -142,6 +150,8 @@ class SearchView {
                         # Return to input - only update input line
                         $focusMode = "input"
                         $this.UpdateSearchInput($searchText, $true)
+                        # Re-render list to remove focus highlight
+                        $this.RenderList($filteredRepos, $focusMode, $listStartLine)
                     } else {
                         # Exit search
                         $running = $false
@@ -161,84 +171,69 @@ class SearchView {
                 # Handle Tab - toggle focus
                 if ($keyCode -eq [Constants]::KEY_TAB) {
                     if ($focusMode -eq "input" -and $filteredRepos.Count -gt 0) {
-                        # Switch to list - only update input line
+                        # Switch to list
                         $focusMode = "list"
                         $this.UpdateSearchInput($searchText, $false)
+                        $this.RenderList($filteredRepos, $focusMode, $listStartLine)
                     } else {
-                        # Switch to input - only update input line
+                        # Switch to input
                         $focusMode = "input"
                         $this.UpdateSearchInput($searchText, $true)
+                        $this.RenderList($filteredRepos, $focusMode, $listStartLine)
                     }
+                    $this.RenderFooter($filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine)
                     continue
                 }
                 
                 # Handle navigation
                 if ($keyCode -eq [Constants]::KEY_DOWN_ARROW) {
                     if ($focusMode -eq "input" -and $filteredRepos.Count -gt 0) {
-                        # Move from input to list - only update input, list will show selection
+                        # Move from input to list
                         $focusMode = "list"
-                        $selectedIndex = 0
-                        $viewportStart = 0
+                        $this.Viewport.MoveToStart()
                         $this.UpdateSearchInput($searchText, $false)
-                        $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
-                        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine, $pageSize)
+                        $this.RenderList($filteredRepos, $focusMode, $listStartLine)
+                        $this.RenderFooter($filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine)
                     } elseif ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
-                        $prevIndex = $selectedIndex
-                        $prevViewport = $viewportStart
+                        $prevIndex = $this.Viewport.SelectedIndex
+                        $prevViewport = $this.Viewport.ViewportStart
                         
-                        # Navigate down in list
-                        if ($selectedIndex -lt ($filteredRepos.Count - 1)) {
-                            $selectedIndex++
-                            # Scroll check
-                            if ($selectedIndex -ge ($viewportStart + $pageSize)) {
-                                $viewportStart = $selectedIndex - $pageSize + 1
-                            }
-                        } else {
-                            # Wrap to top
-                            $selectedIndex = 0
-                            $viewportStart = 0
-                        }
+                        $this.Viewport.MoveDown()
                         
-                        # Render update
-                        if ($viewportStart -ne $prevViewport) {
-                            # Full list redraw needed
-                            $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
+                        if ($this.Viewport.ViewportStart -ne $prevViewport) {
+                             $this.RenderList($filteredRepos, $focusMode, $listStartLine)
                         } else {
-                            # Partial update - just the two affected lines
-                            $this.UpdateListItem($filteredRepos, $prevIndex, $false, $viewportStart, $pageSize, $listStartLine)
-                            $this.UpdateListItem($filteredRepos, $selectedIndex, $true, $viewportStart, $pageSize, $listStartLine)
+                             $this.UpdateListItem($filteredRepos, $prevIndex, $false, $listStartLine)
+                             $this.UpdateListItem($filteredRepos, $this.Viewport.SelectedIndex, $true, $listStartLine)
                         }
-                        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine, $pageSize)
+                        $this.RenderFooter($filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine)
                     }
                     continue
                 }
                 
                 if ($keyCode -eq [Constants]::KEY_UP_ARROW) {
                     if ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
-                        $prevIndex = $selectedIndex
-                        $prevViewport = $viewportStart
+                        $prevIndex = $this.Viewport.SelectedIndex
+                        $prevViewport = $this.Viewport.ViewportStart
                         
-                        if ($selectedIndex -gt 0) {
-                            $selectedIndex--
-                            # Scroll check
-                            if ($selectedIndex -lt $viewportStart) {
-                                $viewportStart = $selectedIndex
-                            }
-                        } else {
-                            # Move back to input when at top - only update input
-                            $focusMode = "input"
-                            $this.UpdateSearchInput($searchText, $true)
-                            continue
+                        if ($this.Viewport.SelectedIndex -eq 0) {
+                             # Move back to input when at top
+                             $focusMode = "input"
+                             $this.UpdateSearchInput($searchText, $true)
+                             $this.RenderList($filteredRepos, $focusMode, $listStartLine)
+                             $this.RenderFooter($filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine)
+                             continue
                         }
+
+                        $this.Viewport.MoveUp()
                         
-                        # Render update
-                        if ($viewportStart -ne $prevViewport) {
-                            $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
+                        if ($this.Viewport.ViewportStart -ne $prevViewport) {
+                             $this.RenderList($filteredRepos, $focusMode, $listStartLine)
                         } else {
-                            $this.UpdateListItem($filteredRepos, $prevIndex, $false, $viewportStart, $pageSize, $listStartLine)
-                            $this.UpdateListItem($filteredRepos, $selectedIndex, $true, $viewportStart, $pageSize, $listStartLine)
+                             $this.UpdateListItem($filteredRepos, $prevIndex, $false, $listStartLine)
+                             $this.UpdateListItem($filteredRepos, $this.Viewport.SelectedIndex, $true, $listStartLine)
                         }
-                        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine, $pageSize)
+                        $this.RenderFooter($filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine)
                     }
                     continue
                 }
@@ -246,25 +241,18 @@ class SearchView {
                 # Handle Home/End
                 if ($keyCode -eq [Constants]::KEY_HOME) {
                     if ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
-                        $selectedIndex = 0
-                        $viewportStart = 0
-                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                        $this.Viewport.MoveToStart()
+                        $this.RenderList($filteredRepos, $focusMode, $listStartLine)
+                        $this.RenderFooter($filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine)
                     }
                     continue
                 }
                 
                 if ($keyCode -eq [Constants]::KEY_END) {
                     if ($focusMode -eq "list" -and $filteredRepos.Count -gt 0) {
-                        $selectedIndex = $filteredRepos.Count - 1
-                        
-                        # Calculate viewport so selected item is at bottom or visible
-                        if ($selectedIndex -ge $pageSize) {
-                            $viewportStart = $selectedIndex - $pageSize + 1
-                        } else {
-                            $viewportStart = 0
-                        }
-                        
-                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                        $this.Viewport.MoveToEnd()
+                        $this.RenderList($filteredRepos, $focusMode, $listStartLine)
+                        $this.RenderFooter($filteredRepos.Count, $allRepos.Count, $focusMode, $listStartLine)
                     }
                     continue
                 }
@@ -288,9 +276,9 @@ class SearchView {
                     
                     if ($needsFilterUpdate) {
                         $filteredRepos = $this.SearchService.FilterRepositories($allRepos, $searchText)
-                        $selectedIndex = 0
-                        $viewportStart = 0
-                        $this.RenderFull($searchText, $filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $allRepos.Count, $listStartLine)
+                        # Re-initialize viewport with new count, resetting selection to top
+                        $this.Viewport.Initialize($filteredRepos.Count, $pageSize, 0)
+                        $this.RenderFull($searchText, $filteredRepos, $focusMode, $allRepos.Count, $listStartLine)
                     }
                 }
             }
@@ -303,8 +291,8 @@ class SearchView {
         $selectedRepo = $null
         $originalIndex = -1
         
-        if (-not $cancelled -and $filteredRepos.Count -gt 0 -and $selectedIndex -lt $filteredRepos.Count) {
-            $selectedRepo = $filteredRepos[$selectedIndex]
+        if (-not $cancelled -and $filteredRepos.Count -gt 0 -and $this.Viewport.SelectedIndex -lt $filteredRepos.Count) {
+            $selectedRepo = $filteredRepos[$this.Viewport.SelectedIndex]
             $originalIndex = $this.SearchService.FindOriginalIndex($allRepos, $selectedRepo)
         }
         
@@ -321,7 +309,7 @@ class SearchView {
     .SYNOPSIS
         Full screen render
     #>
-    hidden [void] RenderFull([string]$searchText, [array]$filteredRepos, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$totalCount, [int]$listStartLine) {
+    hidden [void] RenderFull([string]$searchText, [array]$filteredRepos, [string]$focusMode, [int]$totalCount, [int]$listStartLine) {
         # Hide cursor during render to prevent flickering
         $this.Console.HideCursor()
         $this.Console.ClearScreen()
@@ -333,16 +321,15 @@ class SearchView {
         # Search input (1 line)
         $this.RenderSearchInput($searchText, ($focusMode -eq "input"))
         $this.Console.NewLine() # Add newline explicitly
-        # Removed extra newline and count block as per user request to maximize list space
         
         # Separator before list
         $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)
         
         # Render list
-        $this.RenderList($filteredRepos, $selectedIndex, $focusMode, $viewportStart, $pageSize, $listStartLine)
+        $this.RenderList($filteredRepos, $focusMode, $listStartLine)
         
         # Footer
-        $this.RenderFooter($selectedIndex, $filteredRepos.Count, $totalCount, $focusMode, $listStartLine, $pageSize)
+        $this.RenderFooter($filteredRepos.Count, $totalCount, $focusMode, $listStartLine)
         
         # Keep cursor hidden after render - the main loop will show it if needed
     }
@@ -379,7 +366,6 @@ class SearchView {
         $searchInputLine = $this.HeaderLines
         $this.Console.SetCursorPosition(0, $searchInputLine)
         $this.Console.SetCursorPosition(0, $searchInputLine)
-        # Optimized: Removed ClearCurrentLine
         $this.RenderSearchInput($searchText, $hasFocus)
         $this.Console.ClearRestOfLine() # Ensure tail is cleared
     }
@@ -388,18 +374,21 @@ class SearchView {
     .SYNOPSIS
         Renders the results list with viewport
     #>
-    hidden [void] RenderList([array]$repos, [int]$selectedIndex, [string]$focusMode, [int]$viewportStart, [int]$pageSize, [int]$startLine) {
+    hidden [void] RenderList([array]$repos, [string]$focusMode, [int]$startLine) {
         # Hide cursor to prevent flickering during list update
         $this.Console.HideCursor()
         
         $listHasFocus = ($focusMode -eq "list")
         $total = $repos.Count
         
+        $viewportStart = $this.Viewport.ViewportStart
+        $pageSize = $this.Viewport.PageSize
+        $selectedIndex = $this.Viewport.SelectedIndex
+        
         for ($i = 0; $i -lt $pageSize; $i++) {
             $currentLine = $startLine + $i
             $this.Console.SetCursorPosition(0, $currentLine)
             $this.Console.SetCursorPosition(0, $currentLine)
-            # Optimized: Removed ClearCurrentLine
             
             $repoIndex = $viewportStart + $i
             if ($repoIndex -lt $total) {
@@ -417,18 +406,18 @@ class SearchView {
     .SYNOPSIS
         Updates a single list item (partial render)
     #>
-    hidden [void] UpdateListItem([array]$repos, [int]$repoIndex, [bool]$isSelected, [int]$viewportStart, [int]$pageSize, [int]$startLine) {
-        # Check if index is in viewport
-        if ($repoIndex -lt $viewportStart -or $repoIndex -ge ($viewportStart + $pageSize)) {
+    hidden [void] UpdateListItem([array]$repos, [int]$repoIndex, [bool]$isSelected, [int]$startLine) {
+        # Check if index is in viewport via ViewportManager
+        if (-not $this.Viewport.IsVisible($repoIndex)) {
             return
         }
         
+        $viewportStart = $this.Viewport.ViewportStart
         $lineOffset = $repoIndex - $viewportStart
         $currentLine = $startLine + $lineOffset
         
         $this.Console.SetCursorPosition(0, $currentLine)
         $this.Console.SetCursorPosition(0, $currentLine)
-        # Optimized: Removed ClearCurrentLine
         
         if ($repoIndex -lt $repos.Count) {
             $repo = $repos[$repoIndex]
@@ -476,18 +465,12 @@ class SearchView {
     .SYNOPSIS
         Renders the footer with position info and hints
     #>
-    hidden [void] RenderFooter([int]$selectedIndex, [int]$filteredCount, [int]$totalCount, [string]$focusMode, [int]$listStartLine, [int]$pageSize) {
+    hidden [void] RenderFooter([int]$filteredCount, [int]$totalCount, [string]$focusMode, [int]$listStartLine) {
         # Hide cursor during footer render
         $this.Console.HideCursor()
         
-        $footerLine = $listStartLine + $pageSize
+        $footerLine = $listStartLine + $this.Viewport.PageSize
         $this.Console.SetCursorPosition(0, $footerLine)
-        
-        $this.Console.SetCursorPosition(0, $footerLine)
-        
-        # Optimized: Removed pre-clearing loop. We will clear line-by-line using ClearRestOfLine or Separator
-        # for ($i = 0; $i -lt $this.FooterLines; $i++) { ... }
-        
         $this.Console.SetCursorPosition(0, $footerLine)
         
         # Separator
@@ -495,7 +478,7 @@ class SearchView {
         
         # Position info
         if ($filteredCount -gt 0) {
-            $currentPos = $selectedIndex + 1
+            $currentPos = $this.Viewport.SelectedIndex + 1
             $lblItem = $this.GetLoc("UI.Label.Item", "Item")
             $lblFiltered = $this.GetLoc("UI.Label.Filtered", "Filtered")
             $lblOf = $this.GetLoc("UI.Label.Of", "of")
@@ -512,8 +495,6 @@ class SearchView {
             $this.Console.ClearRestOfLine()
             $this.Console.NewLine()
         }
-        # Previously added buggy clear block removed here by this replacement
-
         
         # Hints
         $this.RenderHints($focusMode)
@@ -538,7 +519,6 @@ class SearchView {
             $this.Console.ClearRestOfLine()
             $this.Console.NewLine()
         }
-        # Removed previous buggy clear block optimization
     }
     
     #endregion
