@@ -14,99 +14,41 @@
 class ColorSelector {
     [UIRenderer] $Renderer
     [ConsoleHelper] $Console
+    [OptionSelector] $OptionSelector
     
     # Constructor with dependency injection
-    # Breaking cyclical dependency typing in constructor by using [object]
-    ColorSelector([object]$renderer, [ConsoleHelper]$console) {
+    ColorSelector([object]$renderer, [ConsoleHelper]$console, [object]$optionSelector) {
         $this.Renderer = $renderer
         $this.Console = $console
+        $this.OptionSelector = $optionSelector
     }
     
     # Show color selection menu and return selected color
     [string] SelectColor([string]$currentColor) {
         $colors = [ColorPalette]::GetAvailableColors()
         
-        # Find index of current color
-        $selectedIndex = 0
-        for ($i = 0; $i -lt $colors.Count; $i++) {
-            if ($colors[$i] -eq $currentColor) {
-                $selectedIndex = $i
-                break
-            }
+        $options = @()
+        foreach ($c in $colors) {
+            # OptionSelector has built-in logic to preview colors if the Value is a ConsoleColor
+            # or a string that can cast to ConsoleColor.
+            $options += @{ Value = $c; DisplayText = $c }
         }
         
-        $previousIndex = -1
-        $colorListStartLine = 6  # Header + instruction + blank
+        $config = [SelectionOptions]::new()
+        $config.Title = $this.Renderer.GetLoc("Selector.Title.Color", "SELECT ALIAS COLOR")
+        $config.Options = $options
+        $config.CurrentValue = $currentColor
+        $config.ShowCurrentMarker = $false # Colors are self-evident
+        $config.CancelText = "Keep Current"
+        $config.ClearScreen = $true
+        $config.Description = $this.Renderer.GetLoc("Selector.Hint.Arrows", "Use arrows to navigate | Enter to select")
         
-        try {
-            $this.Console.HideCursor()
-            
-            # Initial render
-            $this.Console.ClearScreen()
-            
-            $title = $this.Renderer.GetLoc("Selector.Title.Color", "SELECT ALIAS COLOR")
-            $hint = $this.Renderer.GetLoc("Selector.Hint.Arrows", "Use arrows to navigate | Enter to select")
-
-            $this.Renderer.RenderHeader($title)
-            Write-Host ""
-            Write-Host "  $hint" -ForegroundColor ([Constants]::ColorMenuText)
-            Write-Host ""
-            
-            for ($i = 0; $i -lt $colors.Count; $i++) {
-                $this.Renderer.RenderColorItem($colors[$i], ($i -eq $selectedIndex))
-            }
-            
-            Write-Host ""
-            Write-Host ("=" * 55) -ForegroundColor ([Constants]::ColorSeparator)
-            
-            $previousIndex = $selectedIndex
-            
-            # Input loop
-            while ($true) {
-                $key = $this.Console.ReadKey()
-                
-                switch ($key.VirtualKeyCode) {
-                    ([Constants]::KEY_UP_ARROW) {
-                        $previousIndex = $selectedIndex
-                        if ($selectedIndex -gt 0) {
-                            $selectedIndex--
-                        } else {
-                            $selectedIndex = $colors.Count - 1
-                        }
-                        
-                        # Update only changed items
-                        $this.Renderer.UpdateColorItemAt(($colorListStartLine + $previousIndex), $colors[$previousIndex], $false)
-                        $this.Renderer.UpdateColorItemAt(($colorListStartLine + $selectedIndex), $colors[$selectedIndex], $true)
-                    }
-                    
-                    ([Constants]::KEY_DOWN_ARROW) {
-                        $previousIndex = $selectedIndex
-                        if ($selectedIndex -lt ($colors.Count - 1)) {
-                            $selectedIndex++
-                        } else {
-                            $selectedIndex = 0
-                        }
-                        
-                        # Update only changed items
-                        $this.Renderer.UpdateColorItemAt(($colorListStartLine + $previousIndex), $colors[$previousIndex], $false)
-                        $this.Renderer.UpdateColorItemAt(($colorListStartLine + $selectedIndex), $colors[$selectedIndex], $true)
-                    }
-                    
-                    ([Constants]::KEY_ENTER) {
-                        return $colors[$selectedIndex]
-                    }
-                    
-                    ([Constants]::KEY_ESC) {
-                        return $currentColor  # Return unchanged
-                    }
-                }
-            }
-        }
-        finally {
-            $this.Console.ShowCursor()
+        $result = $this.OptionSelector.Show($config)
+        
+        if ($null -eq $result) {
+            return $currentColor
         }
         
-        # This should never be reached, but PowerShell requires it
-        return $currentColor
+        return $result
     }
 }

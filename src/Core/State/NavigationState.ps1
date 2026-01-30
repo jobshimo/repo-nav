@@ -20,6 +20,15 @@
     Redraw flags follow a dirty flag pattern for optimized rendering.
 #>
 
+# Exit state enum - eliminates magic strings
+enum ExitState {
+    None
+    OpenRepository
+    Cancelled
+    Restart
+    SwitchPath
+}
+
 class NavigationState {
     # Current state
     [int] $SelectedIndex
@@ -42,6 +51,9 @@ class NavigationState {
     [System.Collections.Generic.Stack[hashtable]] $NavigationStack
     [string] $CurrentPath
     [string] $BasePath
+    
+    # Focus State (List vs Header)
+    [string] $Focus  # "List" or "Header"
     
     # Dependency for window calculations
     hidden [WindowSizeCalculator] $WindowCalculator
@@ -68,6 +80,7 @@ class NavigationState {
         # Create WindowSizeCalculator for size calculations
         $this.WindowCalculator = [WindowSizeCalculator]::new()
         $this.PageSize = $this.WindowCalculator.CalculateInitialPageSize()
+        $this.Focus = "List"
     }
     
     # Constructor with base path (for hierarchical navigation)
@@ -92,6 +105,7 @@ class NavigationState {
         # Create WindowSizeCalculator for size calculations
         $this.WindowCalculator = [WindowSizeCalculator]::new()
         $this.PageSize = $this.WindowCalculator.CalculateInitialPageSize()
+        $this.Focus = "List"
     }
     
     #region Navigation Methods
@@ -603,6 +617,38 @@ class NavigationState {
         if ([string]::IsNullOrEmpty($this.CurrentPath)) {
             $this.CurrentPath = $path
         }
+    }
+    
+    #endregion
+    
+    #region Focus Management
+    
+    [void] ToggleFocus() {
+        if ($this.Focus -eq "List") {
+            $this.Focus = "Header"
+        } else {
+            $this.Focus = "List"
+        }
+        $this.RequiresFullRedraw = $true
+    }
+    
+    [void] SetFocus([string]$focus) {
+        if ($this.Focus -ne $focus) {
+            $this.Focus = $focus
+            $this.RequiresFullRedraw = $true
+        }
+    }
+    
+    [string] GetFocus() {
+        return $this.Focus
+    }
+    
+    [bool] IsListFocused() {
+        return $this.Focus -ne "Header"
+    }
+    
+    [bool] IsHeaderFocused() {
+        return $this.Focus -eq "Header"
     }
     
     #endregion

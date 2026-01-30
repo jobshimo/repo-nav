@@ -122,7 +122,77 @@ class RenderOrchestrator {
         $menuMode = $prefs.display.menuMode
         
         # Header (Takes 3 lines)
-        $this.Renderer.RenderHeader("REPOSITORY NAVIGATOR")
+        $pathDisplayMode = if ($prefs.display.pathDisplayMode) { $prefs.display.pathDisplayMode } else { "Path" }
+        $currentPath = $state.BasePath
+        
+        # Determine what to show
+        $headerText = "REPOSITORY NAVIGATOR"
+        $subText = ""
+        
+        # Check for alias
+        $aliasText = $null
+        $aliasColor = [Constants]::ColorFavorite # Default
+        
+        if ($prefs.repository.pathAliases) {
+            # Robust property access for paths which may contain spaces/special chars
+            if ($prefs.repository.pathAliases.PSObject.Properties.Match($currentPath).Count -gt 0) {
+                $aliasRaw = $prefs.repository.pathAliases."$currentPath"
+                
+                # Check if it's an object (New style) or string (Legacy)
+                if ($aliasRaw -is [string]) {
+                    $aliasText = $aliasRaw
+                } 
+                elseif ($aliasRaw.PSObject.Properties.Name -contains 'Text') {
+                    $aliasText = $aliasRaw.Text
+                    if ($aliasRaw.PSObject.Properties.Name -contains 'Color') {
+                         # Convert string color to ConsoleColor
+                         try {
+                             $aliasColor = [System.Enum]::Parse([System.ConsoleColor], $aliasRaw.Color)
+                         } catch {
+                             $aliasColor = [Constants]::ColorFavorite
+                         }
+                    }
+                }
+            }
+        }
+        
+        $highlight = ""
+        $highlightColor = $aliasColor
+        
+        switch ($pathDisplayMode) {
+            "Path" { 
+                $subText = $currentPath 
+            }
+            "Alias" { 
+                if ($aliasText) {
+                    $subText = $aliasText
+                    # If showing alias only, usually it's in Value color, but maybe we want custom color?
+                    # For now keep uniform Value color for subtitle main text
+                } else {
+                    $subText = $currentPath
+                }
+            }
+            "Both" { 
+                $subText = $currentPath
+                if ($aliasText) { 
+                    $highlight = $aliasText
+                }
+            }
+        }
+        
+        # Focus Visualization
+        $borderColor = [Constants]::ColorSeparator
+        if ($state.IsHeaderFocused()) {
+            $borderColor = [Constants]::ColorFavorite
+            if ([string]::IsNullOrEmpty($highlight)) {
+                $highlight = "Press Enter to Switch"
+                $highlightColor = [Constants]::ColorInfo
+            } else {
+                $highlight += " | Press Enter to Switch"
+            }
+        }
+        
+        $this.Renderer.RenderHeader($headerText, $subText, $highlight, $highlightColor, $borderColor)
         
         # Render breadcrumb if we're inside a container
         $breadcrumbLines = 0

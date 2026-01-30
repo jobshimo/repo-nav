@@ -10,8 +10,6 @@
 
 class Constants {
     # Paths (loaded from config file)
-    static [string] $ReposBasePath
-    static [string] $UserName
     static [string] $AliasFileName = ".repo-aliases.json"
     
     # Script root path
@@ -44,6 +42,7 @@ class Constants {
     static [int] $KEY_V = 86      # Toggle hidden visibility
     static [int] $KEY_HOME = 36
     static [int] $KEY_END = 35
+    static [int] $KEY_P = 80
     
     # UI Constants
     static [int] $CursorStartLine = 10

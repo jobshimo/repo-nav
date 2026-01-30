@@ -14,19 +14,6 @@ class AppBuilder {
         $configService = [ConfigurationService]::new()
         [ServiceRegistry]::Register('ConfigurationService', $configService)
 
-        try {
-            $envConfig = $configService.LoadEnvironmentConfig()
-            [Constants]::ReposBasePath = $envConfig.reposBasePath
-            [Constants]::UserName = $envConfig.userName
-            
-            # If no BasePath provided by arguments, use config default
-            if ([string]::IsNullOrWhiteSpace($BasePath)) {
-                $BasePath = [Constants]::ReposBasePath
-            }
-        } catch {
-            Write-Warning "Could not load environment config: $_"
-        }
-
         # 1. Base Services (No dependencies)
         [ServiceRegistry]::Register('GitService', [GitService]::new())
         [ServiceRegistry]::Register('GitReadService', [GitReadService]::new())
@@ -93,29 +80,86 @@ class AppBuilder {
         $renderer = [UIRenderer]::new($consoleHelper, $preferencesService, $localizationService)
         [ServiceRegistry]::Register('UIRenderer', $renderer)
         
-        $colorSelector = [ColorSelector]::new($renderer, $consoleHelper)
-        [ServiceRegistry]::Register('ColorSelector', $colorSelector)
-        
         $optionSelector = [OptionSelector]::new($consoleHelper, $renderer)
         [ServiceRegistry]::Register('OptionSelector', $optionSelector)
+        
+        $colorSelector = [ColorSelector]::new($renderer, $consoleHelper, $optionSelector)
+        [ServiceRegistry]::Register('ColorSelector', $colorSelector)
+        
+        # 5b. Onboarding Service
+        $onboardingService = [OnboardingService]::new(
+            $renderer,
+            $consoleHelper,
+            $localizationService,
+            $optionSelector,
+            $preferencesService
+        )
+        [ServiceRegistry]::Register('OnboardingService', $onboardingService)
+        
+        # 5c. Path Manager (Single Source of Truth for paths)
+        $pathManager = [PathManager]::new($preferencesService)
+        [ServiceRegistry]::Register('PathManager', $pathManager)
         
         # 6. Infrastructure (Logger)
         $logger = [LoggerService]::new([Constants]::ScriptRoot)
         [ServiceRegistry]::Register('LoggerService', $logger)
         
         # 7. Compose Application Context
-        return [PSCustomObject]@{
+        $context = [PSCustomObject]@{
             RepoManager         = $repoManager
             Renderer            = $renderer
             Console             = $consoleHelper
             Logger              = $logger
             ColorSelector       = $colorSelector
             OptionSelector      = $optionSelector
+            OnboardingService   = $onboardingService
+            PathManager         = $pathManager
             LocalizationService = $localizationService
             PreferencesService  = $preferencesService
             HiddenReposService  = [ServiceRegistry]::Resolve('HiddenReposService')
-            BasePath            = $BasePath
+            BasePath            = $pathManager.GetCurrentPath()  # Use PathManager as source
             ServiceRegistry     = [ServiceRegistry] # Expose registry if needed
+        }
+        
+        # 8. Validate context (fail fast if something is wrong)
+        [AppBuilder]::ValidateContext($context)
+        
+        return $context
+    }
+    
+    static hidden [void] ValidateContext([PSCustomObject]$context) {
+        # Critical properties that must never be null
+        $criticalProperties = @(
+            'RepoManager',
+            'Renderer',
+            'Console',
+            'OptionSelector',
+            'PathManager',
+            'LocalizationService',
+            'PreferencesService'
+        )
+        
+        $missingProperties = @()
+        
+        foreach ($prop in $criticalProperties) {
+            $value = $context.PSObject.Properties[$prop]
+            if ($null -eq $value -or $null -eq $value.Value) {
+                $missingProperties += $prop
+            }
+        }
+        
+        if ($missingProperties.Count -gt 0) {
+            $missing = $missingProperties -join ', '
+            throw "Application context validation failed. Missing: $missing. Check AppBuilder service registration."
+        }
+        
+        # Validate services in registry
+        $criticalServices = @('PathManager', 'UserPreferencesService', 'LocalizationService', 'RepositoryManager')
+        foreach ($svc in $criticalServices) {
+            if ($null -eq [ServiceRegistry]::Resolve($svc)) {
+                throw "Critical service missing from registry: $svc. Check import order in repo-nav.ps1"
+            }
         }
     }
 }
+

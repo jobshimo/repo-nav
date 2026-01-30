@@ -26,13 +26,28 @@ function Start-NavigationLoop {
     $BasePath = $Context.BasePath
     
     # Load repositories
-    $RepoManager.LoadRepositories($BasePath)
+    # Load repositories
+    if (-not [string]::IsNullOrWhiteSpace($BasePath)) {
+        try {
+            $RepoManager.LoadRepositories($BasePath)
+        } catch {
+            $Renderer.RenderError("Failed to load repositories from: $BasePath")
+            Start-Sleep -Seconds 1
+        }
+    }
     
     $repos = $RepoManager.GetRepositories()
     if ($repos.Count -eq 0) {
-        $Renderer.RenderError("No repositories found in this folder.")
+        $OnboardingService = $Context.OnboardingService
+        $newPath = $OnboardingService.HandleEmptyState($BasePath)
+        
+        if ($newPath) {
+            $Context.BasePath = $newPath
+            Start-NavigationLoop -Context $Context
+        }
         return
     }
+
     
     try {
         $Console.HideCursor()
@@ -44,6 +59,11 @@ function Start-NavigationLoop {
         $renderOrchestrator = [RenderOrchestrator]::new($Renderer, $Console, $cursorStartLine, $HiddenReposService)
         
         $progressIndicator = [ProgressIndicator]::new($Console)
+        
+        # Ensure this path is in preferences (only if valid)
+        if (-not [string]::IsNullOrWhiteSpace($BasePath)) {
+            $PreferencesService.EnsurePathInPreferences($BasePath)
+        }
         
         $autoLoadFavorites = $PreferencesService.GetPreference("git", "autoLoadFavoritesStatus")
         if ($null -ne $autoLoadFavorites) {
@@ -94,7 +114,7 @@ function Start-NavigationLoop {
         
         # Handle exit state
         $exitState = $state.GetExitState()
-        if ($exitState -eq "OpenRepository") {
+        if ($exitState -eq [ExitState]::OpenRepository) {
             $repos = $state.GetRepositories()
             $currentIndex = $state.GetCurrentIndex()
             if ($currentIndex -lt $repos.Count) {
@@ -104,7 +124,15 @@ function Start-NavigationLoop {
                 Set-Location $selectedRepo.FullPath
             }
         }
-        elseif ($exitState -eq "Cancelled") {
+        elseif ($exitState -eq [ExitState]::Restart) {
+            # Restart loop with updated context using PathManager
+            $pathManager = $Context.PathManager
+            $pathManager.Refresh()
+            $Context.BasePath = $pathManager.GetCurrentPath()
+            Start-NavigationLoop -Context $Context
+            return
+        }
+        elseif ($exitState -eq [ExitState]::Cancelled) {
             $Console.ClearScreen()
             $Renderer.RenderWarning("Navigation cancelled.")
         }

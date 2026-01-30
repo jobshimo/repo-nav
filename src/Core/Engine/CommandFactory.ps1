@@ -62,6 +62,11 @@ class CommandFactory {
         if ($null -ne $toggleType) {
             $this.RegisterOneCommand($toggleType)
         }
+        
+        $switchType = "SwitchPathCommand" -as [type]
+        if ($null -ne $switchType) {
+            $this.RegisterOneCommand($switchType)
+        }
     }
 
     hidden [System.Collections.ArrayList] FindCommandTypes() {

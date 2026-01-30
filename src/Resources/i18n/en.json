@@ -321,5 +321,22 @@
     "Msg.NoHiddenRepos": "No hidden repositories.",
     "Prompt.SelectHiddenToRestore": "Select repository to restore",
     "Menu.ManageHidden": "Manage Hidden Repositories",
-    "Cmd.Back": "Back"
+    "Cmd.Back": "Back",
+    
+    "Pref.ManagePaths": "Manage Repository Paths",
+    "Menu.ManagePaths": "Manage Repository Paths", 
+    "Cmd.AddPath": "Add New Path",
+    "Pref.PathDisplay": "Path Display Mode",
+    "Pref.PathDisplay.Path": "Path Only",
+    "Pref.PathDisplay.Alias": "Alias Only",
+    "Pref.PathDisplay.Both": "Path & Alias",
+    
+    "Onboarding.Title": "WELCOME TO REPO-NAV",
+    "Onboarding.NoRepos": "No repositories found in: {0}",
+    "Onboarding.InitialSetup": "Initial setup required.",
+    "Onboarding.PromptConfig": "Would you like to configure a repository path now?",
+    "Onboarding.EnterPath": "Enter absolute path to your repositories:",
+    "Onboarding.InvalidPath": "Invalid path provided.",
+    "Onboarding.Success": "Path configured! Loading...",
+    "Onboarding.ErrorLoad": "Failed to load repositories from: {0}"
 }

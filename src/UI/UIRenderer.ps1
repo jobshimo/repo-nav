@@ -51,11 +51,47 @@ class UIRenderer {
     }
 
     # Render header
+    # Render header
+    # Render header
+    # Render header
+    # Overload 1: Title only
     [void] RenderHeader([string]$title) {
+        $this.RenderHeader($title, "", "", [Constants]::ColorFavorite)
+    }
+
+    # Overload 2: Title + Subtitle
+    [void] RenderHeader([string]$title, [string]$subtitle) {
+        $this.RenderHeader($title, $subtitle, "", [Constants]::ColorFavorite)
+    }
+
+    # Overload 3: Title + Subtitle + Highlight (Default Color)
+    [void] RenderHeader([string]$title, [string]$subtitle, [string]$highlight) {
+        $this.RenderHeader($title, $subtitle, $highlight, [Constants]::ColorFavorite)
+    }
+
+    # Overload 4: Title + Subtitle + Highlight + Color
+    [void] RenderHeader([string]$title, [string]$subtitle, [string]$highlight, [ConsoleColor]$highlightColor) {
+        $this.RenderHeader($title, $subtitle, $highlight, $highlightColor, [Constants]::ColorSeparator)
+    }
+
+    # Overload 5: Title + Subtitle + Highlight + Color + BorderColor
+    [void] RenderHeader([string]$title, [string]$subtitle, [string]$highlight, [ConsoleColor]$highlightColor, [ConsoleColor]$borderColor) {
         if ($this.ShouldShowHeaders()) {
-            $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+            $this.Console.WriteSeparator("=", [Constants]::UIWidth, $borderColor)
             $this.Console.WriteLineColored("    $title", [Constants]::ColorHeader)
-            $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
+            
+            if (-not [string]::IsNullOrEmpty($subtitle)) {
+                $this.Console.WriteSeparator("-", [Constants]::UIWidth, $borderColor)
+                
+                # Render subtitle logic with optional highlight
+                $this.Console.WriteColored("    $subtitle", [Constants]::ColorValue)
+                if (-not [string]::IsNullOrEmpty($highlight)) {
+                    $this.Console.WriteColored(" [$highlight]", $highlightColor)
+                }
+                $this.Console.NewLine()
+            }
+            
+            $this.Console.WriteSeparator("=", [Constants]::UIWidth, $borderColor)
         }
     }
     

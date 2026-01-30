@@ -46,6 +46,41 @@ class InputHandler {
             throw "Context cannot be null"
         }
         
+        # --- Focus Management (Tab Navigation) ---
+        # --- Focus Management (Tab Navigation) ---
+        # Robust check for Tab: Key 'Tab', VirtualKeyCode 9, or Char 9
+        if ($keyPress.Key -eq 'Tab' -or $keyPress.VirtualKeyCode -eq [Constants]::KEY_TAB -or $keyPress.KeyChar -eq [char][Constants]::KEY_TAB) {
+            $context.State.ToggleFocus()
+            return $true
+        }
+        
+        # Header Focus Input Handling
+        if ($context.State.IsHeaderFocused()) {
+            if ($keyPress.Key -eq 'Enter' -or $keyPress.KeyChar -eq [char][Constants]::KEY_ENTER -or $keyPress.VirtualKeyCode -eq [Constants]::KEY_ENTER) {
+                # Delegate to SwitchPathCommand (Simulate 'P')
+                $fakeKey = [PSCustomObject]@{ Key = 'P'; KeyChar = 'P'; Modifiers = 0; VirtualKeyCode = [Constants]::KEY_P }
+                $cmd = $this.factory.FindCommand($fakeKey, $context)
+                if ($null -ne $cmd) {
+                    $cmd.Execute($fakeKey, $context)
+                    return $true
+                }
+            }
+            elseif ($keyPress.Key -eq 'Escape' -or $keyPress.VirtualKeyCode -eq [Constants]::KEY_ESCAPE -or $keyPress.KeyChar -eq [char][Constants]::KEY_ESCAPE) {
+                $context.State.SetFocus("List")
+                return $true
+            }
+            elseif ($keyPress.VirtualKeyCode -eq [Constants]::KEY_UP_ARROW -or 
+                    $keyPress.VirtualKeyCode -eq [Constants]::KEY_DOWN_ARROW -or 
+                    $keyPress.VirtualKeyCode -eq [Constants]::KEY_LEFT_ARROW -or 
+                    $keyPress.VirtualKeyCode -eq [Constants]::KEY_RIGHT_ARROW -or
+                    $keyPress.VirtualKeyCode -eq [Constants]::KEY_HOME -or 
+                    $keyPress.VirtualKeyCode -eq [Constants]::KEY_END) {
+                 # Consume all navigation keys when focus is on Header to prevent list scrolling
+                 return $true
+            }
+        }
+        
+        # Generic Dispatch (List Focus or Global Commands)
         # Find a command that can execute this key press
         $command = $this.factory.FindCommand($keyPress, $context)
         

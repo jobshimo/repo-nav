@@ -106,6 +106,8 @@ $srcPath = Join-Path $scriptRoot "src"
 # ─────────────────────────────────────────────────────────────────────────────
 . "$srcPath\Core\Services\GitStatusManager.ps1"
 . "$srcPath\Core\Services\RepositorySorter.ps1"
+. "$srcPath\Core\Services\OnboardingService.ps1"
+. "$srcPath\Core\Services\PathManager.ps1"
 . "$srcPath\Core\RepositoryManager.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -152,7 +154,7 @@ function Start-RepositoryNavigator {
     #>
     
     param(
-        [string]$BasePath = (Split-Path -Parent $PSScriptRoot)
+        [string]$BasePath
     )
     
     try {
@@ -180,9 +182,19 @@ function Start-RepositoryNavigator {
 #region Execute
 # When script is run directly (not dot-sourced), start the navigator
 if ($MyInvocation.InvocationName -ne '.') {
-    # Use provided BasePath or default from Constants
+    # If no base path provided, check preferences or use default
     if (-not $BasePath) {
-        $BasePath = [Constants]::ReposBasePath
+        # 1. Try to load from preferences
+        try {
+            $tempPrefs = [UserPreferencesService]::new()
+            $defPath = $tempPrefs.GetPreference("repository", "defaultPath")
+            
+            if (-not [string]::IsNullOrWhiteSpace($defPath) -and (Test-Path $defPath)) {
+                $BasePath = $defPath
+            }
+        } catch {}
+        
+    
     }
     
     # Start the navigator

@@ -5,6 +5,7 @@ class PreferencesMenuController {
     [OptionSelector] $OptionSelector
     [LocalizationService] $LocalizationService
     [RepositoryManager] $RepoManager
+    [PathManager] $PathManager
 
     PreferencesMenuController([object]$context) {
         $this.Console = $context.Console
@@ -13,6 +14,7 @@ class PreferencesMenuController {
         $this.OptionSelector = $context.OptionSelector
         $this.LocalizationService = $context.LocalizationService
         $this.RepoManager = $context.RepoManager
+        $this.PathManager = $context.PathManager
     }
 
     [bool] Show() {
@@ -234,6 +236,14 @@ class PreferencesMenuController {
         # 5.1: Manage Hidden List
         $hiddenCount = if ($preferences.hidden.hiddenRepos) { $preferences.hidden.hiddenRepos.Count } else { 0 }
         $items += @{ Id = "manageHidden"; Name = (& $GetLoc "Pref.ManageHidden"); CurrentValue = "($hiddenCount)"; IsAction = $true }
+
+        # 5.2: Manage Repository Paths
+        $pathCount = if ($preferences.repository.paths) { $preferences.repository.paths.Count } else { 0 }
+        $items += @{ Id = "managePaths"; Name = (& $GetLoc "Pref.ManagePaths" "Manage Repository Paths"); CurrentValue = "($pathCount)"; IsAction = $true }
+
+        # 5.3: Path Display Mode
+        $pathModeDisplay = if ($preferences.display.pathDisplayMode) { $preferences.display.pathDisplayMode } else { "Path" }
+        $items += @{ Id = "pathDisplay"; Name = (& $GetLoc "Pref.PathDisplay" "Path Display Mode"); CurrentValue = $pathModeDisplay }
 
         # 6: Menu Mode
         $menuModeDisplay = if ($preferences.display.menuMode) { $preferences.display.menuMode } else { "Full" }
@@ -477,6 +487,32 @@ class PreferencesMenuController {
              $updated = $true
              $msg = "" # Message handled inside manager or just refresh
         }
+        elseif ($item.Id -eq "managePaths") {
+             $this.ManageRepositoryPaths($preferences, $GetLoc)
+             $updated = $true
+             $msg = ""
+        }
+        elseif ($item.Id -eq "pathDisplay") {
+             $opts = @(
+                 @{ DisplayText = (& $GetLoc "Pref.PathDisplay.Path"); Value = "Path" },
+                 @{ DisplayText = (& $GetLoc "Pref.PathDisplay.Alias"); Value = "Alias" },
+                 @{ DisplayText = (& $GetLoc "Pref.PathDisplay.Both"); Value = "Both" }
+             )
+             $current = if ($preferences.display.pathDisplayMode) { $preferences.display.pathDisplayMode } else { "Path" }
+             
+             $config = [SelectionOptions]::new()
+             $config.Title = (& $GetLoc "Pref.PathDisplay")
+             $config.Options = $opts
+             $config.CurrentValue = $current
+             
+             $newVal = $this.OptionSelector.Show($config)
+             
+             if ($newVal) {
+                 $this.PreferencesService.SetPreference("display", "pathDisplayMode", $newVal)
+                 $updated = $true
+                 $msg = "Path display mode updated"
+             }
+        }
         elseif ($item.Id -eq "autoLoadGit") {
              $opts = @(
                  @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.None" "None"); Value = "None" },
@@ -707,6 +743,209 @@ class PreferencesMenuController {
                 $statusMessage = "  [Success] Unhided: $name"
                 
                 # Loop continues immediately
+            }
+        }
+    }
+
+    # Manage repository paths
+    [void] ManageRepositoryPaths([PSCustomObject]$preferences, [scriptblock]$GetLoc) {
+        $running = $true
+        $statusMessage = $null
+        
+        while ($running) {
+            $paths = if ($preferences.repository.paths) { $preferences.repository.paths } else { @() }
+            
+            $options = @()
+            $options += @{ Value = "ADD_NEW"; DisplayText = "[+] " + (& $GetLoc "Cmd.AddPath" "Add New Path...") }
+            
+            $pathAliases = if ($preferences.repository.pathAliases) { $preferences.repository.pathAliases } else { ([PSCustomObject]@{}) }
+            
+            foreach ($p in $paths) {
+                # Determine if valid
+                $exists = Test-Path $p
+                $display = "$p"
+                
+                # Check for alias
+                if ($pathAliases.$p) { 
+                    $aliasVal = $pathAliases.$p
+                    if ($aliasVal -is [string]) {
+                        $display += " [$aliasVal]"
+                    } elseif ($aliasVal.PSObject.Properties.Name -contains 'Text') {
+                        $display += " [$($aliasVal.Text)]"
+                    }
+                }
+                
+                # Check for Default
+                if ($preferences.repository.defaultPath -eq $p) {
+                    $display += " (Default)"
+                }
+                
+                if (-not $exists) { $display += " (Missing)" }
+                
+                $options += @{ Value = $p; DisplayText = $display }
+            }
+            
+            $title = & $GetLoc "Menu.ManagePaths" "Manage Repository Paths"
+            $description = "Select a path to Manage it (Alias/Remove), or Add New."
+            
+            if ($null -ne $statusMessage) {
+                $description += "`n`n$statusMessage"
+            }
+            
+            $config = [SelectionOptions]::new()
+            $config.Title = $title
+            $config.Options = $options
+            $config.CancelText = (& $GetLoc "Cmd.Back")
+            $config.Description = $description
+            $config.DescriptionColor = [Constants]::ColorInfo
+            $config.ShowCurrentMarker = $false
+            
+            $selector = [OptionSelector]::new($this.Console, $this.Renderer)
+            $selected = $selector.Show($config)
+            
+            if ($null -eq $selected) {
+                $running = $false
+            }
+            elseif ($selected -eq "ADD_NEW") {
+                # Add new path
+                $this.Console.ClearScreen()
+                $this.Renderer.RenderHeader("ADD REPOSITORY PATH")
+                Write-Host ""
+                Write-Host "  Current Location: $((Get-Location).Path)" -ForegroundColor Gray
+                Write-Host "  Enter absolute path:" -ForegroundColor Yellow
+                
+                $this.Console.ShowCursor()
+                $inputPath = Read-Host "  > "
+                $this.Console.HideCursor()
+                
+                if (-not [string]::IsNullOrWhiteSpace($inputPath)) {
+                    # Normalize path
+                    try {
+                        if (Test-Path $inputPath) {
+                            $fullPath = (Resolve-Path $inputPath).Path
+                            
+                            # Add to preferences if not exists
+                            # Force array context using @() to prevent string concatenation
+                            $currentPaths = @($preferences.repository.paths)
+                            
+                            if ($currentPaths -contains $fullPath) {
+                                $statusMessage = "[Warning] Path already exists."
+                            } else {
+                                $currentPaths += $fullPath
+                                $this.PreferencesService.SetPreference("repository", "paths", $currentPaths)
+                                $statusMessage = "[Success] Added: $fullPath"
+                                # Reload local ref
+                                $preferences = $this.PreferencesService.LoadPreferences()
+                            }
+                        } else {
+                            $statusMessage = "[Error] Path does not exist."
+                        }
+                    } catch {
+                         $statusMessage = "[Error] Invalid path: $_"
+                    }
+                }
+            }
+            else {
+                # Manage selected path
+                $selectedPath = $selected
+                
+                $mOpts = @(
+                    @{ DisplayText = "Set Alias"; Value = "ALIAS" },
+                    @{ DisplayText = "Set as Default"; Value = "SET_DEFAULT" },
+                    @{ DisplayText = "Remove Path"; Value = "REMOVE" }
+                )
+                
+                $actConfig = [SelectionOptions]::new()
+                $actConfig.Title = "MANAGE: $selectedPath"
+                $actConfig.Options = $mOpts
+                $actConfig.CancelText = "Back"
+                
+                $action = $selector.Show($actConfig)
+                
+                if ($action -eq "SET_DEFAULT") {
+                    $this.PreferencesService.SetPreference("repository", "defaultPath", $selectedPath)
+                     $statusMessage = "[Success] Default path set to: $selectedPath"
+                     $preferences = $this.PreferencesService.LoadPreferences()
+                }
+                elseif ($action -eq "REMOVE") {
+                     # Use PathManager for safe path removal (with fallback)
+                     if ($null -ne $this.PathManager) {
+                         $this.PathManager.RemovePath($selectedPath)
+                     } else {
+                         # Fallback: manual removal
+                         $currentPaths = @($preferences.repository.paths | Where-Object { $_ -ne $selectedPath -and -not [string]::IsNullOrWhiteSpace($_) })
+                         $this.PreferencesService.SetPreference("repository", "paths", $currentPaths)
+                         
+                         # Clear defaultPath if needed
+                         if ($preferences.repository.defaultPath -eq $selectedPath -or $currentPaths.Count -eq 0) {
+                             $newDefault = if ($currentPaths.Count -gt 0) { $currentPaths[0] } else { "" }
+                             $this.PreferencesService.SetPreference("repository", "defaultPath", $newDefault)
+                         }
+                     }
+                     
+                     # Also remove alias if exists
+                     if ($preferences.repository.pathAliases.$selectedPath) {
+                         $currentAliases = $preferences.repository.pathAliases
+                         $currentAliases.PSObject.Properties.Remove($selectedPath)
+                         $this.PreferencesService.SetPreference("repository", "pathAliases", $currentAliases)
+                     }
+                     
+                     $statusMessage = "[Success] Removed: $selectedPath"
+                     $preferences = $this.PreferencesService.LoadPreferences()
+                }
+                elseif ($action -eq "ALIAS") {
+                     $this.Console.ClearScreen()
+                     $this.Renderer.RenderHeader("SET ALIAS")
+                     Write-Host ""
+                     Write-Host "  Path: $selectedPath" -ForegroundColor Gray
+                     Write-Host "  Enter alias (leave empty to remove):" -ForegroundColor Yellow
+                     
+                     $this.Console.ShowCursor()
+                     $newAlias = Read-Host "  > "
+                     $this.Console.HideCursor()
+                     
+                     $currentAliases = if ($preferences.repository.pathAliases) { $preferences.repository.pathAliases } else { ([PSCustomObject]@{}) }
+                     
+                     if ([string]::IsNullOrWhiteSpace($newAlias)) {
+                         if ($currentAliases.PSObject.Properties.Name -contains $selectedPath) {
+                             $currentAliases.PSObject.Properties.Remove($selectedPath)
+                             $statusMessage = "[Success] Alias removed."
+                         }
+                     } else {
+                         # Ask for Color
+                         $colors = @()
+                         $colors += @{ DisplayText = "Cyan (Default)"; Value = "Cyan" }
+                         $colors += @{ DisplayText = "Green"; Value = "Green" }
+                         $colors += @{ DisplayText = "Yellow"; Value = "Yellow" }
+                         $colors += @{ DisplayText = "Magenta"; Value = "Magenta" }
+                         $colors += @{ DisplayText = "Red"; Value = "Red" }
+                         $colors += @{ DisplayText = "White"; Value = "White" }
+                         
+                         $colorConfig = [SelectionOptions]::new()
+                         $colorConfig.Title = "SELECT ALIAS COLOR"
+                         $colorConfig.Options = $colors
+                         $colorConfig.CurrentValue = "Cyan"
+                         
+                         $selectedColor = $this.OptionSelector.Show($colorConfig)
+                         if ($null -eq $selectedColor) { $selectedColor = "Cyan" }
+                         
+                         # Create Alias Object
+                         $aliasObj = [PSCustomObject]@{
+                             Text = $newAlias
+                             Color = $selectedColor
+                         }
+                         
+                         if ($currentAliases.PSObject.Properties.Name -contains $selectedPath) {
+                             $currentAliases.$selectedPath = $aliasObj
+                         } else {
+                             $currentAliases | Add-Member -NotePropertyName $selectedPath -NotePropertyValue $aliasObj -Force
+                         }
+                         $statusMessage = "[Success] Alias set to '$newAlias' ($selectedColor)."
+                     }
+                     
+                     $this.PreferencesService.SetPreference("repository", "pathAliases", $currentAliases)
+                     $preferences = $this.PreferencesService.LoadPreferences()
+                }
             }
         }
     }

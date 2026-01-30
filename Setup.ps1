@@ -313,12 +313,13 @@ function Get-RepositoriesPath {
     Write-Option 1 "Parent folder" $parentPath
     Write-Option 2 "Custom path" "Enter a different location"
     Write-Option 3 "Current folder" $currentPath
+    Write-Option 4 "Configure later" "Skip - configure on first run"
     
     Write-Host ""
     
-    $choice = Read-ValidatedInput "Select option (1-3):" "1" {
-        param($v) $v -match "^[123]$"
-    } "Please enter 1, 2, or 3"
+    $choice = Read-ValidatedInput "Select option (1-4):" "1" {
+        param($v) $v -match "^[1234]$"
+    } "Please enter 1, 2, 3, or 4"
     
     $selectedPath = switch ($choice) {
         "1" { $parentPath }
@@ -332,6 +333,14 @@ function Get-RepositoriesPath {
             $customPath
         }
         "3" { $currentPath }
+        "4" { 
+            Write-Host ""
+            Write-InfoMessage "Path configuration skipped."
+            Write-Host "  You will be prompted to configure on first run." -ForegroundColor Gray
+            Write-Host ""
+            Start-Sleep -Milliseconds 500
+            return ""
+        }
     }
     
     # Normalize path
@@ -404,7 +413,7 @@ function Update-PowerShellProfile {
     
     # Build the command
     $repoNavPath = Join-Path $ScriptPath "repo-nav.ps1"
-    $functionCode = "function $CommandName { & '$repoNavPath' -BasePath '$ReposPath' }"
+    $functionCode = "function $CommandName { & '$repoNavPath' }"
     
     # Check if function already exists
     $profileContent = Get-Content $PROFILE -Raw -ErrorAction SilentlyContinue
@@ -451,25 +460,13 @@ function Update-ConfigurationFiles {
     
     Write-InfoMessage "Updating configuration files..."
     
-    # Create .repo-config.json
-    $configPath = Join-Path $ScriptPath ".repo-config.json"
-    
-    # Extract username from path or use current user
-    $userName = $env:USERNAME
-    if ($ReposPath -match '\\Users\\([^\\]+)\\') {
-        $userName = $Matches[1]
+    # Skip if no path configured (user chose to configure later)
+    if ([string]::IsNullOrWhiteSpace($ReposPath)) {
+        Write-InfoMessage "Path configuration skipped. Will be configured on first run."
+        return
     }
     
-    $config = @{
-        reposBasePath = $ReposPath
-        userName = $userName
-    }
-    
-    $config | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath -Encoding UTF8
-    
-    Write-SuccessMessage "Configuration saved: .repo-config.json"
-    
-    # Handle existing alias file migration
+    # Handle existing alias file migration (Legacy support)
     $oldAliasPath = Join-Path $ReposPath ".repo-aliases.json"
     $newAliasPath = Join-Path $ScriptPath ".repo-aliases.json"
     
@@ -478,6 +475,41 @@ function Update-ConfigurationFiles {
         Move-Item -Path $oldAliasPath -Destination $newAliasPath -Force
         Write-SuccessMessage "Aliases migrated to app folder."
     }
+    
+    # Ensure selected path is in preferences and set as DEFAULT
+    $prefsPath = Join-Path $ScriptPath ".repo-preferences.json"
+    
+    # Initialize JSON object or load existing
+    $json = if (Test-Path $prefsPath) { 
+        try {
+            Get-Content $prefsPath -Raw | ConvertFrom-Json 
+        } catch {
+            [PSCustomObject]@{} 
+        }
+    } else { 
+        [PSCustomObject]@{} 
+    }
+    
+    # Ensure structural integrity
+    if (-not $json.repository) { $json | Add-Member -Name "repository" -Value ([PSCustomObject]@{}) -MemberType NoteProperty -Force }
+    if (-not $json.repository.paths) { $json.repository | Add-Member -Name "paths" -Value @() -MemberType NoteProperty -Force }
+    
+    # Add path if missing
+    $p = (Resolve-Path $ReposPath).Path
+    $paths = $json.repository.paths
+    if ($paths -notcontains $p) {
+        $paths += $p
+        $json.repository.paths = $paths
+        Write-SuccessMessage "Added '$p' to preference paths."
+    }
+    
+    # Set as Default Path (Critical fix)
+    $json.repository | Add-Member -Name "defaultPath" -Value $p -MemberType NoteProperty -Force
+    Write-SuccessMessage "Set '$p' as Default Path."
+    
+    # Save preferences
+    $json | ConvertTo-Json -Depth 10 | Set-Content $prefsPath -Encoding UTF8
+    Write-SuccessMessage "Preferences updated: .repo-preferences.json"
 }
 #endregion
 
@@ -497,9 +529,10 @@ function Show-Summary {
     Write-Host ""
     
     # Configuration Summary
+    $reposDisplay = if ([string]::IsNullOrWhiteSpace($ReposPath)) { "(Configure on first run)" } else { $ReposPath }
     Write-Box "CONFIGURATION SUMMARY" @(
         "",
-        "  Repositories:  $ReposPath",
+        "  Repositories:  $reposDisplay",
         "  Command:       $CommandName",
         "  App location:  $ScriptPath",
         ""
