@@ -41,9 +41,17 @@ class ToggleHiddenVisibilityCommand : INavigationCommand {
             }
             
             $state.SetCurrentIndex($newIndex)
+            
+            # Reset viewport to ensure selected item is visible without ghost items
+            $state.ViewportStart = [Math]::Max(0, $newIndex - [Math]::Floor($state.PageSize / 2))
+            # Ensure viewport doesn't exceed bounds
+            $maxViewport = [Math]::Max(0, $updatedRepos.Count - $state.PageSize)
+            if ($state.ViewportStart -gt $maxViewport) {
+                $state.ViewportStart = $maxViewport
+            }
         }
         
-        # Mark for list redraw (Partial update, no flickering)
-        $state.MarkForListRedraw()
+        # Full redraw needed since item count changes significantly
+        $state.MarkForFullRedraw()
     }
 }
