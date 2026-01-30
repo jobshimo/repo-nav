@@ -104,16 +104,8 @@ class AppBuilder {
         $logger = [LoggerService]::new([Constants]::ScriptRoot)
         [ServiceRegistry]::Register('LoggerService', $logger)
         
-        # 7. Validate critical services
-        $criticalServices = @('PathManager', 'UserPreferencesService', 'LocalizationService', 'RepositoryManager')
-        foreach ($svc in $criticalServices) {
-            if ($null -eq [ServiceRegistry]::Resolve($svc)) {
-                throw "Critical service missing: $svc. Check import order in repo-nav.ps1"
-            }
-        }
-        
-        # 8. Compose Application Context
-        return [PSCustomObject]@{
+        # 7. Compose Application Context
+        $context = [PSCustomObject]@{
             RepoManager         = $repoManager
             Renderer            = $renderer
             Console             = $consoleHelper
@@ -128,5 +120,46 @@ class AppBuilder {
             BasePath            = $pathManager.GetCurrentPath()  # Use PathManager as source
             ServiceRegistry     = [ServiceRegistry] # Expose registry if needed
         }
+        
+        # 8. Validate context (fail fast if something is wrong)
+        [AppBuilder]::ValidateContext($context)
+        
+        return $context
+    }
+    
+    static hidden [void] ValidateContext([PSCustomObject]$context) {
+        # Critical properties that must never be null
+        $criticalProperties = @(
+            'RepoManager',
+            'Renderer',
+            'Console',
+            'OptionSelector',
+            'PathManager',
+            'LocalizationService',
+            'PreferencesService'
+        )
+        
+        $missingProperties = @()
+        
+        foreach ($prop in $criticalProperties) {
+            $value = $context.PSObject.Properties[$prop]
+            if ($null -eq $value -or $null -eq $value.Value) {
+                $missingProperties += $prop
+            }
+        }
+        
+        if ($missingProperties.Count -gt 0) {
+            $missing = $missingProperties -join ', '
+            throw "Application context validation failed. Missing: $missing. Check AppBuilder service registration."
+        }
+        
+        # Validate services in registry
+        $criticalServices = @('PathManager', 'UserPreferencesService', 'LocalizationService', 'RepositoryManager')
+        foreach ($svc in $criticalServices) {
+            if ($null -eq [ServiceRegistry]::Resolve($svc)) {
+                throw "Critical service missing from registry: $svc. Check import order in repo-nav.ps1"
+            }
+        }
     }
 }
+

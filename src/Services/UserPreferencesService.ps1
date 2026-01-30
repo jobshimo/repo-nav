@@ -285,27 +285,15 @@ class UserPreferencesService {
         
         $preferences = $this.LoadPreferences()
         
-        # Ensure we have an array, not a single string or null
-        $rawPaths = $preferences.repository.paths
-        if ($null -eq $rawPaths) {
-            $currentPaths = @()
-        } elseif ($rawPaths -is [string]) {
-            # Single path stored as string, convert to array
-            $currentPaths = @($rawPaths)
-        } else {
-            # Filter out null/empty values
-            $currentPaths = @($rawPaths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-        }
+        # Use ArrayHelper to safely handle arrays
+        $currentPaths = [ArrayHelper]::EnsureArray($preferences.repository.paths)
         
-        # Normalize
+        # Normalize and add
         try {
              $fullPath = (Resolve-Path $path).Path
-             if ($currentPaths -notcontains $fullPath) {
-                 # Create new array explicitly to avoid string concatenation
-                 $newPaths = [System.Collections.ArrayList]::new()
-                 foreach ($p in $currentPaths) { [void]$newPaths.Add($p) }
-                 [void]$newPaths.Add($fullPath)
-                 $this.SetPreference("repository", "paths", @($newPaths))
+             if (-not [ArrayHelper]::Contains($currentPaths, $fullPath)) {
+                 $newPaths = [ArrayHelper]::AddToArray($currentPaths, $fullPath)
+                 $this.SetPreference("repository", "paths", $newPaths)
              }
         } catch {}
     }

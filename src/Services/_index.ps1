@@ -6,7 +6,10 @@
 
 $servicesPath = $PSScriptRoot
 
-# Base services first
+# Helpers first (no dependencies)
+. "$servicesPath\ArrayHelper.ps1"
+
+# Base services
 . "$servicesPath\ConfigurationService.ps1"
 . "$servicesPath\UserPreferencesService.ps1"
 . "$servicesPath\LocalizationService.ps1"

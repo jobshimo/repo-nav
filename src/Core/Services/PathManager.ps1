@@ -52,7 +52,7 @@ class PathManager {
     # Gets all configured paths (sanitized, never null)
     [string[]] GetAllPaths() {
         $prefs = $this.PreferencesService.LoadPreferences()
-        return $this.SanitizePaths($prefs.repository.paths)
+        return [ArrayHelper]::EnsureArray($prefs.repository.paths)
     }
     
     # Adds a path to the list (with validation)
@@ -63,11 +63,11 @@ class PathManager {
         $resolvedPath = (Resolve-Path $path).Path
         $currentPaths = $this.GetAllPaths()
         
-        if ($currentPaths -contains $resolvedPath) {
+        if ([ArrayHelper]::Contains($currentPaths, $resolvedPath)) {
             return $true  # Already exists, not an error
         }
         
-        $newPaths = @($currentPaths) + $resolvedPath
+        $newPaths = [ArrayHelper]::AddToArray($currentPaths, $resolvedPath)
         $this.PreferencesService.SetPreference("repository", "paths", $newPaths)
         
         # If no current path set, set this as default
@@ -83,12 +83,7 @@ class PathManager {
         if ([string]::IsNullOrWhiteSpace($path)) { return }
         
         $currentPaths = $this.GetAllPaths()
-        $newPaths = @($currentPaths | Where-Object { $_ -ne $path })
-        
-        # Ensure array, not null
-        if ($null -eq $newPaths -or $newPaths.Count -eq 0) {
-            $newPaths = @()
-        }
+        $newPaths = [ArrayHelper]::RemoveFromArray($currentPaths, $path)
         
         $this.PreferencesService.SetPreference("repository", "paths", $newPaths)
         
@@ -102,14 +97,6 @@ class PathManager {
     # Quick check if any paths are configured
     [bool] HasPaths() {
         return ($this.GetAllPaths().Count -gt 0)
-    }
-    
-    # Sanitizes path array (removes nulls and empty strings)
-    [string[]] hidden SanitizePaths([object]$paths) {
-        if ($null -eq $paths) { return @() }
-        $sanitized = @($paths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-        if ($null -eq $sanitized) { return @() }
-        return $sanitized
     }
     
     # Forces a refresh from the preferences file

@@ -49,14 +49,14 @@ class InputHandler {
         # --- Focus Management (Tab Navigation) ---
         # --- Focus Management (Tab Navigation) ---
         # Robust check for Tab: Key 'Tab', VirtualKeyCode 9, or Char 9
-        if ($keyPress.Key -eq 'Tab' -or $keyPress.VirtualKeyCode -eq 9 -or $keyPress.KeyChar -eq [char]9) {
+        if ($keyPress.Key -eq 'Tab' -or $keyPress.VirtualKeyCode -eq [Constants]::KEY_TAB -or $keyPress.KeyChar -eq [char][Constants]::KEY_TAB) {
             $context.State.ToggleFocus()
             return $true
         }
         
         # Header Focus Input Handling
         if ($context.State.IsHeaderFocused()) {
-            if ($keyPress.Key -eq 'Enter' -or $keyPress.KeyChar -eq [char]13 -or $keyPress.VirtualKeyCode -eq 13) {
+            if ($keyPress.Key -eq 'Enter' -or $keyPress.KeyChar -eq [char][Constants]::KEY_ENTER -or $keyPress.VirtualKeyCode -eq [Constants]::KEY_ENTER) {
                 # Delegate to SwitchPathCommand (Simulate 'P')
                 $fakeKey = [PSCustomObject]@{ Key = 'P'; KeyChar = 'P'; Modifiers = 0; VirtualKeyCode = [Constants]::KEY_P }
                 $cmd = $this.factory.FindCommand($fakeKey, $context)
@@ -65,7 +65,7 @@ class InputHandler {
                     return $true
                 }
             }
-            elseif ($keyPress.Key -eq 'Escape' -or $keyPress.VirtualKeyCode -eq 27 -or $keyPress.KeyChar -eq [char]27) {
+            elseif ($keyPress.Key -eq 'Escape' -or $keyPress.VirtualKeyCode -eq [Constants]::KEY_ESCAPE -or $keyPress.KeyChar -eq [char][Constants]::KEY_ESCAPE) {
                 $context.State.SetFocus("List")
                 return $true
             }
