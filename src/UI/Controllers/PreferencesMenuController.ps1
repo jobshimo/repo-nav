@@ -495,6 +495,7 @@ class PreferencesMenuController {
         if ($null -eq $hiddenService) { return }
         
         $running = $true
+        $statusMessage = $null
         
         while ($running) {
             $hiddenList = $hiddenService.GetHiddenList()
@@ -537,9 +538,13 @@ class PreferencesMenuController {
             
             $title = & $GetLoc "Menu.ManageHidden"
             $description = "Select a repository to UNHIDE (restore to list)"
+            if ($null -ne $statusMessage) {
+                $description += "`n`n$statusMessage"
+            }
+            
             $cancelText = & $GetLoc "Cmd.Back"
             
-            # Callback to render full path detail
+            # ... (Callback definitions) ...
             $capturedConsole = $this.Console # Capture for closure
             $onSelectionChanged = {
                 param($selectedOption)
@@ -631,10 +636,10 @@ class PreferencesMenuController {
             } else {
                 # Unhide selected
                 $hiddenService.RemoveFromHidden($selectedPath)
-                $this.Console.WriteLineColored("  Unhided: $selectedPath", [Constants]::ColorSuccess)
-                Start-Sleep -Milliseconds 800
+                $name = Split-Path -Path $selectedPath -Leaf
+                $statusMessage = "  [Success] Unhided: $name"
                 
-                # Loop continues
+                # Loop continues immediately
             }
         }
     }
