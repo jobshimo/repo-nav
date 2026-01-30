@@ -77,7 +77,7 @@ function Start-NavigationLoop {
         while (-not $state.ShouldExit()) {
             # Ensure cursor is hidden at the start of each loop iteration
             $Console.HideCursor()
-
+            
             $keyPress = $Console.ReadKey()
             
             # Delegate input handling to InputHandler

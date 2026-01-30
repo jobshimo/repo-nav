@@ -40,6 +40,9 @@ class AliasCommand : INavigationCommand {
                 $this.InvokeAliasRemove($context, $currentRepo, $view)
             }
             
+            # Clean screen before refresh to remove workflow UI residue
+            $context.Console.ClearForWorkflow()
+            
             # Refresh Logic
             $repoManager = $context.RepoManager
             if ($null -ne $repoManager) {
