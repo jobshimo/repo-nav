@@ -5,6 +5,7 @@ class PreferencesMenuController {
     [OptionSelector] $OptionSelector
     [LocalizationService] $LocalizationService
     [RepositoryManager] $RepoManager
+    [PathManager] $PathManager
 
     PreferencesMenuController([object]$context) {
         $this.Console = $context.Console
@@ -13,6 +14,7 @@ class PreferencesMenuController {
         $this.OptionSelector = $context.OptionSelector
         $this.LocalizationService = $context.LocalizationService
         $this.RepoManager = $context.RepoManager
+        $this.PathManager = $context.PathManager
     }
 
     [bool] Show() {
@@ -866,23 +868,8 @@ class PreferencesMenuController {
                      $preferences = $this.PreferencesService.LoadPreferences()
                 }
                 elseif ($action -eq "REMOVE") {
-                     $currentPaths = [array]$preferences.repository.paths
-                     $newPaths = @($currentPaths | Where-Object { $_ -ne $selectedPath })
-                     
-                     # Ensure newPaths is always an array (not $null)
-                     if ($null -eq $newPaths -or $newPaths.Count -eq 0) {
-                         $newPaths = @()
-                     }
-                     
-                     $this.PreferencesService.SetPreference("repository", "paths", $newPaths)
-                     
-                     # Clear defaultPath if it was the removed path or if no paths remain
-                     $currentDefault = $preferences.repository.defaultPath
-                     if ($currentDefault -eq $selectedPath -or $newPaths.Count -eq 0) {
-                         # Set to first remaining path, or empty if none
-                         $newDefault = if ($newPaths.Count -gt 0) { $newPaths[0] } else { "" }
-                         $this.PreferencesService.SetPreference("repository", "defaultPath", $newDefault)
-                     }
+                     # Use PathManager for safe path removal
+                     $this.PathManager.RemovePath($selectedPath)
                      
                      # Also remove alias if exists
                      if ($preferences.repository.pathAliases.$selectedPath) {

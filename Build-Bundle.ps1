@@ -101,6 +101,8 @@ $loadOrder = @(
     # Layer 7: Core Managers
     "Core\Services\GitStatusManager.ps1",
     "Core\Services\RepositorySorter.ps1",
+    "Core\Services\OnboardingService.ps1",
+    "Core\Services\PathManager.ps1",
     "Core\RepositoryManager.ps1",
     
     # Layer 8: UI Controllers & Views

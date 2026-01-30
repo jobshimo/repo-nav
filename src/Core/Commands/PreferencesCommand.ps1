@@ -20,19 +20,21 @@ class PreferencesCommand : INavigationCommand {
             $controller = [PreferencesMenuController]::new($context)
             $controller.Show()
             
-            # Sync BasePath from preferences (it may have changed)
-            $prefs = $context.PreferencesService.LoadPreferences()
-            $newDefaultPath = $prefs.repository.defaultPath
+            # Use PathManager as Single Source of Truth
+            $pathManager = $context.PathManager
+            $pathManager.Refresh()  # Sync from file after preferences changes
+            
+            $newDefaultPath = $pathManager.GetCurrentPath()
             
             # Check if we still have a valid path
             if ([string]::IsNullOrWhiteSpace($newDefaultPath)) {
                 # No valid path - restart to trigger onboarding
-                $state.RequestExit("Restart")
+                $state.RequestExit([ExitState]::Restart)
                 $context.BasePath = ""
                 return
             }
             
-            # Update context with new path
+            # Update context with new path (PathManager is authoritative)
             $context.BasePath = $newDefaultPath
             
             # Reload repositories with the updated path

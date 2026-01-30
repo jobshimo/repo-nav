@@ -20,6 +20,15 @@
     Redraw flags follow a dirty flag pattern for optimized rendering.
 #>
 
+# Exit state enum - eliminates magic strings
+enum ExitState {
+    None
+    OpenRepository
+    Cancelled
+    Restart
+    SwitchPath
+}
+
 class NavigationState {
     # Current state
     [int] $SelectedIndex

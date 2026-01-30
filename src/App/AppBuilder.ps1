@@ -96,11 +96,23 @@ class AppBuilder {
         )
         [ServiceRegistry]::Register('OnboardingService', $onboardingService)
         
+        # 5c. Path Manager (Single Source of Truth for paths)
+        $pathManager = [PathManager]::new($preferencesService)
+        [ServiceRegistry]::Register('PathManager', $pathManager)
+        
         # 6. Infrastructure (Logger)
         $logger = [LoggerService]::new([Constants]::ScriptRoot)
         [ServiceRegistry]::Register('LoggerService', $logger)
         
-        # 7. Compose Application Context
+        # 7. Validate critical services
+        $criticalServices = @('PathManager', 'UserPreferencesService', 'LocalizationService', 'RepositoryManager')
+        foreach ($svc in $criticalServices) {
+            if ($null -eq [ServiceRegistry]::Resolve($svc)) {
+                throw "Critical service missing: $svc. Check import order in repo-nav.ps1"
+            }
+        }
+        
+        # 8. Compose Application Context
         return [PSCustomObject]@{
             RepoManager         = $repoManager
             Renderer            = $renderer
@@ -109,10 +121,11 @@ class AppBuilder {
             ColorSelector       = $colorSelector
             OptionSelector      = $optionSelector
             OnboardingService   = $onboardingService
+            PathManager         = $pathManager
             LocalizationService = $localizationService
             PreferencesService  = $preferencesService
             HiddenReposService  = [ServiceRegistry]::Resolve('HiddenReposService')
-            BasePath            = $BasePath
+            BasePath            = $pathManager.GetCurrentPath()  # Use PathManager as source
             ServiceRegistry     = [ServiceRegistry] # Expose registry if needed
         }
     }

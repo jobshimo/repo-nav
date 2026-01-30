@@ -114,7 +114,7 @@ function Start-NavigationLoop {
         
         # Handle exit state
         $exitState = $state.GetExitState()
-        if ($exitState -eq "OpenRepository") {
+        if ($exitState -eq [ExitState]::OpenRepository) {
             $repos = $state.GetRepositories()
             $currentIndex = $state.GetCurrentIndex()
             if ($currentIndex -lt $repos.Count) {
@@ -124,13 +124,15 @@ function Start-NavigationLoop {
                 Set-Location $selectedRepo.FullPath
             }
         }
-        elseif ($exitState -eq "Restart") {
-            # Restart loop with updated context (triggers onboarding if no path)
-            $Context.BasePath = $PreferencesService.GetPreference("repository", "defaultPath")
+        elseif ($exitState -eq [ExitState]::Restart) {
+            # Restart loop with updated context using PathManager
+            $pathManager = $Context.PathManager
+            $pathManager.Refresh()
+            $Context.BasePath = $pathManager.GetCurrentPath()
             Start-NavigationLoop -Context $Context
             return
         }
-        elseif ($exitState -eq "Cancelled") {
+        elseif ($exitState -eq [ExitState]::Cancelled) {
             $Console.ClearScreen()
             $Renderer.RenderWarning("Navigation cancelled.")
         }
