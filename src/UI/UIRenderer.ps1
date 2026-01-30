@@ -405,16 +405,13 @@ class UIRenderer {
         for ($i = 0; $i -lt $limit; $i++) {
              $currentLine = $startLine + $i
              $this.Console.SetCursorPosition(0, $currentLine)
-             $this.Console.SetCursorPosition(0, $currentLine)
-             # Optimized: Removed ClearCurrentLine() to prevent flickering. 
-             # RenderRepositoryItem now handles clearing the tail.
-
              
              $repoIndex = $start + $i
              if ($repoIndex -lt $total) {
                  $this.RenderRepositoryItem($repos[$repoIndex], ($repoIndex -eq $state.SelectedIndex))
              } else {
-                 # Just ensure the line is empty (handled by ClearCurrentLine above)
+                 # Clear the line if there's no repo to display (prevents ghost items)
+                 $this.Console.ClearCurrentLine()
              }
         }
     }

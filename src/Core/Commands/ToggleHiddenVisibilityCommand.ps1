@@ -51,7 +51,7 @@ class ToggleHiddenVisibilityCommand : INavigationCommand {
             }
         }
         
-        # Full redraw needed since item count changes significantly
-        $state.MarkForFullRedraw()
+        # List redraw only - footer stays intact since it updates on navigation
+        $state.MarkForListRedraw()
     }
 }

@@ -78,8 +78,8 @@ class RenderOrchestrator {
     
     <#
     .SYNOPSIS
-        Renders only the repository list and footer (no header/menu redraw)
-        Avoids ClearScreen to prevent flickering
+        Renders the repository list and footer (no header/menu redraw)
+        Used when list changes but layout doesn't require full screen clear
     #>
     [void] RenderListOnly([object]$state) {
         $this.Console.HideCursor()
@@ -88,14 +88,11 @@ class RenderOrchestrator {
         $startLine = $this.CursorStartLine
         $this.Console.SetCursorPosition(0, $startLine)
         
-        # Render list (UIRenderer needs to clear lines/pad correctly)
+        # Render list (UIRenderer now clears extra lines if list is shorter)
         $this.Renderer.RenderRepositoryList($state, $startLine)
         
-        # If list is shorter than PageSize, RenderRepositoryList MUST clear the remaining lines
-        # or we do it here. Or we trust RenderRepositoryList fills PageSize lines.
-        # Assuming RenderRepositoryList logic iterates up to PageSize:
-        
-        # Render Footer
+        # Update footer to reflect new totals and visibility state
+        # No flickering here since we don't ClearScreen
         $footerLine = $startLine + $state.PageSize + 1
         $this.Console.SetCursorPosition(0, $footerLine)
         

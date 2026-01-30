@@ -46,7 +46,7 @@ class HideRepoCommand : INavigationCommand {
                         $state.SetCurrentIndex([Math]::Max(0, $repos.Count - 1))
                     }
                     
-                    $state.MarkForFullRedraw()
+                    $state.MarkForListRedraw()
                     return
                 }
             }
@@ -66,7 +66,7 @@ class HideRepoCommand : INavigationCommand {
                 }
             }
             
-            $state.MarkForFullRedraw()
+            $state.MarkForListRedraw()
         }
     }
 }
