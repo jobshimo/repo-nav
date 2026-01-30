@@ -7,7 +7,7 @@ class SwitchPathCommand : INavigationCommand {
         return $keyPress.VirtualKeyCode -eq [Constants]::KEY_P
     }
 
-    [void] Execute([CommandContext]$context) {
+    [void] Execute([object]$keyPress, [CommandContext]$context) {
         # Check if already in a sub-view (like prefs)
         # We generally assume Commands are run from Main View or specific contexts
         

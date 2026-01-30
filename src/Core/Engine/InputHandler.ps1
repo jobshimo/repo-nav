@@ -56,9 +56,9 @@ class InputHandler {
         
         # Header Focus Input Handling
         if ($context.State.IsHeaderFocused()) {
-            if ($keyPress.Key -eq 'Enter') {
+            if ($keyPress.Key -eq 'Enter' -or $keyPress.KeyChar -eq [char]13 -or $keyPress.VirtualKeyCode -eq 13) {
                 # Delegate to SwitchPathCommand (Simulate 'P')
-                $fakeKey = [PSCustomObject]@{ Key = 'P'; KeyChar = 'P'; Modifiers = 0 }
+                $fakeKey = [PSCustomObject]@{ Key = 'P'; KeyChar = 'P'; Modifiers = 0; VirtualKeyCode = [Constants]::KEY_P }
                 $cmd = $this.factory.FindCommand($fakeKey, $context)
                 if ($null -ne $cmd) {
                     $cmd.Execute($fakeKey, $context)

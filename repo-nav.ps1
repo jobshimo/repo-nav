@@ -152,7 +152,7 @@ function Start-RepositoryNavigator {
     #>
     
     param(
-        [string]$BasePath = (Split-Path -Parent $PSScriptRoot)
+        [string]$BasePath
     )
     
     try {
@@ -180,18 +180,24 @@ function Start-RepositoryNavigator {
 #region Execute
 # When script is run directly (not dot-sourced), start the navigator
 if ($MyInvocation.InvocationName -ne '.') {
-    # Use provided BasePath or default from Constants/Preferences
+    # If no base path provided, check preferences or use default
     if (-not $BasePath) {
-        # Try to load from preferences
+        # 1. Try to load from preferences
         try {
             $tempPrefs = [UserPreferencesService]::new()
             $defPath = $tempPrefs.GetPreference("repository", "defaultPath")
+            
             if (-not [string]::IsNullOrWhiteSpace($defPath) -and (Test-Path $defPath)) {
                 $BasePath = $defPath
             }
         } catch {}
         
-        # Fallback to default constant if still empty
+        # 2. Fallback to script parent directory (standard behavior)
+        if (-not $BasePath) {
+             $BasePath = (Split-Path -Parent $PSScriptRoot)
+        }
+        
+        # 3. Last resort fallback (should rarely happen if script is on disk)
         if (-not $BasePath) {
             $BasePath = [Constants]::ReposBasePath
         }

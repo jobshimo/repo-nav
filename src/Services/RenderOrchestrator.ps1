@@ -185,10 +185,10 @@ class RenderOrchestrator {
         if ($state.IsHeaderFocused()) {
             $borderColor = [Constants]::ColorFavorite
             if ([string]::IsNullOrEmpty($highlight)) {
-                $highlight = "Enter: Switch Path"
+                $highlight = "Press Enter to Switch"
                 $highlightColor = [Constants]::ColorInfo
             } else {
-                $highlight += " | Enter: Switch Path"
+                $highlight += " | Press Enter to Switch"
             }
         }
         
