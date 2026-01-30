@@ -51,10 +51,21 @@ class UIRenderer {
     }
 
     # Render header
+    # Render header
     [void] RenderHeader([string]$title) {
+        $this.RenderHeader($title, "")
+    }
+
+    [void] RenderHeader([string]$title, [string]$subtitle) {
         if ($this.ShouldShowHeaders()) {
             $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
             $this.Console.WriteLineColored("    $title", [Constants]::ColorHeader)
+            
+            if (-not [string]::IsNullOrEmpty($subtitle)) {
+                $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)
+                $this.Console.WriteLineColored("    $subtitle", [Constants]::ColorValue)
+            }
+            
             $this.Console.WriteSeparator("=", [Constants]::UIWidth, [Constants]::ColorSeparator)
         }
     }

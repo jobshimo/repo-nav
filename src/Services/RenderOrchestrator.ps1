@@ -122,7 +122,33 @@ class RenderOrchestrator {
         $menuMode = $prefs.display.menuMode
         
         # Header (Takes 3 lines)
-        $this.Renderer.RenderHeader("REPOSITORY NAVIGATOR")
+        $pathDisplayMode = if ($prefs.display.pathDisplayMode) { $prefs.display.pathDisplayMode } else { "Path" }
+        $currentPath = $state.BasePath
+        
+        # Determine what to show
+        $headerText = "REPOSITORY NAVIGATOR"
+        $subText = ""
+        
+        # Check for alias
+        $alias = $null
+        if ($prefs.repository.pathAliases) {
+            $alias = $prefs.repository.pathAliases[$currentPath]
+        }
+        
+        switch ($pathDisplayMode) {
+            "Path" { 
+                $subText = $currentPath 
+            }
+            "Alias" { 
+                $subText = if ($alias) { $alias } else { $currentPath }
+            }
+            "Both" { 
+                $subText = "$currentPath"
+                if ($alias) { $subText += " [$alias]" }
+            }
+        }
+        
+        $this.Renderer.RenderHeader($headerText, $subText)
         
         # Render breadcrumb if we're inside a container
         $breadcrumbLines = 0

@@ -45,6 +45,9 @@ function Start-NavigationLoop {
         
         $progressIndicator = [ProgressIndicator]::new($Console)
         
+        # Ensure this path is in preferences
+        $PreferencesService.EnsurePathInPreferences($BasePath)
+        
         $autoLoadFavorites = $PreferencesService.GetPreference("git", "autoLoadFavoritesStatus")
         if ($null -ne $autoLoadFavorites) {
              # Legacy cleanup if needed, though PerformAutoLoadGitStatus handles new pref

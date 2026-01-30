@@ -478,6 +478,26 @@ function Update-ConfigurationFiles {
         Move-Item -Path $oldAliasPath -Destination $newAliasPath -Force
         Write-SuccessMessage "Aliases migrated to app folder."
     }
+    
+    # Ensure selected path is in preferences
+    $prefsPath = Join-Path $ScriptPath ".repo-preferences.json"
+    if (Test-Path $prefsPath) {
+        $json = Get-Content $prefsPath -Raw | ConvertFrom-Json
+        
+        # Ensure structural integrity
+        if (-not $json.repository) { $json | Add-Member -Name "repository" -Value @{} -MemberType NoteProperty }
+        if (-not $json.repository.paths) { $json.repository | Add-Member -Name "paths" -Value @() -MemberType NoteProperty }
+        
+        # Add path if missing
+        $p = (Resolve-Path $ReposPath).Path
+        $paths = $json.repository.paths
+        if ($paths -notcontains $p) {
+            $paths += $p
+            $json.repository.paths = $paths
+            $json | ConvertTo-Json -Depth 10 | Set-Content $prefsPath -Encoding UTF8
+            Write-SuccessMessage "Added '$p' to preference paths."
+        }
+    }
 }
 #endregion
 

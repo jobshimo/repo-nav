@@ -317,5 +317,13 @@
     "Msg.NoHiddenRepos": "No hay repositorios ocultos.",
     "Prompt.SelectHiddenToRestore": "Selecciona repositorio a restaurar",
     "Menu.ManageHidden": "Gestionar Repositorios Ocultos",
-    "Cmd.Back": "Atrás"
+    "Cmd.Back": "Atrás",
+
+    "Pref.ManagePaths": "Gestionar Rutas de Repositorios",
+    "Menu.ManagePaths": "Gestionar Rutas de Repositorios", 
+    "Cmd.AddPath": "Agregar Nueva Ruta",
+    "Pref.PathDisplay": "Modo Visualización Ruta",
+    "Pref.PathDisplay.Path": "Solo Ruta",
+    "Pref.PathDisplay.Alias": "Solo Alias",
+    "Pref.PathDisplay.Both": "Ruta y Alias"
 }

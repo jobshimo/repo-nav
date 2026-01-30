@@ -138,6 +138,10 @@ class UserPreferencesService {
         if (-not ($preferences.display.PSObject.Properties.Name -contains 'aliasWrapper')) {
             $preferences.display | Add-Member -NotePropertyName 'aliasWrapper' -NotePropertyValue "None" -Force
         }
+        
+        if (-not ($preferences.display.PSObject.Properties.Name -contains 'pathDisplayMode')) {
+            $preferences.display | Add-Member -NotePropertyName 'pathDisplayMode' -NotePropertyValue "Path" -Force
+        }
 
         if (-not ($preferences.display.PSObject.Properties.Name -contains 'menuMode')) {
             $preferences.display | Add-Member -NotePropertyName 'menuMode' -NotePropertyValue "Full" -Force
@@ -149,6 +153,7 @@ class UserPreferencesService {
                 alias = $true
                 modules = $true
                 repository = $true
+                paths = $true
                 git = $true
                 tools = $true
             }
@@ -161,6 +166,7 @@ class UserPreferencesService {
             if (-not ($sections.PSObject.Properties.Name -contains 'alias')) { $sections | Add-Member -NotePropertyName 'alias' -NotePropertyValue $true -Force }
             if (-not ($sections.PSObject.Properties.Name -contains 'modules')) { $sections | Add-Member -NotePropertyName 'modules' -NotePropertyValue $true -Force }
             if (-not ($sections.PSObject.Properties.Name -contains 'repository')) { $sections | Add-Member -NotePropertyName 'repository' -NotePropertyValue $true -Force }
+            if (-not ($sections.PSObject.Properties.Name -contains 'paths')) { $sections | Add-Member -NotePropertyName 'paths' -NotePropertyValue $true -Force }
             if (-not ($sections.PSObject.Properties.Name -contains 'git')) { $sections | Add-Member -NotePropertyName 'git' -NotePropertyValue $true -Force }
             if (-not ($sections.PSObject.Properties.Name -contains 'tools')) { $sections | Add-Member -NotePropertyName 'tools' -NotePropertyValue $true -Force }
         }
@@ -193,6 +199,23 @@ class UserPreferencesService {
         
         if (-not ($preferences.hidden.PSObject.Properties.Name -contains 'hiddenRepos')) {
             $preferences.hidden | Add-Member -NotePropertyName 'hiddenRepos' -NotePropertyValue @() -Force
+        }
+        
+        if (-not ($preferences.hidden.PSObject.Properties.Name -contains 'hiddenRepos')) {
+            $preferences.hidden | Add-Member -NotePropertyName 'hiddenRepos' -NotePropertyValue @() -Force
+        }
+
+        # Repository Section
+        if (-not ($preferences.PSObject.Properties.Name -contains 'repository')) {
+            $preferences | Add-Member -NotePropertyName 'repository' -NotePropertyValue ([PSCustomObject]@{}) -Force
+        }
+        
+        if (-not ($preferences.repository.PSObject.Properties.Name -contains 'paths')) {
+            $preferences.repository | Add-Member -NotePropertyName 'paths' -NotePropertyValue @() -Force
+        }
+        
+        if (-not ($preferences.repository.PSObject.Properties.Name -contains 'pathAliases')) {
+            $preferences.repository | Add-Member -NotePropertyName 'pathAliases' -NotePropertyValue ([PSCustomObject]@{}) -Force
         }
         
         return $preferences
@@ -245,5 +268,22 @@ class UserPreferencesService {
         }
         
         return $false
+    }
+
+    # Ensure a path exists in preferences
+    [void] EnsurePathInPreferences([string]$path) {
+        if ([string]::IsNullOrWhiteSpace($path)) { return }
+        
+        $preferences = $this.LoadPreferences()
+        $currentPaths = if ($preferences.repository.paths) { [array]$preferences.repository.paths } else { @() }
+        
+        # Normalize
+        try {
+             $fullPath = (Resolve-Path $path).Path
+             if ($currentPaths -notcontains $fullPath) {
+                 $currentPaths += $fullPath
+                 $this.SetPreference("repository", "paths", $currentPaths)
+             }
+        } catch {}
     }
 }

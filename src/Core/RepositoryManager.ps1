@@ -180,7 +180,7 @@ class RepositoryManager {
             $this.CachedBasePath = $basePath
             
             $directories = Get-ChildItem -Directory -Path $basePath | 
-                           Where-Object { $_.Name -notin @('envs', 'classes', 'repo-nav') }
+                           Where-Object { $_.Name -notin @('envs', 'classes') }
                            
             $aliases = $this.AliasManager.GetAllAliases()
 
@@ -269,7 +269,7 @@ class RepositoryManager {
     # Helper method for recursive repository scanning
     hidden [void] ScanRepositoriesRecursive([string]$path, [System.Collections.ArrayList]$results, [hashtable]$aliases) {
         $directories = Get-ChildItem -Directory -Path $path -ErrorAction SilentlyContinue |
-                       Where-Object { $_.Name -notin @('envs', 'classes', 'repo-nav', 'node_modules', '.git') }
+                       Where-Object { $_.Name -notin @('envs', 'classes', 'node_modules', '.git') }
         
         foreach ($dir in $directories) {
             $isGitRepo = Test-Path (Join-Path $dir.FullName ".git")
