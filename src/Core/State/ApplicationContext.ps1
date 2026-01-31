@@ -1,6 +1,6 @@
 class ApplicationContext {
     # Core Services
-    [RepositoryManager]         $RepoManager
+    [IRepositoryManager]        $RepoManager
     [ConfigurationService]      $ConfigurationService
     [UserPreferencesService]    $PreferencesService
     [LocalizationService]       $LocalizationService
@@ -8,7 +8,7 @@ class ApplicationContext {
     [HiddenReposService]       $HiddenReposService
     
     # UI & Infrastructure
-    [UIRenderer]                $Renderer
+    [IUIRenderer]               $Renderer
     [ConsoleHelper]             $Console
     [LoggerService]             $Logger
     [OptionSelector]            $OptionSelector

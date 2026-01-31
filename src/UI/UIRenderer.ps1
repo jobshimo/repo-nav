@@ -15,7 +15,7 @@
     - Color previews
 #>
 
-class UIRenderer {
+class UIRenderer : IUIRenderer {
     [ConsoleHelper] $Console
     [UserPreferencesService] $PreferencesService
     [LocalizationService] $LocalizationService
