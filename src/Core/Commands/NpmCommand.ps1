@@ -1,5 +1,5 @@
 class NpmView {
-    [ConsoleHelper] $Console
+    [IConsoleHelper] $Console
     [IUIRenderer] $Renderer
     [OptionSelector] $OptionSelector
     [LocalizationService] $LocalizationService
