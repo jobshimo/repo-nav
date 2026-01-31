@@ -9,6 +9,12 @@
     "CodeCoverage": {
         "Enabled": true,
         "Path": [ "src" ],
+        "ExcludeTests": [
+            "**/*/_index.ps1",
+            "**/Interfaces/*.ps1",
+            "**/Resources/**/*.ps1",
+            "**/Dev/*.ps1"
+        ],
         "OutputFormat": "Jacoco",
         "OutputPath": "coverage.xml",
         "CoveragePercentTarget": 80

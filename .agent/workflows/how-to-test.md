@@ -284,7 +284,75 @@ Antes de escribir o ejecutar tests, verifica:
 - [ ] **¿Tests previos pasan?** No rompas lo que funciona
 - [ ] **¿Usas mocks de comandos nativos (git, npm)?** Configura el patrón `Stub + Alias`
 - [ ] **¿El error menciona "cannot find method/overload"?** → Mock incompleto (Sección 4.B)
+## 6.1 🚫 Archivos Excluidos de Cobertura
 
+Ciertos archivos NO necesitan tests porque no contienen lógica ejecutable:
+
+### Automáticamente Excluidos (ver `PesterConfig.json`)
+```json
+"ExcludeTests": [
+    "**/*/_index.ps1",           // Archivos de carga/bootstrapping
+    "**/Interfaces/*.ps1",       // Definiciones de interfaces
+    "**/Resources/**/*.ps1",     // Recursos (i18n, etc.)
+    "**/Dev/*.ps1"               // Herramientas de desarrollo
+]
+```
+
+### ¿Por qué se excluyen?
+
+**1. Interfaces (`src/Core/Interfaces/*.ps1`)**
+- Son solo definiciones de contratos (métodos abstractos)
+- No contienen lógica ejecutable
+- Se validan indirectamente al testear las implementaciones
+
+Ejemplo:
+```powershell
+# src/Core/Interfaces/IOptionSelector.ps1
+class IOptionSelector : ConsoleView {
+    [object] Show([SelectionOptions]$config) { return $null }  # Solo definición
+}
+```
+✅ **No necesita tests** - Se testea via implementaciones reales y mocks.
+
+**2. Archivos `_index.ps1`**
+- Solo cargan/importan otros archivos
+- No contienen lógica de negocio
+- Son bootstrapping puro
+
+Ejemplo:
+```powershell
+# src/Services/_index.ps1
+. "$PSScriptRoot/AliasManager.ps1"
+. "$PSScriptRoot/ConfigurationService.ps1"
+# ... solo importaciones
+```
+✅ **No necesita tests** - Se valida al cargar el proyecto completo.
+
+**3. Resources (`src/Resources/**`)**
+- Archivos de datos (i18n, configuración)
+- No contienen código ejecutable
+- Son datos estáticos
+
+**4. Dev Tools (`src/Dev/*.ps1`)**
+- Herramientas de desarrollo temporal
+- No forman parte del código de producción
+
+### ⚠️ Si necesitas añadir más exclusiones
+
+Edita `PesterConfig.json`:
+```json
+"ExcludeTests": [
+    "**/*/_index.ps1",
+    "**/Interfaces/*.ps1",
+    "**/TuNuevoPatron/*.ps1"  // Añade aquí
+]
+```
+
+**Criterio para excluir:**
+- ✅ No tiene lógica ejecutable
+- ✅ No tiene decisiones (if/switch/loops)
+- ✅ No tiene cálculos ni transformaciones
+- ❌ Si tiene cualquiera de lo anterior → SÍ necesita tests
 ## 7. Próximos Pasos para IAs
 
 1.  **Leer `HANDOFF_COVERAGE.md`**: Para ver qué archivos faltan.
