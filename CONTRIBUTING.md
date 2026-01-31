@@ -241,6 +241,27 @@ This checks:
 - ✅ All unit tests pass
 
 ## Testing
+     
+### Running Tests (Pester)
+     
+We use **Pester** for Unit and Integration testing.
+     
+**Run all tests:**
+```powershell
+Invoke-Pester -Path .\tests\Pester\
+```
+     
+**Run specific test file:**
+```powershell
+Invoke-Pester -Path .\tests\Pester\Unit\Services.Tests.ps1
+```
+     
+### Legacy Tests
+Legacy tests (manual assertions) are located in `tests/*.ps1` (excluding `Pester/` folder).
+They can be run via:
+```powershell
+.\tests\Run-Tests.ps1
+```
 
 ### Development Version
 ```powershell
@@ -253,65 +274,40 @@ This checks:
 .\dist\repo-nav-bundle.ps1
 ```
 
-### Quick Test
-```powershell
-.\scripts\Test-Dev.ps1
-```
-
 ## Pull Request Checklist
 
+- [ ] `Invoke-Pester` passes (all Pester tests)
 - [ ] `Validate-Project.ps1` passes
-- [ ] `Run-Tests.ps1` passes (all unit tests)
+- [ ] `Run-Tests.ps1` passes (legacy tests)
 - [ ] Code follows naming conventions
 - [ ] New files added to `_index.ps1`
 - [ ] Translations added for user-facing text (en.json, es.json)
 - [ ] No `Write-Host` in services (use Renderer)
-- [ ] Added unit tests for new functionality
+- [ ] Added unit tests for new functionality using Pester
 - [ ] Error handling uses `OperationResult` pattern
 
 ## Writing Tests
 
-### Test Structure
-
-Place tests in `tests/` directory with `Test-*.ps1` naming:
+### Pester Structure (Recommended)
+Place new tests in `tests/Pester/Unit` or `tests/Pester/Integration`.
 
 ```powershell
-# tests/Test-MyService.ps1
-$scriptRoot = Split-Path $PSScriptRoot -Parent
-. "$scriptRoot\src\Services\MyService.ps1"
+# tests/Pester/Unit/MyService.Tests.ps1
+using module "..\..\TestHelper.psm1"
 
-function Assert-Equal {
-    param([object]$Expected, [object]$Actual, [string]$TestName)
-    # Implementation...
+Describe "MyService" {
+    BeforeAll {
+        # Load dependencies
+        $srcRoot = Resolve-Path "$PSScriptRoot\..\..\..\src"
+        . "$srcRoot\Services\MyService.ps1"
+    }
+
+    It "Does something correctly" {
+        $service = [MyService]::new()
+        $service.DoSomething() | Should -Be "ExpectedValue"
+    }
 }
-
-Write-Host "Testing MyService..." -ForegroundColor Cyan
-
-# Test 1
-$service = [MyService]::new()
-$result = $service.DoSomething()
-Assert-Equal "expected" $result "DoSomething returns correct value"
-
-exit $script:TestsFailed
 ```
 
-### Using Mocks
-
-```powershell
-. "$PSScriptRoot\Mocks\MockConsoleHelper.ps1"
-. "$PSScriptRoot\Mocks\MockServices.ps1"
-
-$mockConsole = [MockConsoleHelper]::new()
-$mockPrefs = [MockUserPreferencesService]::new()
-
-$renderer = [UIRenderer]::new($mockConsole, $mockPrefs)
-$renderer.RenderHeader("Test")
-
-# Verify output
-Assert-True $mockConsole.ContainsText("Test") "Header rendered"
-```
-
-See existing tests for examples:
-- [Test-ArrayHelper.ps1](tests/Test-ArrayHelper.ps1)
-- [Test-NavigationState.ps1](tests/Test-NavigationState.ps1)
-- [Test-ConfigurationService.ps1](tests/Test-ConfigurationService.ps1)
+### Legacy Test Structure
+(Deprecated for new tests, see existing files for reference)
