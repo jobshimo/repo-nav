@@ -171,3 +171,57 @@ class MockLocalizationService : ILocalizationService {
     [string] GetCurrentLanguage() { return "en" }
     [void] SetLanguage([string]$language) {}
 }
+
+# ═════════════════════════════════════════════════════════════════════════════
+# MOCK HIDDEN REPOS SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+class MockHiddenReposService : IHiddenReposService {
+    [bool] $ToggleCalled = $false
+    [bool] $AddCalled = $false
+    [bool] $RemoveCalled = $false
+    [bool] $ClearCalled = $false
+    
+    [bool] IsHidden([string]$repoPath) { return $false }
+    [bool] AddToHidden([string]$repoPath) { $this.AddCalled = $true; return $true }
+    [bool] RemoveFromHidden([string]$repoPath) { $this.RemoveCalled = $true; return $true }
+    [string[]] GetHiddenList() { return @() }
+    [int] GetHiddenCount() { return 0 }
+    [bool] ClearAllHidden() { $this.ClearCalled = $true; return $true }
+    [bool] ToggleShowHidden() { $this.ToggleCalled = $true; return $true }
+    [bool] GetShowHiddenState() { return $true }
+    [void] SetShowHiddenState([bool]$show) {}
+}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# MOCK PROGRESS INDICATOR
+# ═════════════════════════════════════════════════════════════════════════════
+class MockProgressIndicator : IProgressIndicator {
+    [bool] $RenderCalled = $false
+    [bool] $CompleteCalled = $false
+    [string] $LastMessage
+    [int] $LastCurrent
+    [int] $LastTotal
+
+    [void] RenderProgressBar([string]$message, [int]$current, [int]$total) {
+        $this.RenderCalled = $true
+        $this.LastMessage = $message
+        $this.LastCurrent = $current
+        $this.LastTotal = $total
+    }
+
+    [void] CompleteProgressBar() {
+        $this.CompleteCalled = $true
+    }
+    
+    [void] ShowLoadingDots([string]$message, [scriptblock]$action) {
+        & $action
+    }
+    
+    # IProgressReporter interface methods (inherited)
+    [void] Report([string]$message, [int]$current, [int]$total) {
+        $this.RenderProgressBar($message, $current, $total)
+    }
+    [void] Complete() {
+        $this.CompleteProgressBar()
+    }
+}

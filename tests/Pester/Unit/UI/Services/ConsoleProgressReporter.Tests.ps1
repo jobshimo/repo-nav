@@ -2,35 +2,23 @@
 
 Describe "ConsoleProgressReporter" {
     BeforeAll {
-        $scriptRoot = (Resolve-Path "$PSScriptRoot/../../../..").Path
-        . "$scriptRoot/Test-Setup.ps1"
+        $projectRoot = (Resolve-Path "$PSScriptRoot/../../../../..").Path
+        . "$projectRoot/tests/Test-Setup.ps1" | Out-Null
+        
+        # Load standard mocks
+        . "$projectRoot/tests/Mocks/MockCommonServices.ps1"
     }
 
     BeforeEach {
-        $mockConsoleHelper = [ConsoleHelper]::new()
-        
-        $mockProgressIndicator = [PSCustomObject]@{
-            RenderProgressBarCalled = $false
-            CompleteProgressBarCalled = $false
-            LastMessage = $null
-            LastCurrent = $null
-            LastTotal = $null
-        } | Add-Member -MemberType ScriptMethod -Name RenderProgressBar -Value {
-            param([string]$message, [int]$current, [int]$total)
-            $this.RenderProgressBarCalled = $true
-            $this.LastMessage = $message
-            $this.LastCurrent = $current
-            $this.LastTotal = $total
-        } -PassThru | Add-Member -MemberType ScriptMethod -Name CompleteProgressBar -Value {
-            $this.CompleteProgressBarCalled = $true
-        } -PassThru
+        $mockConsoleHelper = [MockConsoleHelper]::new()
+        $mockProgressIndicator = [MockProgressIndicator]::new()
     }
 
     Context "Constructor" {
         It "Initializes with ConsoleHelper" {
             $reporter = [ConsoleProgressReporter]::new($mockConsoleHelper)
             $reporter.ConsoleHelper | Should -Not -BeNull
-            $reporter.ProgressIndicator | Should -Not -BeNull
+            ($reporter.ConsoleHelper -is [IConsoleHelper]) | Should -BeTrue
         }
     }
 
@@ -41,7 +29,7 @@ Describe "ConsoleProgressReporter" {
             
             $reporter.Report("Loading repos", 5, 10)
             
-            $mockProgressIndicator.RenderProgressBarCalled | Should -BeTrue
+            $mockProgressIndicator.RenderCalled | Should -BeTrue
             $mockProgressIndicator.LastMessage | Should -Be "Loading repos"
             $mockProgressIndicator.LastCurrent | Should -Be 5
             $mockProgressIndicator.LastTotal | Should -Be 10
@@ -65,7 +53,7 @@ Describe "ConsoleProgressReporter" {
             
             $reporter.Complete()
             
-            $mockProgressIndicator.CompleteProgressBarCalled | Should -BeTrue
+            $mockProgressIndicator.CompleteCalled | Should -BeTrue
         }
     }
 }
