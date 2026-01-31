@@ -11,9 +11,9 @@
     - Auto-loading based on preferences
 #>
 
-class GitStatusManager {
+class GitStatusManager : IGitStatusManager {
     # Dependencies
-    [GitService] $GitService
+    [IGitService] $GitService
     [IParallelGitLoader] $ParallelLoader
     [IUserPreferencesService] $PreferencesService
     [IProgressReporter] $ProgressReporter
@@ -23,7 +23,7 @@ class GitStatusManager {
     
     # Constructor
     GitStatusManager(
-        [GitService]$gitService, 
+        [IGitService]$gitService, 
         [IParallelGitLoader]$parallelLoader, 
         [IUserPreferencesService]$preferencesService,
         [IProgressReporter]$progressReporter

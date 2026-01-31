@@ -72,6 +72,18 @@ Write-Host " [Test-Setup] Loading Layer 3: Core Infrastructure" -ForegroundColor
 . "$srcPath\Core\Interfaces\IOptionSelector.ps1"
 . "$srcPath\Core\Interfaces\IColorSelector.ps1"
 . "$srcPath\Core\Interfaces\IProgressIndicator.ps1"
+# NEW INTERFACES (Following SOLID Refactoring)
+. "$srcPath\Core\Interfaces\INpmService.ps1"
+. "$srcPath\Core\Interfaces\IGitService.ps1"
+. "$srcPath\Core\Interfaces\IAliasManager.ps1"
+. "$srcPath\Core\Interfaces\IFavoriteService.ps1"
+. "$srcPath\Core\Interfaces\ISearchService.ps1"
+. "$srcPath\Core\Interfaces\IRepositoryOperationsService.ps1"
+. "$srcPath\Core\Interfaces\IGitStatusManager.ps1"
+. "$srcPath\Core\Interfaces\IGitReadService.ps1"
+. "$srcPath\Core\Interfaces\IGitWriteService.ps1"
+. "$srcPath\Core\Interfaces\IViewportManager.ps1"
+. "$srcPath\Core\Interfaces\IArrayHelper.ps1"
 . "$srcPath\Startup\ServiceRegistry.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────

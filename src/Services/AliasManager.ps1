@@ -14,7 +14,7 @@
     - Querying alias information
 #>
 
-class AliasManager {
+class AliasManager : IAliasManager {
     [IConfigurationService] $ConfigService
     
     # Constructor with dependency injection

@@ -2,7 +2,7 @@
 .SYNOPSIS
     GitWriteService - Handles state-changing Git operations (ISP)
 #>
-class GitWriteService {
+class GitWriteService : IGitWriteService {
 
     # Helper (Duplicated for standalone capability)
     [bool] IsGitRepository([string]$repoPath) {

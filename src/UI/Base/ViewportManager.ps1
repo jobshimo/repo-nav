@@ -9,7 +9,7 @@
     - Reusable across all scrolling lists
 #>
 
-class ViewportManager {
+class ViewportManager : IViewportManager {
     [int] $ViewportStart = 0
     [int] $SelectedIndex = 0
     [int] $PageSize = 10

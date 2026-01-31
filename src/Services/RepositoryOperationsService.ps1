@@ -11,12 +11,12 @@
     Extracted from RepositoryManager to separate lifecycle operations from coordination.
 #>
 
-class RepositoryOperationsService {
+class RepositoryOperationsService : IRepositoryOperationsService {
     # Dependencies
-    [GitService] $GitService
+    [IGitService] $GitService
     
     # Constructor with dependency injection
-    RepositoryOperationsService([GitService]$gitService) {
+    RepositoryOperationsService([IGitService]$gitService) {
         $this.GitService = $gitService
     }
     

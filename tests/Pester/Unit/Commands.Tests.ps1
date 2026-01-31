@@ -6,23 +6,29 @@ Describe "Complex Commands" {
         # Use Test-Setup for reliable loading
         . "$scriptRoot\tests\Test-Setup.ps1" | Out-Null
         
-        # Load Mocks
-        # Relative path from tests/Pester/Unit to tests/Mocks is ../../Mocks
+        # Load Mock Repository Manager
         $mockRepoPath = Join-Path $PSScriptRoot "..\..\Mocks\MockRepositoryManager.ps1"
         if (Test-Path $mockRepoPath) {
             . $mockRepoPath
         } else {
-            Throw "MockRepositoryManager not found atVal $mockRepoPath"
+            Throw "MockRepositoryManager not found at $mockRepoPath"
+        }
+        
+        # Load Common Mock Services (Reusable)
+        $mockServicesPath = Join-Path $PSScriptRoot "..\..\Mocks\MockCommonServices.ps1"
+        if (Test-Path $mockServicesPath) {
+            . $mockServicesPath
+        } else {
+            Throw "MockCommonServices not found at $mockServicesPath"
         }
 
-        # Dynamic Mock Definition to avoid Parse Time errors
+        # Dynamic Mock Definitions - Using Interface Pattern (DIP)
         $mockDefs = @'
         class MockNavigationState : NavigationState {
              [array] $Repos = @()
              [int] $CurrentIndex = 0
 
              MockNavigationState() : base(@()) {}
-             # Override strict methods if needed, or rely on base if simple
              [void] Stop() {}
              [void] Resume() {}
              [void] MarkForFullRedraw() {}
@@ -32,40 +38,32 @@ Describe "Complex Commands" {
              [int] GetCurrentIndex() { return $this.CurrentIndex }
         }
 '@
+        # Execute local mock definitions
         Invoke-Expression $mockDefs
+        
+        # Execute common service mocks (from MockCommonServices.ps1)
+        Invoke-Expression $global:MockServiceDefinitions
     }
 
     Context "NpmCommand" {
         BeforeEach {
-            # Define Mocks here to ensure they are available in the test scope
+            # Mock PowerShell Cmdlets (these are not classes, safe to mock)
             Mock Start-Process { return [PSCustomObject]@{ ExitCode = 0 } }
-            # Remove cmdlet mocks as we now use IJobService
             Mock Start-Sleep { }
             Mock Write-Host { } 
             Mock Push-Location { }
             Mock Pop-Location { }
             Mock Test-Path { return $true }
             
-            # Mock Job Service using Dynamic Mock Pattern
-            $mockJobCode = @'
-            class MockJobService : IJobService {
-                [object] StartJob([scriptblock]$s, [object[]]$a) {
-                    return [PSCustomObject]@{ State = 'Completed'; ChildJobs = @([PSCustomObject]@{ Error = $null }) }
-                }
-                [object] WaitJob([object]$j) { return $null }
-                [object] ReceiveJob([object]$j) { return $true }
-                [void] RemoveJob([object]$j, [bool]$f) { }
-            }
-'@
-            Invoke-Expression $mockJobCode
+            # Register Mock Services using Interface Pattern (Following DIP)
             $mockJobService = New-Object MockJobService
             [ServiceRegistry]::Register('JobService', $mockJobService)
+            
+            $mockNpmService = New-Object MockNpmService
+            [ServiceRegistry]::Register('NpmService', $mockNpmService)
 
-            # Setup Common Objects
-            $mockConsole = [ConsoleHelper]::new()
-            $mockConsole | Add-Member -MemberType ScriptMethod -Name "ClearForWorkflow" -Value {} -Force
-            $mockConsole | Add-Member -MemberType ScriptMethod -Name "WriteLineColored" -Value { param($m, $c) } -Force
-            $mockConsole | Add-Member -MemberType ScriptMethod -Name "ConfirmAction" -Value { return $true } -Force
+            # Setup Mock Console - Using IConsoleHelper implementation
+            $mockConsole = New-Object MockConsoleHelper
             
             # Setup State
             $mockState = New-Object MockNavigationState
@@ -73,19 +71,17 @@ Describe "Complex Commands" {
             $mockState.SetRepositories(@($repo))
             $mockState.SetCurrentIndex(0)
             
-            # Setup Renderer
-            $renderer = [UIRenderer]::new($mockConsole, $null)
-            $renderer | Add-Member -MemberType ScriptMethod -Name "RenderWorkflowHeader" -Value { param($t, $r) } -Force
-            $renderer | Add-Member -MemberType ScriptMethod -Name "RenderError" -Value { param($m) } -Force
+            # Setup Mock Renderer - Using IUIRenderer implementation
+            $renderer = New-Object MockUIRenderer
 
             # Setup RepoManager
             $repoManager = New-Object MockRepositoryManager
             $repoManager.Repositories = @($repo)
             $repoManager.RepositoryToReturn = $repo
 
-            # Setup Context
+            # Setup Context using Interface Abstraction
             $context = New-Object CommandContext
-            $context.Console = [ConsoleHelper]$mockConsole
+            $context.Console = $mockConsole
             $context.State = $mockState
             $context.Renderer = $renderer
             $context.RepoManager = $repoManager
@@ -107,32 +103,12 @@ Describe "Complex Commands" {
         It "Execute (Key X) runs invoke remove (Delete)" {
             # Key "X"
             $keyPress = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_X }
-            
-            # Mock HaveNodeModules to return true (logic in NpmService?)
-            # NpmCommand gets NpmService from ServiceRegistry.
-            # We must Mock the NpmService in ServiceRegistry!
-            # The tests previously registered it?
-            # Creating NpmService requires dependencies.
-            # We can register a Mock object as NpmService.
-            
-            $mockNpmService = [PSCustomObject]@{
-                HasPackageJson = { return $true }
-                GetNpmExecutablePath = { return "npm" }
-                HasNodeModules = { return $true }
-                HasPackageLock = { return $false }
-            }
-            # Add methods using Add-Member to allow ScriptBlock calls
-            $mockNpmService | Add-Member -MemberType ScriptMethod -Name "HasPackageJson" -Value { return $true } -Force
-            $mockNpmService | Add-Member -MemberType ScriptMethod -Name "GetNpmExecutablePath" -Value { return "npm" } -Force
-            $mockNpmService | Add-Member -MemberType ScriptMethod -Name "HasNodeModules" -Value { return $true } -Force
-            $mockNpmService | Add-Member -MemberType ScriptMethod -Name "HasPackageLock" -Value { return $false } -Force
-            
-            [ServiceRegistry]::Register('NpmService', $mockNpmService)
 
             $cmd.Execute($keyPress, $context)
             
-            # Assertions: We could spy on mockJobService if needed, but for now successful execution without errors is key.
-            # Assert-MockCalled Start-Job -Times 1  <-- No longer relevant as we call JobService
+            # Verification: NpmService should have been called
+            # In a real test, we would spy on the mock methods
+            # For now, successful execution without errors is the key assertion
         }
     }
 }

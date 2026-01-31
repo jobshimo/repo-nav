@@ -2,7 +2,7 @@
 .SYNOPSIS
     GitReadService - Handles read-only Git operations (ISP)
 #>
-class GitReadService {
+class GitReadService : IGitReadService {
     
     # Check if a directory is a Git repository
     [bool] IsGitRepository([string]$repoPath) {
