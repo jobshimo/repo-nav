@@ -282,8 +282,8 @@ El proyecto sigue **principios SOLID** con una arquitectura por capas:
 # Validar proyecto antes de commit
 .\scripts\Validate-Project.ps1
 
-# Instalar pre-commit hook (ejecuta validación y tests automáticamente)
-.\scripts\Install-PreCommitHook.ps1
+# Instalar pre-push hook (ejecuta validación y tests antes de push)
+.\scripts\Install-PrePushHook.ps1
 
 # Test rápido en desarrollo
 .\scripts\Test-Dev.ps1

@@ -1,22 +1,23 @@
 <#
 .SYNOPSIS
-    Installs the pre-commit hook for repo-nav
+    Installs the pre-push hook for repo-nav
     
 .DESCRIPTION
-    Copies the pre-commit hook script to .git/hooks/pre-commit
+    Copies the pre-push hook script to .git/hooks/pre-push
+    This ensures all tests pass before pushing to remote
     
 .EXAMPLE
-    .\Install-PreCommitHook.ps1
+    .\Install-PrePushHook.ps1
 #>
 
 $ErrorActionPreference = 'Stop'
 $scriptRoot = Split-Path $PSScriptRoot -Parent
 $gitHooksDir = Join-Path $scriptRoot ".git\hooks"
 $hookSource = Join-Path $PSScriptRoot "Install-GitHook.ps1"
-$hookDestination = Join-Path $gitHooksDir "pre-commit"
+$hookDestination = Join-Path $gitHooksDir "pre-push"
 
 Write-Host ""
-Write-Host "Installing pre-commit hook..." -ForegroundColor Cyan
+Write-Host "Installing pre-push hook..." -ForegroundColor Cyan
 
 if (-not (Test-Path $gitHooksDir)) {
     Write-Host "  ERROR: .git/hooks directory not found" -ForegroundColor Red
@@ -28,7 +29,7 @@ try {
     # Create a bash wrapper for the PowerShell hook
     $hookContent = @'
 #!/bin/sh
-# Pre-commit hook wrapper for repo-nav
+# Pre-push hook wrapper for repo-nav
 
 # Get the script directory
 SCRIPT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -41,10 +42,10 @@ exit $?
 
     $hookContent | Out-File -FilePath $hookDestination -Encoding ASCII -NoNewline
     
-    Write-Host "  OK: Pre-commit hook installed" -ForegroundColor Green
+    Write-Host "  OK: Pre-push hook installed" -ForegroundColor Green
     Write-Host ""
-    Write-Host "  The hook will run automatically before each commit" -ForegroundColor Gray
-    Write-Host "  To bypass: git commit --no-verify" -ForegroundColor Gray
+    Write-Host "  The hook will run automatically before each push" -ForegroundColor Gray
+    Write-Host "  To bypass: git push --no-verify" -ForegroundColor Gray
     Write-Host ""
 } catch {
     Write-Host "  ERROR: Failed to install hook" -ForegroundColor Red

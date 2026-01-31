@@ -1,20 +1,20 @@
 <#
 .SYNOPSIS
-    Git pre-commit hook for repo-nav
+    Git pre-push hook for repo-nav
     
 .DESCRIPTION
-    Runs validation checks before allowing a commit:
+    Runs validation checks before allowing a push:
     1. Project structure validation
     2. Syntax checks
     3. Unit tests
     
     To install this hook:
-    1. Copy this file to .git/hooks/pre-commit
-    2. Make it executable (on Unix): chmod +x .git/hooks/pre-commit
+    1. Run .\scripts\Install-PrePushHook.ps1
+    2. Or manually copy to .git/hooks/pre-push
     
 .NOTES
-    Exit code 0 = commit allowed
-    Exit code 1 = commit blocked
+    Exit code 0 = push allowed
+    Exit code 1 = push blocked
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -30,7 +30,7 @@ if ($hookDir -match "\.git\\hooks$") {
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  PRE-COMMIT VALIDATION" -ForegroundColor Cyan
+Write-Host "  PRE-PUSH VALIDATION" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -87,16 +87,16 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor $(if ($totalErrors -eq 0) { "Green" } else { "Red" })
 
 if ($totalErrors -eq 0) {
-    Write-Host "  OK: COMMIT ALLOWED" -ForegroundColor Green
+    Write-Host "  OK: PUSH ALLOWED" -ForegroundColor Green
     Write-Host "========================================" -ForegroundColor Green
     Write-Host ""
     exit 0
 } else {
-    Write-Host "  ERROR: COMMIT BLOCKED - Fix errors first" -ForegroundColor Red
+    Write-Host "  ERROR: PUSH BLOCKED - Fix errors first" -ForegroundColor Red
     Write-Host "========================================" -ForegroundColor Red
     Write-Host ""
     Write-Host "  To bypass this check:" -ForegroundColor Yellow
-    Write-Host "    git commit --no-verify" -ForegroundColor Yellow
+    Write-Host "    git push --no-verify" -ForegroundColor Yellow
     Write-Host ""
     exit 1
 }

@@ -213,13 +213,13 @@ Understanding how data flows through the application:
 
 ### Automated Validation
 
-Install the pre-commit hook to automatically run checks:
+Install the pre-push hook to automatically run checks before pushing:
 
 ```powershell
-.\scripts\Install-PreCommitHook.ps1
+.\scripts\Install-PrePushHook.ps1
 ```
 
-This will block commits if:
+This will block pushes if:
 - ❌ Syntax errors exist
 - ❌ Tests fail
 - ❌ Import chain is broken
