@@ -178,4 +178,56 @@ class GitWriteService {
         catch { return @{ Success = $false; Output = $_.ToString() } }
         finally { Pop-Location }
     }
+    # Pull changes
+    [object] Pull([string]$repoPath) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @{ Success = $false; Output = "Not a git repository" }
+        }
+        
+        Push-Location $repoPath
+        try {
+            $output = git pull 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch { return @{ Success = $false; Output = $_.ToString() } }
+        finally { Pop-Location }
+    }
+
+    # Delete local branch
+    [object] DeleteLocalBranch([string]$repoPath, [string]$branchName, [bool]$force) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @{ Success = $false; Output = "Not a git repository" }
+        }
+        
+        Push-Location $repoPath
+        try {
+            $flag = if ($force) { "-D" } else { "-d" }
+            $output = git branch $flag $branchName 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch { return @{ Success = $false; Output = $_.ToString() } }
+        finally { Pop-Location }
+    }
+
+    # Delete remote branch
+    [object] DeleteRemoteBranch([string]$repoPath, [string]$branchName) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return @{ Success = $false; Output = "Not a git repository" }
+        }
+        
+        Push-Location $repoPath
+        try {
+            $output = git push origin --delete $branchName 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            return @{ Success = $success; Output = $outStr }
+        }
+        catch { return @{ Success = $false; Output = $_.ToString() } }
+        finally { Pop-Location }
+    }
 }
+

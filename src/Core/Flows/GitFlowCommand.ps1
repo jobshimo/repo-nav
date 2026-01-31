@@ -117,31 +117,139 @@ class GitFlowCommand : INavigationCommand {
                     $selectedBranch = $selection.Value
                     $lastIndex = $selection.Index # Restore this index next time
                     
-                    if ($selectedBranch -eq $currentBranch) {
-                        # No op if already on that branch
-                        continue 
+                    $isCurrent = ($selectedBranch -eq $currentBranch)
+                    
+                    # --- BRANCH ACTION MENU ---
+                    # 1. Get Tracking Status
+                    $tracking = $gitService.GetBranchTrackingStatus($repo.FullPath, $selectedBranch)
+                    
+                    # 2. Build Action Menu
+                    $actionOptions = [System.Collections.Generic.List[string]]::new()
+                    
+                    $optCheckout = $this.GetLoc($context, "Flow.Action.Checkout", "Checkout")
+                    # Can only checkout if NOT current
+                    if (-not $isCurrent) {
+                        $actionOptions.Add($optCheckout)
                     }
                     
-                    # Logic to switch branch (Checkout)
-                    # Check for uncommitted changes first
-                    $hasChanges = $gitService.HasUncommittedChanges($repo.FullPath)
+                    $optPull = $this.GetLoc($context, "Flow.Action.Pull", "Pull")
+                    if ($tracking.Behind -gt 0) {
+                        $actionOptions.Add($optPull)
+                    }
                     
-                    if ($hasChanges) {
-                        $fmtErr = $this.GetLoc($context, "Flow.Error.CheckoutUncommitted", "Error: Cannot checkout '{0}'. You have uncommitted changes.")
-                        $statusMessage = $fmtErr -f $selectedBranch
-                        $statusColor = [Constants]::ColorError
-                    } else {
-                        $result = $gitService.Checkout($repo.FullPath, $selectedBranch)
-                        if ($result.Success) {
-                            $fmtSuccess = $this.GetLoc($context, "Flow.Status.CheckoutSuccess", "Checked out '{0}' successfully.")
-                            $statusMessage = $fmtSuccess -f $selectedBranch
-                            $statusColor = [Constants]::ColorSuccess
+                    $optDelete = $this.GetLoc($context, "Flow.Action.Delete", "Delete")
+                    # Can only delete if NOT current
+                    if (-not $isCurrent) {
+                        $actionOptions.Add($optDelete)
+                    }
+                    
+                    if ($actionOptions.Count -eq 0) {
+                        $statusMessage = "Current branch '$selectedBranch' is up to date."
+                        $statusColor = [Constants]::ColorInfo
+                        continue
+                    }
+                    
+                    # Show Action Menu (using same selector but simple list)
+                    $actionTitle = $this.GetLoc($context, "Flow.ActionTitle", "ACTION: {0}") -f $selectedBranch
+                    $actionSelectorOptions = @{
+                        Prompt        = $this.GetLoc($context, "Flow.ActionPrompt", "Select Action")
+                        InitialFocus  = [Constants]::FocusInput
+                    }
+                    
+                    $actionSelection = $selector.ShowSelection($actionTitle, $actionOptions, $actionSelectorOptions)
+                    
+                    if ($null -eq $actionSelection) { continue } # Cancelled back to branch list
+                    
+                    $action = $actionSelection.Value
+                    
+                    # --- EXECUTE ACTION ---
+                    if ($action -eq $optCheckout) {
+                        # CHECKOUT LOGIC
+                        $hasChanges = $gitService.HasUncommittedChanges($repo.FullPath)
+                        if ($hasChanges) {
+                            $fmtErr = $this.GetLoc($context, "Flow.Error.CheckoutUncommitted", "Error: Cannot checkout '{0}'. You have uncommitted changes.")
+                            $statusMessage = $fmtErr -f $selectedBranch
+                            $statusColor = [Constants]::ColorError
                         } else {
-                             # Clean up error message if possible
-                             $err = if ($result.Message) { $result.Message } else { "Unknown error" }
-                             $fmtErr = $this.GetLoc($context, "Flow.Error.CheckoutFailed", "Error checking out: {0}")
-                             $statusMessage = $fmtErr -f $err
-                             $statusColor = [Constants]::ColorError
+                            $result = $gitService.Checkout($repo.FullPath, $selectedBranch)
+                            if ($result.Success) {
+                                $fmtSuccess = $this.GetLoc($context, "Flow.Status.CheckoutSuccess", "Checked out '{0}' successfully.")
+                                $statusMessage = $fmtSuccess -f $selectedBranch
+                                $statusColor = [Constants]::ColorSuccess
+                            } else {
+                                $err = if ($result.Message) { $result.Message } else { "Unknown error" }
+                                $fmtErr = $this.GetLoc($context, "Flow.Error.CheckoutFailed", "Error checking out: {0}")
+                                $statusMessage = $fmtErr -f $err
+                                $statusColor = [Constants]::ColorError
+                            }
+                        }
+                    }
+                    elseif ($action -eq $optPull) {
+                        # PULL LOGIC
+                        # First checkout (if not current), then pull? 
+                        # Or just pull if we are on it? 
+                        # Usually you pull the current branch. If we are NOT on it, we might need to fetch `origin branch:branch` or checkout then pull.
+                        # For simplicity/safety: Checkout first, then Pull.
+                        
+                        # 1. Checkout
+                        $checkoutResult = $gitService.Checkout($repo.FullPath, $selectedBranch)
+                        if (-not $checkoutResult.Success) {
+                            $statusMessage = "Checkout failed: " + $checkoutResult.Message
+                            $statusColor = [Constants]::ColorError
+                        } else {
+                            # 2. Pull
+                            $context.Console.WriteLineColored("Pulling updates...", [Constants]::ColorInfo)
+                            $pullResult = $gitService.Pull($repo.FullPath)
+                            
+                            if ($pullResult.Success) {
+                                $statusMessage = "Branch updated successfully."
+                                $statusColor = [Constants]::ColorSuccess
+                            } else {
+                                $statusMessage = "Pull failed: " + $pullResult.Message
+                                $statusColor = [Constants]::ColorError
+                            }
+                        }
+                    }
+                    elseif ($action -eq $optDelete) {
+                        # DELETE LOGIC
+                        
+                        # 1. Confirm Local Delete (Force)
+                        # We use a simple prompt logic or re-use selector? "Yes/No"
+                        # For simplicity, let's assume if they clicked Delete, they want to delete, keeping the flow fast.
+                        # But user asked for: "es importante que al borrar una rama de local, pregunte si tambien se quiere borrar la rama remota"
+                        # So we MUST prompt for remote. Local delete we can assume implied or prompt too?
+                        # "delete branch (con --no-verify)" -> implies FORCE delete without much fuss locally?
+                        # Let's do a safety check for Local.
+                        
+                        $confirmLocal = $selector.ShowSelection("DELETE LOCAL?", @("Yes", "No"), @{ Prompt = "Delete local '$selectedBranch'? (FORCE)" })
+                        if ($confirmLocal.Value -eq "Yes") {
+                            $delResult = $gitService.DeleteLocalBranch($repo.FullPath, $selectedBranch, $true) # Force = true
+                            
+                            if ($delResult.Success) {
+                                $localMsg = "Deleted local '$selectedBranch'."
+                                $statusMessage = $localMsg
+                                $statusColor = [Constants]::ColorSuccess
+                                
+                                # 2. Check & Prompt Remote Delete
+                                if ($gitService.RemoteBranchExists($repo.FullPath, $selectedBranch)) {
+                                    $confirmRemote = $selector.ShowSelection("DELETE REMOTE?", @("Yes", "No"), @{ Prompt = "Also delete remote 'origin/$selectedBranch'?" })
+                                    
+                                    if ($confirmRemote.Value -eq "Yes") {
+                                        $context.Console.WriteLineColored("Deleting remote branch...", [Constants]::ColorWarning)
+                                        $remResult = $gitService.DeleteRemoteBranch($repo.FullPath, $selectedBranch)
+                                        
+                                        if ($remResult.Success) {
+                                            $statusMessage = "$localMsg Remote deleted."
+                                        } else {
+                                            $statusMessage = "$localMsg Remote delete failed: " + $remResult.Message
+                                            $statusColor = [Constants]::ColorWarning
+                                        }
+                                    }
+                                }
+                            } else {
+                                $statusMessage = "Delete failed: " + $delResult.Message
+                                $statusColor = [Constants]::ColorError
+                            }
                         }
                     }
                 }

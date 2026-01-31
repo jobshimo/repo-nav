@@ -485,4 +485,108 @@ class GitService {
             Pop-Location
         }
     }
+    
+
+
+    # Get branch tracking status (ahead/behind)
+    [hashtable] GetBranchTrackingStatus([string]$repoPath, [string]$branchName) {
+        if (-not $this.IsGitRepository($repoPath)) { return @{ Ahead = 0; Behind = 0 } }
+        
+        Push-Location $repoPath
+        try {
+            $upstream = git rev-parse --verify "${branchName}@{upstream}" 2>$null
+            if ($LASTEXITCODE -ne 0) {
+                return @{ Ahead = 0; Behind = 0 }
+            }
+
+            $counts = git rev-list --left-right --count "${branchName}...${branchName}@{upstream}" 2>$null
+            
+            if ($LASTEXITCODE -eq 0 -and $counts -match '(\d+)\s+(\d+)') {
+                return @{ Ahead = [int]$matches[1]; Behind = [int]$matches[2] }
+            }
+            return @{ Ahead = 0; Behind = 0 }
+        }
+        catch { return @{ Ahead = 0; Behind = 0 } }
+        finally { Pop-Location }
+    }
+
+    # Check if remote branch exists
+    [bool] RemoteBranchExists([string]$repoPath, [string]$branchName) {
+        if (-not $this.IsGitRepository($repoPath)) { return $false }
+        
+        Push-Location $repoPath
+        try {
+            $remoteRef = git rev-parse --verify "origin/${branchName}" 2>$null
+            return ($LASTEXITCODE -eq 0)
+        }
+        finally { Pop-Location }
+    }
+
+    # Pull changes
+    [OperationResult] Pull([string]$repoPath) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return [OperationResult]::Fail("Not a git repository")
+        }
+        
+        Push-Location $repoPath
+        try {
+            $output = git pull 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
+        }
+        catch { return [OperationResult]::Fail($_.ToString()) }
+        finally { Pop-Location }
+    }
+
+    # Delete local branch
+    [OperationResult] DeleteLocalBranch([string]$repoPath, [string]$branchName, [bool]$force) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return [OperationResult]::Fail("Not a git repository")
+        }
+        
+        Push-Location $repoPath
+        try {
+            $flag = if ($force) { "-D" } else { "-d" }
+            $output = git branch $flag $branchName 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
+        }
+        catch { return [OperationResult]::Fail($_.ToString()) }
+        finally { Pop-Location }
+    }
+
+    # Delete remote branch
+    [OperationResult] DeleteRemoteBranch([string]$repoPath, [string]$branchName) {
+        if (-not $this.IsGitRepository($repoPath)) {
+            return [OperationResult]::Fail("Not a git repository")
+        }
+        
+        Push-Location $repoPath
+        try {
+            $output = git push origin --delete $branchName 2>&1
+            $success = ($LASTEXITCODE -eq 0)
+            $outStr = if ($output) { $output -join "`n" } else { "" }
+            
+            if ($success) {
+                return [OperationResult]::Ok($null, $outStr)
+            } else {
+                return [OperationResult]::Fail($outStr)
+            }
+        }
+        catch { return [OperationResult]::Fail($_.ToString()) }
+        finally { Pop-Location }
+    }
 }
+

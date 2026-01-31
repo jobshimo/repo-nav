@@ -154,4 +154,38 @@ class GitReadService {
         }
         finally { Pop-Location }
     }
+    # Get branch tracking status (ahead/behind)
+    [hashtable] GetBranchTrackingStatus([string]$repoPath, [string]$branchName) {
+        if (-not $this.IsGitRepository($repoPath)) { return @{ Ahead = 0; Behind = 0 } }
+        
+        Push-Location $repoPath
+        try {
+            $upstream = git rev-parse --verify "${branchName}@{upstream}" 2>$null
+            if ($LASTEXITCODE -ne 0) {
+                return @{ Ahead = 0; Behind = 0 }
+            }
+
+            $counts = git rev-list --left-right --count "${branchName}...${branchName}@{upstream}" 2>$null
+            
+            if ($LASTEXITCODE -eq 0 -and $counts -match '(\d+)\s+(\d+)') {
+                return @{ Ahead = [int]$matches[1]; Behind = [int]$matches[2] }
+            }
+            return @{ Ahead = 0; Behind = 0 }
+        }
+        catch { return @{ Ahead = 0; Behind = 0 } }
+        finally { Pop-Location }
+    }
+
+    # Check if remote branch exists
+    [bool] RemoteBranchExists([string]$repoPath, [string]$branchName) {
+        if (-not $this.IsGitRepository($repoPath)) { return $false }
+        
+        Push-Location $repoPath
+        try {
+            $remoteRef = git rev-parse --verify "origin/${branchName}" 2>$null
+            return ($LASTEXITCODE -eq 0)
+        }
+        finally { Pop-Location }
+    }
 }
+
