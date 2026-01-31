@@ -26,6 +26,22 @@ class GitFlowCommand : INavigationCommand {
         return $default
     }
 
+    [bool] Confirm([CommandContext]$context, [string]$title, [string]$prompt) {
+        $options = @(
+            @{ DisplayText = "Yes"; Value = "Yes" },
+            @{ DisplayText = "No";  Value = "No" }
+        )
+        
+        $config = [SelectionOptions]::new()
+        $config.Title = $title
+        $config.Options = $options
+        $config.Description = $prompt
+        $config.DescriptionColor = [Constants]::ColorWarning
+        
+        $selection = $context.OptionSelector.Show($config)
+        return $selection -eq "Yes"
+    }
+
     [void] Execute([object]$keyPress, [CommandContext]$context) {
         $state = $context.State
         $repos = $state.GetRepositories()
@@ -123,55 +139,56 @@ class GitFlowCommand : INavigationCommand {
                     # 1. Get Tracking Status
                     $tracking = $gitService.GetBranchTrackingStatus($repo.FullPath, $selectedBranch)
                     
-                    # 2. Build Action Menu
-                    $actionOptions = [System.Collections.Generic.List[string]]::new()
+                    # 2. Build Action Menu using OptionSelector for clean UI
+                    $menuOptions = @()
                     
                     $optCheckout = $this.GetLoc($context, "Flow.Action.Checkout", "Checkout")
                     # Can only checkout if NOT current
                     if (-not $isCurrent) {
-                        $actionOptions.Add($optCheckout)
+                        $menuOptions += @{ DisplayText = $optCheckout; Value = "Checkout" }
                     }
                     
-                    $optPull = $this.GetLoc($context, "Flow.Action.Pull", "Pull")
                     if ($tracking.Behind -gt 0) {
-                        $actionOptions.Add($optPull)
+                        $optPull = $this.GetLoc($context, "Flow.Action.Pull", "Pull")
+                        $menuOptions += @{ DisplayText = $optPull; Value = "Pull" }
                     }
                     
                     $optDeleteLocal = $this.GetLoc($context, "Flow.Action.DeleteLocal", "Delete Local Branch")
-                    $optDeleteRemote = $this.GetLoc($context, "Flow.Action.DeleteRemote", "Delete Remote Branch")
-                    
-                    # Can only delete if NOT current
                     if (-not $isCurrent) {
-                        $actionOptions.Add($optDeleteLocal)
+                        $menuOptions += @{ DisplayText = $optDeleteLocal; Value = "DeleteLocal" }
                     }
                     
                     # Remote Delete option - check if remote exists
+                    # ISP FIX: Use GitReadService check if possible, or GitService if it has it.
+                    # GitService inherits? No, GitService is likely generic. 
+                    # Assuming GitService has RemoteBranchExists as viewed in file earlier.
                     $remoteExists = $gitService.RemoteBranchExists($repo.FullPath, $selectedBranch)
                     if ($remoteExists) {
-                         $actionOptions.Add($optDeleteRemote)
+                         $optDeleteRemote = $this.GetLoc($context, "Flow.Action.DeleteRemote", "Delete Remote Branch")
+                         $menuOptions += @{ DisplayText = $optDeleteRemote; Value = "DeleteRemote" }
                     }
                     
-                    if ($actionOptions.Count -eq 0) {
+                    if ($menuOptions.Count -eq 0) {
                         $statusMessage = $this.GetLoc($context, "Flow.Status.CurrentUpToDate", "Current branch '{0}' is up to date.") -f $selectedBranch
                         $statusColor = [Constants]::ColorInfo
                         continue
                     }
                     
-                    # Show Action Menu (using same selector but simple list)
+                    # Show Action Menu (OptionSelector)
                     $actionTitle = $this.GetLoc($context, "Flow.ActionTitle", "ACTION: {0}") -f $selectedBranch
-                    $actionSelectorOptions = @{
-                        Prompt        = $this.GetLoc($context, "Flow.ActionPrompt", "Select Action")
-                        InitialFocus  = [Constants]::FocusInput
-                    }
                     
-                    $actionSelection = $selector.ShowSelection($actionTitle, $actionOptions, $actionSelectorOptions)
+                    $actionConfig = [SelectionOptions]::new()
+                    $actionConfig.Title = $actionTitle
+                    $actionConfig.Options = $menuOptions
+                    $actionConfig.CancelText = $this.GetLoc($context, "Msg.Back", "Back")
+                    $actionConfig.Description = $this.GetLoc($context, "Flow.ActionPrompt", "Select Action")
                     
-                    if ($null -eq $actionSelection) { continue } # Cancelled back to branch list
+                    $actionVal = $context.OptionSelector.Show($actionConfig)
                     
-                    $action = $actionSelection.Value
+                    if ($null -eq $actionVal) { continue } # Cancelled back to branch list
                     
                     # --- EXECUTE ACTION ---
-                    if ($action -eq $optCheckout) {
+                    if ($actionVal -eq "Checkout") {
                         # CHECKOUT LOGIC
                         $hasChanges = $gitService.HasUncommittedChanges($repo.FullPath)
                         if ($hasChanges) {
@@ -192,7 +209,7 @@ class GitFlowCommand : INavigationCommand {
                             }
                         }
                     }
-                    elseif ($action -eq $optPull) {
+                    elseif ($actionVal -eq "Pull") {
                         # PULL LOGIC
                         # 1. Checkout
                         $checkoutResult = $gitService.Checkout($repo.FullPath, $selectedBranch)
@@ -213,12 +230,11 @@ class GitFlowCommand : INavigationCommand {
                             }
                         }
                     }
-                    elseif ($action -eq $optDeleteLocal) {
+                    elseif ($actionVal -eq "DeleteLocal") {
                         # DELETE LOCAL LOGIC
                         $prompt = $this.GetLoc($context, "Flow.Prompt.DeleteLocal", "Delete local branch '{0}'? (FORCE CAREFUL)") -f $selectedBranch
-                        $confirmLocal = $selector.ShowSelection("DELETE LOCAL?", @("Yes", "No"), @{ Prompt = $prompt })
                         
-                        if ($confirmLocal.Value -eq "Yes") {
+                        if ($this.Confirm($context, "DELETE LOCAL?", $prompt)) {
                             $delResult = $gitService.DeleteLocalBranch($repo.FullPath, $selectedBranch, $true) # Force = true
                             
                             if ($delResult.Success) {
@@ -231,12 +247,11 @@ class GitFlowCommand : INavigationCommand {
                             }
                         }
                     }
-                    elseif ($action -eq $optDeleteRemote) {
+                    elseif ($actionVal -eq "DeleteRemote") {
                         # DELETE REMOTE LOGIC
                         $prompt = $this.GetLoc($context, "Flow.Prompt.DeleteRemote", "Delete remote branch 'origin/{0}'? (IRREVERSIBLE)") -f $selectedBranch
-                        $confirmRemote = $selector.ShowSelection("DELETE REMOTE?", @("Yes", "No"), @{ Prompt = $prompt })
                         
-                        if ($confirmRemote.Value -eq "Yes") {
+                        if ($this.Confirm($context, "DELETE REMOTE?", $prompt)) {
                             $context.Console.WriteLineColored("Deleting remote branch...", [Constants]::ColorWarning)
                             $remResult = $gitService.DeleteRemoteBranch($repo.FullPath, $selectedBranch)
                             
