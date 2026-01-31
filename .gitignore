@@ -35,3 +35,7 @@ $RECYCLE.BIN/
 *.user
 *.userosscache
 *.sln.docstates
+
+# Cobertura de tests
+coverage.xml
+

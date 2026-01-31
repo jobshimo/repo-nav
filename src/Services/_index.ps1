@@ -18,9 +18,9 @@ $servicesPath = $PSScriptRoot
 . "$servicesPath\ErrorHandler.ps1"
 
 # Git services
+. "$servicesPath\GitService.ps1"
 . "$servicesPath\GitReadService.ps1"
 . "$servicesPath\GitWriteService.ps1"
-. "$servicesPath\GitService.ps1"
 
 # Other services
 . "$servicesPath\NpmService.ps1"

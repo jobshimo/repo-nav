@@ -65,25 +65,28 @@ if (Test-Path $validationScript) {
 }
 #endregion
 
-#region 2. Unit Tests
-if (Test-Path $testRunner) {
-    Write-Host "  [2/2] Running unit tests..." -ForegroundColor Yellow
+#region 2. Pester Tests (New)
+$pesterPath = Join-Path $repoRoot "tests\Pester"
+$srcPath = Join-Path $repoRoot "src"
+
+if (Test-Path $pesterPath) {
+    Write-Host "  [2/2] Running Pester tests with coverage..." -ForegroundColor Yellow
     
     try {
-        & $testRunner
+        $coverageScript = Join-Path $repoRoot "scripts\Test-WithCoverage.ps1"
+        
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -File $coverageScript
         
         if ($LASTEXITCODE -ne 0) {
-            $totalErrors += $LASTEXITCODE
-            Write-Host "      [FAIL] Tests failed" -ForegroundColor Red
+            $totalErrors += 1
+            Write-Host "      [FAIL] Pester tests or coverage failed" -ForegroundColor Red
         } else {
-            Write-Host "      [OK] All tests passed" -ForegroundColor Green
+            Write-Host "      [OK] Pester tests and coverage passed" -ForegroundColor Green
         }
     } catch {
-        Write-Host "      [FAIL] Test runner error: $_" -ForegroundColor Red
+        Write-Host "      [FAIL] Pester runner error: $_" -ForegroundColor Red
         $totalErrors++
     }
-} else {
-    Write-Host "  [2/2] Test runner not found - SKIPPED" -ForegroundColor Yellow
 }
 #endregion
 
