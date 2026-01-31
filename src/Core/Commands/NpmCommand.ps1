@@ -240,7 +240,8 @@ class NpmCommand : INavigationCommand {
             
             $results = $jobService.ReceiveJob($job)
             
-            $jobError = $job.ChildJobs[0].Error
+            $jobError = if ($null -ne $job.ChildJobs -and $job.ChildJobs.Count -gt 0) { $job.ChildJobs[0].Error } else { $null }
+            Write-Host "DEBUG: State='$($job.State)' Error='$jobError' IsNull=$($jobError -eq $null)"
             if ($job.State -eq 'Completed' -and -not $jobError) {
                  $view.ShowSuccess("Msg.Npm.RemovedSuccess", "node_modules removed successfully!")
                  if ($removeLock) {

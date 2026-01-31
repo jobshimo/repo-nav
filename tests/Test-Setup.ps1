@@ -56,6 +56,7 @@ Write-Host " [Test-Setup] Loading Layer 3: Core Infrastructure" -ForegroundColor
 . "$srcPath\Core\Interfaces\IProgressReporter.ps1"
 . "$srcPath\Core\Interfaces\IRepositoryManager.ps1"
 . "$srcPath\Core\Interfaces\INavigationState.ps1"
+. "$srcPath\Core\Interfaces\IWindowSizeCalculator.ps1"
 . "$srcPath\Services\WindowSizeCalculator.ps1"
 . "$srcPath\Core\State\NavigationState.ps1"
 . "$srcPath\Core\Interfaces\IUIRenderer.ps1"
