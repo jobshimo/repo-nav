@@ -112,7 +112,7 @@ class NpmCommand : INavigationCommand {
         $state.Stop() # Pause navigation loop
         try {
             $view = [NpmView]::new($context)
-            $npmService = $context.RepoManager.NpmService
+            $npmService = [ServiceRegistry]::Resolve('NpmService')
             $needsRefresh = $false
             
             if ($key -eq [Constants]::KEY_I) {

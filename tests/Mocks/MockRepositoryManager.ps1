@@ -1,101 +1,116 @@
-<#
-.SYNOPSIS
-    Mock implementation of RepositoryManager for testing
-    
-.DESCRIPTION
-    Provides a lightweight mock that tracks method calls without
-    performing actual Git/file system operations.
-    
-.EXAMPLE
-    $mock = [MockRepositoryManager]::new()
-    $mock.AddFakeRepository("TestRepo", "C:\Repos\Test")
-    $repos = $mock.GetRepositories()
-#>
 
-class MockRepositoryManager {
-    [System.Collections.ArrayList] $Repositories
+# tests/Mocks/MockRepositoryManager.ps1
+
+class MockRepositoryManager : IRepositoryManager {
+    # Properties to hold mock return values
+    [RepositoryModel[]] $Repositories
+    [RepositoryModel] $RepositoryToReturn
+    [OperationResult] $OperationResult
+    [bool] $BooleanResult
+    [int] $IntResult
+    
+    # Tracking method calls (Simple Spy)
     [System.Collections.ArrayList] $MethodCalls
     
     MockRepositoryManager() {
-        $this.Repositories = [System.Collections.ArrayList]::new()
+        $this.Repositories = @()
+        $this.OperationResult = [OperationResult]::Ok("Mock Success")
+        $this.BooleanResult = $true
+        $this.IntResult = 0
         $this.MethodCalls = [System.Collections.ArrayList]::new()
     }
     
-    # Test helper: Add fake repository
-    [void] AddFakeRepository([string]$name, [string]$path) {
-        $repo = [RepositoryModel]::new()
-        $repo.Name = $name
-        $repo.FullPath = $path
-        $repo.IsGitRepository = $true
-        $this.Repositories.Add($repo) | Out-Null
+    # Helper to track calls
+    [void] TrackCall([string]$methodName, [object[]]$args) {
+        $this.MethodCalls.Add(@{ Method = $methodName; Args = $args })
     }
     
-    [void] LoadRepositories([string]$basePath) {
-        $this.MethodCalls.Add(@{
-            Method = "LoadRepositories"
-            Args = @{ BasePath = $basePath }
-        }) | Out-Null
+    # --- Interface Implementation ---
+    
+    [void] LoadRepositories() { $this.TrackCall("LoadRepositories", @()) }
+    [void] LoadRepositories([string]$basePath) { $this.TrackCall("LoadRepositories", @($basePath)) }
+    [void] LoadRepositories([string]$basePath, [bool]$forceReload) { $this.TrackCall("LoadRepositories", @($basePath, $forceReload)) }
+    [void] LoadRepositoriesInternal([string]$basePath, [string]$parentPath) { $this.TrackCall("LoadRepositoriesInternal", @($basePath, $parentPath)) }
+    [void] LoadContainerRepositories([string]$containerPath, [string]$parentPath) { $this.TrackCall("LoadContainerRepositories", @($containerPath, $parentPath)) }
+    
+    [RepositoryModel[]] GetRepositories() { 
+        $this.TrackCall("GetRepositories", @())
+        return $this.Repositories 
     }
     
-    [array] GetRepositories() {
-        $this.MethodCalls.Add(@{
-            Method = "GetRepositories"
-            Args = @{}
-        }) | Out-Null
-        return $this.Repositories.ToArray()
+    [array] GetAllRepositoriesRecursive([string]$basePath) {
+        $this.TrackCall("GetAllRepositoriesRecursive", @($basePath))
+        return $this.Repositories
     }
     
-    [OperationResult] SetAlias([RepositoryModel]$repo, [string]$alias, [ConsoleColor]$color) {
-        $this.MethodCalls.Add(@{
-            Method = "SetAlias"
-            Args = @{ Repo = $repo.Name; Alias = $alias; Color = $color }
-        }) | Out-Null
-        return [OperationResult]::Ok()
+    [RepositoryModel] GetRepository([string]$name) {
+        $this.TrackCall("GetRepository", @($name))
+        return $this.RepositoryToReturn
     }
     
-    [OperationResult] RemoveAlias([RepositoryModel]$repo) {
-        $this.MethodCalls.Add(@{
-            Method = "RemoveAlias"
-            Args = @{ Repo = $repo.Name }
-        }) | Out-Null
-        return [OperationResult]::Ok()
+    [OperationResult] CloneRepository([string]$url, [string]$customName, [string]$basePath) {
+        $this.TrackCall("CloneRepository", @($url, $customName, $basePath))
+        return $this.OperationResult
     }
     
-    [void] ToggleFavorite([RepositoryModel]$repo) {
-        $this.MethodCalls.Add(@{
-            Method = "ToggleFavorite"
-            Args = @{ Repo = $repo.Name }
-        }) | Out-Null
+    [OperationResult] DeleteRepository([RepositoryModel]$repository) {
+        $this.TrackCall("DeleteRepository", @($repository))
+        return $this.OperationResult
     }
     
-    [bool] IsFavorite([RepositoryModel]$repo) {
-        return $false
+    [OperationResult] DeleteRepository([RepositoryModel]$repository, [bool]$force) {
+        $this.TrackCall("DeleteRepository", @($repository, $force))
+        return $this.OperationResult
     }
     
-    # Test helper: Check if method was called
-    [bool] WasMethodCalled([string]$methodName) {
-        foreach ($call in $this.MethodCalls) {
-            if ($call.Method -eq $methodName) {
-                return $true
-            }
-        }
-        return $false
+    [OperationResult] DeleteFolder([RepositoryModel]$folder) {
+        $this.TrackCall("DeleteFolder", @($folder))
+        return $this.OperationResult
     }
     
-    # Test helper: Get call count
-    [int] GetCallCount([string]$methodName) {
-        $count = 0
-        foreach ($call in $this.MethodCalls) {
-            if ($call.Method -eq $methodName) {
-                $count++
-            }
-        }
-        return $count
+    [bool] IsFolderEmpty([string]$folderPath) {
+        $this.TrackCall("IsFolderEmpty", @($folderPath))
+        return $this.BooleanResult
     }
     
-    # Test helper: Reset for next test
-    [void] Reset() {
-        $this.Repositories.Clear()
-        $this.MethodCalls.Clear()
+    [void] LoadGitStatus([RepositoryModel]$repository) { $this.TrackCall("LoadGitStatus", @($repository)) }
+    [void] LoadGitStatus([RepositoryModel]$repository, [bool]$force) { $this.TrackCall("LoadGitStatus", @($repository, $force)) }
+    [void] LoadAllGitStatus() { $this.TrackCall("LoadAllGitStatus", @()) }
+    [void] LoadMissingGitStatus([scriptblock]$progressCallback) { $this.TrackCall("LoadMissingGitStatus", @($progressCallback)) }
+    [void] LoadGitStatusForRepos([array]$repos) { $this.TrackCall("LoadGitStatusForRepos", @($repos)) }
+    [void] LoadGitStatusForRepos([array]$repos, [scriptblock]$progressCallback) { $this.TrackCall("LoadGitStatusForRepos", @($repos, $progressCallback)) }
+    [void] LoadGitStatusForRepos([array]$repos, [scriptblock]$progressCallback, [bool]$force) { $this.TrackCall("LoadGitStatusForRepos", @($repos, $progressCallback, $force)) }
+    [void] PerformAutoLoadGitStatus([array]$repos, [object]$console) { $this.TrackCall("PerformAutoLoadGitStatus", @($repos, $console)) }
+    
+    [int] GetLoadedGitStatusCount() {
+        $this.TrackCall("GetLoadedGitStatusCount", @())
+        return $this.IntResult
+    }
+    
+    [void] RefreshRepository([RepositoryModel]$repository) { $this.TrackCall("RefreshRepository", @($repository)) }
+    
+    [bool] SetAlias([RepositoryModel]$repository, [AliasInfo]$aliasInfo) {
+        $this.TrackCall("SetAlias", @($repository, $aliasInfo))
+        return $this.BooleanResult
+    }
+    
+    [bool] RemoveAlias([RepositoryModel]$repository) {
+        $this.TrackCall("RemoveAlias", @($repository))
+        return $this.BooleanResult
+    }
+    
+    [bool] ToggleFavorite([RepositoryModel]$repository) {
+        $this.TrackCall("ToggleFavorite", @($repository))
+        return $this.BooleanResult
+    }
+    
+    [bool] InstallDependencies([RepositoryModel]$repository) {
+        $this.TrackCall("InstallDependencies", @($repository))
+        return $this.BooleanResult
+    }
+    
+    [bool] RemoveNodeModules([RepositoryModel]$repository, [bool]$removePackageLock) {
+        $this.TrackCall("RemoveNodeModules", @($repository, $removePackageLock))
+        return $this.BooleanResult
     }
 }

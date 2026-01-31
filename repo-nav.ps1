@@ -88,6 +88,7 @@ $srcPath = Join-Path $scriptRoot "src"
 # LAYER 3: CORE INFRASTRUCTURE (Interfaces + State)
 # ─────────────────────────────────────────────────────────────────────────────
 . "$srcPath\Core\Interfaces\IProgressReporter.ps1"
+. "$srcPath\Core\Interfaces\IRepositoryManager.ps1"
 . "$srcPath\Services\WindowSizeCalculator.ps1"
 . "$srcPath\Core\State\NavigationState.ps1"
 . "$srcPath\Startup\ServiceRegistry.ps1"

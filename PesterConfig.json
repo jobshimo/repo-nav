@@ -11,6 +11,6 @@
         "Path": [ "src" ],
         "OutputFormat": "Jacoco",
         "OutputPath": "coverage.xml",
-        "CoveragePercentTarget": 12
+        "CoveragePercentTarget": 80
     }
 }

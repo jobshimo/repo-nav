@@ -12,6 +12,8 @@ Describe "Complex Commands" {
 
         # 3. Core Infrastructure & Services
         . "$srcRoot\Core\Interfaces\IProgressReporter.ps1"
+        . "$srcRoot\Core\Interfaces\IRepositoryManager.ps1"
+        . "$srcRoot\Startup\ServiceRegistry.ps1"
         . "$srcRoot\Core\State\NavigationState.ps1"
         . "$srcRoot\Services\_index.ps1"
         
@@ -30,6 +32,9 @@ Describe "Complex Commands" {
         # 7. Commands
         . "$srcRoot\Core\Commands\INavigationCommand.ps1"
         . "$srcRoot\Core\Commands\NpmCommand.ps1"
+
+        # Load Mocks
+        . "$scriptRoot\tests\Mocks\MockRepositoryManager.ps1"
     }
 
     Context "NpmCommand" {
@@ -93,6 +98,7 @@ Describe "Complex Commands" {
             $gitReadSrv = [GitReadService]::new()
             $gitWriteSrv = [GitWriteService]::new()
             $npmSrv = [NpmService]::new()
+            [ServiceRegistry]::Register('NpmService', $npmSrv)
             $aliasMgr = [AliasManager]::new($configSrv)
             $favSrv = [FavoriteService]::new($configSrv)
             $parallelSrv = [ParallelGitLoader]::new()
@@ -101,19 +107,10 @@ Describe "Complex Commands" {
             $sorter = [RepositorySorter]::new()
             $hiddenSrv = [HiddenReposService]::new($prefSrv)
 
-            $repoManager = [RepositoryManager]::new(
-                $gitSrv, $gitReadSrv, $gitWriteSrv, $npmSrv, $aliasMgr, 
-                $configSrv, $prefSrv, $favSrv, $parallelSrv, $repoOpsSrv, 
-                $null, $gitStatMgr, $sorter, $hiddenSrv
-            )
-            
-            # Mock global functions used by NpmService
-            Mock Get-Command { return $true } -ParameterFilter { $Name -eq "npm" }
-            Mock Test-Path { return $true } 
-            # Override Refresh
-            $repoManager | Add-Member -MemberType ScriptMethod -Name "RefreshRepository" -Value { param($r) } -Force
-            $repoManager | Add-Member -MemberType ScriptMethod -Name "LoadRepositories" -Value { param($p) } -Force
-            $repoManager | Add-Member -MemberType ScriptMethod -Name "GetRepositories" -Value { return @($repo) } -Force
+            # Use MockRepositoryManager (SOLID)
+            $repoManager = [MockRepositoryManager]::new()
+            $repoManager.Repositories = @($repo)
+            $repoManager.RepositoryToReturn = $repo
 
             $context = [CommandContext]::new()
             $context.Console = $mockConsole
@@ -171,17 +168,10 @@ Describe "Complex Commands" {
             $sorter = [RepositorySorter]::new()
             $hiddenSrv = [HiddenReposService]::new($prefSrv)
 
-            $repoManager = [RepositoryManager]::new(
-                $gitSrv, $gitReadSrv, $gitWriteSrv, $npmSrv, $aliasMgr, 
-                $configSrv, $prefSrv, $favSrv, $parallelSrv, $repoOpsSrv, 
-                $null, $gitStatMgr, $sorter, $hiddenSrv
-            )
-            
-            # Mock global functions used by NpmService
-            Mock Test-Path { return $true }
-            $repoManager | Add-Member -MemberType ScriptMethod -Name "RefreshRepository" -Value { param($r) } -Force
-            $repoManager | Add-Member -MemberType ScriptMethod -Name "LoadRepositories" -Value { param($p) } -Force
-            $repoManager | Add-Member -MemberType ScriptMethod -Name "GetRepositories" -Value { return @($repo) } -Force
+            # Use MockRepositoryManager (SOLID)
+            $repoManager = [MockRepositoryManager]::new()
+            $repoManager.Repositories = @($repo)
+            $repoManager.RepositoryToReturn = $repo
 
             $context = [CommandContext]::new()
             $context.Console = $mockConsole

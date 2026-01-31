@@ -6,6 +6,7 @@ Describe "GitService" {
         if (-not ("GitStatusModel" -as [type])) { . "$srcRoot\Models\GitStatusModel.ps1" }
         if (-not ("RepositoryModel" -as [type])) { . "$srcRoot\Models\RepositoryModel.ps1" }
         if (-not ("AliasInfo" -as [type])) { . "$srcRoot\Models\AliasInfo.ps1" }
+        if (-not ("OperationResult" -as [type])) { . "$srcRoot\Core\Common\OperationResult.ps1" }
         
         # Load GitService
         if (-not ("GitService" -as [type])) { . "$srcRoot\Services\GitService.ps1" }

@@ -12,6 +12,7 @@ Describe "Simple Commands" {
 
         # 3. Core Infrastructure & Services
         . "$srcRoot\Core\Interfaces\IProgressReporter.ps1"
+        . "$srcRoot\Core\Interfaces\IRepositoryManager.ps1"
         . "$srcRoot\Core\State\NavigationState.ps1"
         . "$srcRoot\Services\_index.ps1"
         

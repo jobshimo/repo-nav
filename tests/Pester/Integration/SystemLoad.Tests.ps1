@@ -14,6 +14,7 @@ Describe "System Integration Loading" {
         [Constants]::Initialize("$srcRoot\..")
         . "$srcRoot\Models\_index.ps1"
         . "$srcRoot\Core\Interfaces\IProgressReporter.ps1"
+        . "$srcRoot\Core\Interfaces\IRepositoryManager.ps1"
         . "$srcRoot\Services\WindowSizeCalculator.ps1"
         . "$srcRoot\Core\State\NavigationState.ps1"
         . "$srcRoot\Startup\ServiceRegistry.ps1"
