@@ -1,11 +1,11 @@
 class NpmView {
     [ConsoleHelper] $Console
-    [UIRenderer] $Renderer
+    [IUIRenderer] $Renderer
     [OptionSelector] $OptionSelector
     [LocalizationService] $LocalizationService
     NpmView([CommandContext]$context) {
         $this.Console = $context.Console
-        $this.Renderer = $context.Renderer
+        $this.Renderer = $context.Renderer # Context.Renderer is now IUIRenderer so this is type safe
         $this.OptionSelector = $context.OptionSelector
         $this.LocalizationService = $context.LocalizationService
     }

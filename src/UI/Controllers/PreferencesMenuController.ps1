@@ -13,7 +13,7 @@
 class PreferencesMenuController {
     [ConsoleHelper] $Console
     [UserPreferencesService] $PreferencesService
-    [UIRenderer] $Renderer
+    [IUIRenderer] $Renderer
     [LocalizationService] $LocalizationService
     [OptionSelector] $OptionSelector
     

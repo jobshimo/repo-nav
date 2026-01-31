@@ -10,10 +10,10 @@
 
 class PreferencesMenuRenderer {
     [ConsoleHelper] $Console
-    [UIRenderer] $Renderer
+    [IUIRenderer] $Renderer
     [LocalizationService] $LocalizationService
     
-    PreferencesMenuRenderer([ConsoleHelper]$console, [UIRenderer]$renderer, [LocalizationService]$locService) {
+    PreferencesMenuRenderer([ConsoleHelper]$console, [IUIRenderer]$renderer, [LocalizationService]$locService) {
         $this.Console = $console
         $this.Renderer = $renderer
         $this.LocalizationService = $locService

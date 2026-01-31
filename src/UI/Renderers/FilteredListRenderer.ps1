@@ -1,8 +1,8 @@
 class FilteredListRenderer {
     [ConsoleHelper] $Console
-    [UIRenderer] $UIRenderer
+    [IUIRenderer] $UIRenderer
 
-    FilteredListRenderer([ConsoleHelper]$console, [UIRenderer]$uiRenderer) {
+    FilteredListRenderer([ConsoleHelper]$console, [IUIRenderer]$uiRenderer) {
         $this.Console = $console
         $this.UIRenderer = $uiRenderer
     }

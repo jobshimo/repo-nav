@@ -10,7 +10,7 @@
 
 class FilteredListSelector {
     [ConsoleHelper] $Console
-    [UIRenderer] $Renderer
+    [IUIRenderer] $Renderer
     [WindowSizeCalculator] $WindowCalculator
     [FilteredListRenderer] $ListRenderer # New dependency
     
@@ -20,7 +20,16 @@ class FilteredListSelector {
     # State persistence for header navigation
     [int] $LastHeaderIndex = 0
 
-    FilteredListSelector([ConsoleHelper]$console, [object]$renderer) {
+    # New Constructor with D.I. for ListRenderer
+    FilteredListSelector([ConsoleHelper]$console, [IUIRenderer]$renderer, [FilteredListRenderer]$listRenderer) {
+        $this.Console = $console
+        $this.Renderer = $renderer
+        $this.WindowCalculator = [WindowSizeCalculator]::new() # Still needed
+        $this.ListRenderer = $listRenderer
+    }
+
+    # Standard Constructor (auto-creates renderer if not provided, but here we construct it)
+    FilteredListSelector([ConsoleHelper]$console, [IUIRenderer]$renderer) {
         $this.Console = $console
         $this.Renderer = $renderer
         $this.WindowCalculator = [WindowSizeCalculator]::new()

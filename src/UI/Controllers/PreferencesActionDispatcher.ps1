@@ -11,7 +11,7 @@
 class PreferencesActionDispatcher {
     [ConsoleHelper] $Console
     [UserPreferencesService] $PreferencesService
-    [UIRenderer] $Renderer
+    [IUIRenderer] $Renderer
     [OptionSelector] $OptionSelector
     [LocalizationService] $LocalizationService
     [RepositoryManager] $RepoManager
