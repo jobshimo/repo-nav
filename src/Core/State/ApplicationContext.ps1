@@ -2,17 +2,17 @@ class ApplicationContext {
     # Core Services
     [IRepositoryManager]        $RepoManager
     [ConfigurationService]      $ConfigurationService
-    [UserPreferencesService]    $PreferencesService
-    [LocalizationService]       $LocalizationService
-    [PathManager]               $PathManager
-    [HiddenReposService]       $HiddenReposService
+    [IUserPreferencesService]    $PreferencesService
+    [ILocalizationService]       $LocalizationService
+    [IPathManager]               $PathManager
+    [IHiddenReposService]       $HiddenReposService
     
     # UI & Infrastructure
     [IUIRenderer]               $Renderer
-    [ConsoleHelper]             $Console
-    [LoggerService]             $Logger
-    [OptionSelector]            $OptionSelector
-    [ColorSelector]             $ColorSelector
+    [IConsoleHelper]             $Console
+    [ILoggerService]             $Logger
+    [IOptionSelector]            $OptionSelector
+    [IColorSelector]             $ColorSelector
     [OnboardingService]         $OnboardingService
     
     # Context

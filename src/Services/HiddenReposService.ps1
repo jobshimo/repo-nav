@@ -12,14 +12,14 @@
     from the main navigation view.
 #>
 
-class HiddenReposService {
-    [UserPreferencesService] $PreferencesService
+class HiddenReposService : IHiddenReposService {
+    [IUserPreferencesService] $PreferencesService
     
     # Runtime state for visibility toggle
     [bool] $ShowHiddenRepos
     
     # Constructor with dependency injection
-    HiddenReposService([UserPreferencesService]$preferencesService) {
+    HiddenReposService([IUserPreferencesService]$preferencesService) {
         $this.PreferencesService = $preferencesService
         # Always start with hidden repos hidden (user request)
         $this.ShowHiddenRepos = $false

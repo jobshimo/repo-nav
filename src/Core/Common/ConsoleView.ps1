@@ -1,7 +1,9 @@
 class ConsoleView {
-    [ConsoleHelper] $Console
+    [IConsoleHelper] $Console
 
-    ConsoleView([ConsoleHelper]$console) {
+    ConsoleView() {}
+
+    ConsoleView([IConsoleHelper]$console) {
         $this.Console = $console
     }
 

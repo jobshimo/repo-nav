@@ -14,7 +14,7 @@
     - Console measurements
 #>
 
-class ConsoleHelper {
+class ConsoleHelper : IConsoleHelper {
     
     # Hide cursor
     [void] HideCursor() {

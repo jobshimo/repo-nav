@@ -14,7 +14,7 @@
     - Behavior preferences
 #>
 
-class UserPreferencesService {
+class UserPreferencesService : IUserPreferencesService {
     [string] $PreferencesFilePath
     
     # Constructor

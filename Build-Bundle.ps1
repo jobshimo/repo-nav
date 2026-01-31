@@ -87,6 +87,11 @@ function Get-ImportsFromFile {
             # Normalize path
             $importPath = $importPath -replace '\\\\', '\'
             
+            # Use absolute path for robust deduplication
+            if (Test-Path $importPath) {
+                $importPath = (Get-Item $importPath).FullName
+            }
+            
             $imports += $importPath
         }
     }
