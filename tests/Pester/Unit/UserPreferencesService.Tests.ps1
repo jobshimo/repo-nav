@@ -67,4 +67,57 @@ Describe "UserPreferencesService" {
          
          $service.GetPreference("display", "favoritesOnTop") | Should -BeFalse
     }
+
+    It "PreferencesExists returns true if file exists" {
+         $service.PreferencesExists() | Should -BeTrue
+         
+         $noFileService = New-Object UserPreferencesService -ArgumentList "nonexistent.json"
+         $noFileService.PreferencesExists() | Should -BeFalse
+    }
+
+    It "GetPreference returns null for missing section or key" {
+         $service.GetPreference("nonexistent", "key") | Should -BeNull
+         $service.GetPreference("general", "nonexistent") | Should -BeNull
+    }
+
+    Context "Normalization" {
+         It "Normalizes partial preferences file on load" {
+              # Create a file with only one property
+              '{"display": {"favoritesOnTop": false}}' | Set-Content $tempFile -Encoding UTF8
+              
+              $prefs = $service.LoadPreferences()
+              
+              $prefs.display.favoritesOnTop | Should -BeFalse
+              # Normalized properties should exist
+              $prefs.general.language | Should -Be "en"
+              $prefs.hidden.hiddenRepos.Count | Should -Be 0
+         }
+
+         It "Handles corrupted JSON gracefully by returning defaults" {
+              "INVALID JSON" | Set-Content $tempFile -Encoding UTF8
+              
+              $prefs = $service.LoadPreferences()
+              $prefs | Should -Not -BeNull
+              $prefs.general.language | Should -Be "en"
+         }
+    }
+
+    Context "EnsurePathInPreferences" {
+         It "Adds valid path to preferences" {
+              $tempDir = [System.IO.Path]::GetTempPath()
+              $service.EnsurePathInPreferences($tempDir)
+              
+              $prefs = $service.LoadPreferences()
+              $prefs.repository.paths | Should -Contain (Resolve-Path $tempDir).Path
+         }
+
+         It "Does not add duplicate paths" {
+              $tempDir = [System.IO.Path]::GetTempPath()
+              $service.EnsurePathInPreferences($tempDir)
+              $service.EnsurePathInPreferences($tempDir)
+              
+              $prefs = $service.LoadPreferences()
+              $prefs.repository.paths.Count | Should -Be 1
+         }
+    }
 }
