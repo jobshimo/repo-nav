@@ -138,6 +138,22 @@ class QuickChangeFlowController : FlowControllerBase {
 
     # ... existing handlers ...
 
+    hidden [bool] Confirm([string]$title, [string]$prompt) {
+        $options = @(
+            @{ DisplayText = "Yes"; Value = "Yes" },
+            @{ DisplayText = "No";  Value = "No" }
+        )
+        
+        $config = [SelectionOptions]::new()
+        $config.Title = $title
+        $config.Options = $options
+        $config.Description = $prompt
+        $config.DescriptionColor = [Constants]::ColorWarning
+        
+        $selection = $this.Context.OptionSelector.Show($config)
+        return $selection -eq "Yes"
+    }
+
     hidden [void] HandleDeleteRemoteOnly() {
         $this.ShowMessage($this.Context.LocalizationService.Get("Flow.Init.Fetching", "Fetching remotes..."), [Constants]::ColorHint)
         $this.GitWriteService.Fetch($this.Repo.FullPath) | Out-Null
@@ -155,24 +171,17 @@ class QuickChangeFlowController : FlowControllerBase {
         $sel = $this.ListSelector.ShowSelection($title, $remotes, @{ Prompt="Select Remote Branch to Delete"; InitialFocus=[Constants]::FocusInput })
         
         if ($null -eq $sel) { return }
-        # remote branch name usually comes as "origin/branch", we need just "branch" for DeleteRemoteBranch method?
-        # Verify usage: GitWriteService.DeleteRemoteBranch takes "branchName".
-        # If I pass "origin/feature", `git push origin --delete origin/feature` is wrong. It should be `feature`.
-        # However, `GetRemoteBranches` returns what? "origin/main", "origin/feature".
-        # So I need to strip "origin/" prefix.
         
         $selectedRemote = $sel.Value.Trim()
+        # Strip "origin/" prefix if present to get clean branch name
         $cleanBranchName = $selectedRemote -replace "^origin/", ""
         
         # 2. Remote Delete Prompt
         $promptRemote = $this.Context.LocalizationService.Get("Flow.Prompt.DeleteRemote", "Delete remote branch 'origin/{0}'? (IRREVERSIBLE)") -f $cleanBranchName
-        $confirmRemote = $this.ListSelector.ShowSelection("DELETE REMOTE ONLY?", @("Yes", "No"), @{ Prompt = $promptRemote })
-        
-        if ($confirmRemote.Value -eq "Yes") {
+        if ($this.Confirm("DELETE REMOTE ONLY?", $promptRemote)) {
              $this.ShowMessage("Deleting remote branch...", [Constants]::ColorWarning)
              $remRes = $this.GitWriteService.DeleteRemoteBranch($this.Repo.FullPath, $cleanBranchName)
              if ($remRes.Success) {
-                 # Reuse existing status message
                  $msgRem = $this.Context.LocalizationService.Get("Flow.Status.RemoteDeleted", "Remote branch 'origin/{0}' deleted.") -f $cleanBranchName
                  $this.ShowMessage($msgRem, [Constants]::ColorSuccess)
              } else {
@@ -347,20 +356,19 @@ class QuickChangeFlowController : FlowControllerBase {
         
         # 2. Local Delete Prompt
         $promptLocal = $this.Context.LocalizationService.Get("Flow.Prompt.DeleteLocal", "Delete local branch '{0}'? (FORCE CAREFUL)") -f $branchToDelete
-        $confirmLocal = $this.ListSelector.ShowSelection("DELETE LOCAL?", @("Yes", "No"), @{ Prompt = $promptLocal })
         
-        if ($confirmLocal.Value -eq "Yes") {
+        if ($this.Confirm("DELETE LOCAL?", $promptLocal)) {
             $delRes = $this.GitWriteService.DeleteLocalBranch($this.Repo.FullPath, $branchToDelete, $true)
             if ($delRes.Success) {
                 $msg = $this.Context.LocalizationService.Get("Flow.Status.LocalDeleted", "Local branch '{0}' deleted.") -f $branchToDelete
                 $this.ShowMessage($msg, [Constants]::ColorSuccess)
                 
                 # 3. Remote Delete Prompt (if exists)
-                if ($this.GitService.RemoteBranchExists($this.Repo.FullPath, $branchToDelete)) {
+                # ISP FIX: Use GitReadService instead of GitService
+                if ($this.GitReadService.RemoteBranchExists($this.Repo.FullPath, $branchToDelete)) {
                     $promptRemote = $this.Context.LocalizationService.Get("Flow.Prompt.DeleteRemote", "Delete remote branch 'origin/{0}'? (IRREVERSIBLE)") -f $branchToDelete
-                    $confirmRemote = $this.ListSelector.ShowSelection("DELETE REMOTE?", @("Yes", "No"), @{ Prompt = $promptRemote })
                     
-                    if ($confirmRemote.Value -eq "Yes") {
+                    if ($this.Confirm("DELETE REMOTE?", $promptRemote)) {
                          $this.ShowMessage("Deleting remote branch...", [Constants]::ColorWarning)
                          $remRes = $this.GitWriteService.DeleteRemoteBranch($this.Repo.FullPath, $branchToDelete)
                          if ($remRes.Success) {
