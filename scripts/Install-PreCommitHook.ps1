@@ -25,7 +25,22 @@ if (-not (Test-Path $gitHooksDir)) {
 }
 
 try {
-    Copy-Item $hookSource $hookDestination -Force
+    # Create a bash wrapper for the PowerShell hook
+    $hookContent = @'
+#!/bin/sh
+# Pre-commit hook wrapper for repo-nav
+
+# Get the script directory
+SCRIPT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+HOOK_SCRIPT="$SCRIPT_DIR/scripts/Install-GitHook.ps1"
+
+# Run PowerShell script
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$HOOK_SCRIPT"
+exit $?
+'@
+
+    $hookContent | Out-File -FilePath $hookDestination -Encoding ASCII -NoNewline
+    
     Write-Host "  OK: Pre-commit hook installed" -ForegroundColor Green
     Write-Host ""
     Write-Host "  The hook will run automatically before each commit" -ForegroundColor Gray

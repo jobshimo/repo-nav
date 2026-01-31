@@ -87,15 +87,15 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor $(if ($totalErrors -eq 0) { "Green" } else { "Red" })
 
 if ($totalErrors -eq 0) {
-    Write-Host "  ✓ COMMIT ALLOWED" -ForegroundColor Green
+    Write-Host "  OK: COMMIT ALLOWED" -ForegroundColor Green
     Write-Host "========================================" -ForegroundColor Green
     Write-Host ""
     exit 0
 } else {
-    Write-Host "  ✗ COMMIT BLOCKED - Fix errors first" -ForegroundColor Red
+    Write-Host "  ERROR: COMMIT BLOCKED - Fix errors first" -ForegroundColor Red
     Write-Host "========================================" -ForegroundColor Red
     Write-Host ""
-    Write-Host "  To bypass this check (NOT recommended):" -ForegroundColor Yellow
+    Write-Host "  To bypass this check:" -ForegroundColor Yellow
     Write-Host "    git commit --no-verify" -ForegroundColor Yellow
     Write-Host ""
     exit 1
