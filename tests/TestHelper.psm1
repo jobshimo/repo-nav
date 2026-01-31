@@ -12,6 +12,7 @@ function Import-ProjectFile {
 
     $fullPath = Join-Path $script:projectRoot $Path
     if (Test-Path $fullPath) {
+        # Dot-source into the global scope to ensure Classes are visible to Pester
         . $fullPath
     } else {
         Write-Error "Could not find file: $fullPath"
