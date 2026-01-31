@@ -89,10 +89,12 @@ $srcPath = Join-Path $scriptRoot "src"
 # ─────────────────────────────────────────────────────────────────────────────
 . "$srcPath\Core\Interfaces\IProgressReporter.ps1"
 . "$srcPath\Core\Interfaces\IRepositoryManager.ps1"
+. "$srcPath\Core\Interfaces\INavigationState.ps1"
 . "$srcPath\Services\WindowSizeCalculator.ps1"
 . "$srcPath\Core\State\NavigationState.ps1"
-. "$srcPath\Core\Interfaces\IUIRenderer.ps1"
 . "$srcPath\Core\Interfaces\IJobService.ps1"
+. "$srcPath\Core\Interfaces\IUIRenderer.ps1"
+. "$srcPath\Core\Interfaces\IConsoleHelper.ps1"
 . "$srcPath\Startup\ServiceRegistry.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────

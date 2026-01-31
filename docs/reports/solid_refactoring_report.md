@@ -42,6 +42,16 @@ We have successfully stabilized the `repo-nav` application, resolving critical s
 | **NPM Command** | ✅ Pass | correctly handles Install/Remove flows via `IJobService`. |
 | **Git Command** | ✅ Pass | Flow logic verify via `IUIRenderer` mocks. |
 | **Preferences** | ✅ Pass | Persistence logic verified; warnings silenced. |
+| **Core State** | ✅ Pass | `CommandContext` now correctly uses `INavigationState` and `IConsoleHelper`. |
+
+## Latest Refactorings (Post-Validation)
+Following the initial stabilization, we further decoupled the Core layer to enable advanced testing scenarios:
+1.  **Refactored `ConsoleHelper` -> `IConsoleHelper`**:
+    *   This allows future tests to use a `MockConsole` that captures output in memory instead of writing to the host UI.
+2.  **Refactored `NavigationState` -> `INavigationState`**:
+    *   Critical for testing navigation logic without instantiating the entire UI stack.
+    *   `CommandContext` updated to use the interface.
+    *   Fixed cyclic dependency issues in `Test-Setup.ps1` by correcting load order (Interfaces first).
 
 ## Recommendations for Future AI/Developers
 

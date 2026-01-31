@@ -1,8 +1,8 @@
 class CommandContext {
-    [NavigationState] $State
+    [INavigationState] $State
     [IRepositoryManager] $RepoManager
     [IUIRenderer] $Renderer
-    [ConsoleHelper] $Console
+    [IConsoleHelper] $Console
     [LoggerService] $Logger
     [ColorSelector] $ColorSelector
     [OptionSelector] $OptionSelector

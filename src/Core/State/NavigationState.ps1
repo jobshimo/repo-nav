@@ -29,7 +29,7 @@ enum ExitState {
     SwitchPath
 }
 
-class NavigationState {
+class NavigationState : INavigationState {
     # Current state
     [int] $SelectedIndex
     [array] $Repositories
