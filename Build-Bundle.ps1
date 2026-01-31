@@ -340,6 +340,14 @@ $originalSetup = Get-Content (Join-Path $scriptRoot "Setup.ps1") -Raw -Encoding 
 # Replace reference to repo-nav.ps1 with repo-nav-bundle.ps1
 $distSetup = $originalSetup -replace 'repo-nav\.ps1', 'repo-nav-bundle.ps1'
 
+# Change default command from 'listb' (dev) to 'list' (production)
+$distSetup = $distSetup -replace '"listb"', '"list"'
+$distSetup = $distSetup -replace 'listb" -NoNewline -ForegroundColor Green', 'list" -NoNewline -ForegroundColor Green'
+$distSetup = $distSetup -replace '\(dev\), ', ''
+
+# Remove pre-push hook installation (not needed in distributed version)
+$distSetup = $distSetup -replace '(?s)# Install pre-push hook for development.*?\}\s*catch \{.*?\}', ''
+
 $setupPath = Join-Path $distPath "Setup-Bundle.ps1"
 $distSetup | Set-Content -Path $setupPath -Encoding UTF8 -Force
 
