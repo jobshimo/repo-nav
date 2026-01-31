@@ -248,6 +248,10 @@
     "Flow.Dashboard.NotSelected": "<No Seleccionado>",
     "Flow.Dashboard.Hint": "Usa Flechas para navegar | Enter para editar/seleccionar",
     
+    "Flow.ActionTitle": "RAMA: {0}",
+    "Flow.ActionPrompt": "Seleccionar Acción",
+    "Flow.Action.Checkout": "Cambiar a esta rama (Checkout)",
+    "Flow.Action.Pull": "Actualizar (Pull)",
     "Flow.Action.SetTarget": "Seleccionar Rama OBJETIVO",
     "Flow.Action.SetName": "Introducir Nombre de Nueva Rama",
     "Flow.Action.SetSource": "Seleccionar Rama ORIGEN",

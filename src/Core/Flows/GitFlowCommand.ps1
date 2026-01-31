@@ -21,7 +21,8 @@ class GitFlowCommand : INavigationCommand {
     
     [string] GetLoc([CommandContext]$context, [string]$key, [string]$default) {
         if ($null -ne $context.LocalizationService) {
-            return $context.LocalizationService.Get($key)
+            # Ensure we pass the default value to the service
+            return $context.LocalizationService.Get($key, $default)
         }
         return $default
     }

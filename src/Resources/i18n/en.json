@@ -252,6 +252,10 @@
     "Flow.Dashboard.NotSelected": "<Not Selected>",
     "Flow.Dashboard.Hint": "Use Arrows to navigate | Enter to edit/select",
     
+    "Flow.ActionTitle": "BRANCH: {0}",
+    "Flow.ActionPrompt": "Select Action",
+    "Flow.Action.Checkout": "Checkout Branch",
+    "Flow.Action.Pull": "Pull Updates",
     "Flow.Action.SetTarget": "Select TARGET Branch",
     "Flow.Action.SetName": "Enter New Branch Name",
     "Flow.Action.SetSource": "Select SOURCE Branch",
