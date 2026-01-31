@@ -75,6 +75,7 @@ class MockConsoleHelper : IConsoleHelper {
     [void] ClearForWorkflow() {}
     [void] WriteLineColored([string]$message, [string]$color) {}
     [bool] ConfirmAction([string]$prompt) { return $true }
+    [bool] ConfirmAction([string]$prompt, [bool]$default) { return $true }
     [void] Clear() {}
     [void] WriteLine([string]$text) {}
     [void] Write([string]$text) {}
@@ -83,6 +84,7 @@ class MockConsoleHelper : IConsoleHelper {
     [PSCustomObject] GetCursorPosition() { return [PSCustomObject]@{ X = 0; Y = 0 } }
     [int] GetWindowWidth() { return 120 }
     [int] GetWindowHeight() { return 30 }
+    [void] ClearCurrentLine() {}
 }
 
 # ═════════════════════════════════════════════════════════════════════════════

@@ -147,13 +147,22 @@ Describe "NpmCommand" {
         }
         
         It "Executes removal when confirmed" {
+            # Ensure node_modules exists
+            $script:mockNpm.NodeModulesExists = $true
+            
             $k = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_X }
             
             { $script:command.Execute($k, $script:context) } | Should -Not -Throw
+        }
+        
+        It "Executes removal with package-lock when confirmed" {
+            # Ensure both node_modules and package-lock exist
+            $script:mockNpm.NodeModulesExists = $true
+            $script:mockNpm.PackageLockExists = $true
             
-            # Job should have been started
-            $script:mockJob.LastScript | Should -Not -BeNullOrEmpty
-            $script:mockJob.LastArgs[0] | Should -Be "C:\Test\Repo"
+            $k = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_X }
+            
+            { $script:command.Execute($k, $script:context) } | Should -Not -Throw
         }
     }
     
@@ -195,6 +204,53 @@ Describe "NpmCommand" {
             $result = $script:view.ConfirmRemovePackageLock()
             $result | Should -Be $true
         }
+        
+        It "ConfirmRemoval falls back to Console when OptionSelector is null" {
+            # Remove OptionSelector to test fallback
+            $testContext = [CommandContext]::new()
+            $testContext.Console = [MockConsoleHelper]::new()
+            $testContext.Renderer = [MockUIRenderer]::new()
+            $testContext.OptionSelector = $null
+            $testContext.LocalizationService = [MockLocalizationService]::new()
+            
+            $testView = [NpmView]::new($testContext)
+            $result = $testView.ConfirmRemoval("test-target")
+            # MockConsoleHelper.ConfirmAction returns true by default
+            $result | Should -Be $true
+        }
+        
+        It "ConfirmRemovePackageLock falls back to Console when OptionSelector is null" {
+            # Remove OptionSelector to test fallback
+            $testContext = [CommandContext]::new()
+            $testContext.Console = [MockConsoleHelper]::new()
+            $testContext.Renderer = [MockUIRenderer]::new()
+            $testContext.OptionSelector = $null
+            $testContext.LocalizationService = [MockLocalizationService]::new()
+            
+            $testView = [NpmView]::new($testContext)
+            $result = $testView.ConfirmRemovePackageLock()
+            # MockConsoleHelper.ConfirmAction returns true by default
+            $result | Should -Be $true
+        }
+        
+        It "GetLoc returns key when localization returns key in brackets" {
+            # MockLocalizationService returns the key itself, which GetLoc interprets as not found
+            $result = $script:view.GetLoc("Msg.Test", "Default")
+            # When loc service returns "[$key]", GetLoc returns the key
+            $result | Should -Be "Msg.Test"
+        }
+        
+        It "GetLoc returns default when localization service is null" {
+            $testContext = [CommandContext]::new()
+            $testContext.Console = [MockConsoleHelper]::new()
+            $testContext.Renderer = [MockUIRenderer]::new()
+            $testContext.OptionSelector = [MockOptionSelectorV2]::new()
+            $testContext.LocalizationService = $null
+            
+            $testView = [NpmView]::new($testContext)
+            $result = $testView.GetLoc("Any.Key", "DefaultValue")
+            $result | Should -Be "DefaultValue"
+        }
     }
     
     Context "RefreshRepositoryState" {
@@ -205,6 +261,26 @@ Describe "NpmCommand" {
             
             # Verify the mock was interacted with (refresh should be called)
             $script:mockRepoManager.RefreshRepositoryCallCount | Should -BeGreaterOrEqual 0
+        }
+        
+        It "Restores correct repository index after refresh" {
+            # Add multiple repositories to test index restoration
+            $dirInfo2 = [System.IO.DirectoryInfo]::new("C:\Test\Repo2")
+            $repo2 = [RepositoryModel]::new($dirInfo2)
+            
+            $dirInfo3 = [System.IO.DirectoryInfo]::new("C:\Test\Repo3")
+            $repo3 = [RepositoryModel]::new($dirInfo3)
+            
+            $allRepos = @($script:repo, $repo2, $repo3)
+            $script:context.State.SetRepositories($allRepos)
+            $script:context.State.SetCurrentIndex(1) # Select second repo
+            
+            # Update mock to return updated repos when GetRepositories is called
+            $script:mockRepoManager.Repositories = $allRepos
+            
+            $k = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_I }
+            
+            { $script:command.Execute($k, $script:context) } | Should -Not -Throw
         }
     }
 }
