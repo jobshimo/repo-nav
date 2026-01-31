@@ -34,7 +34,16 @@ class UserPreferencesService {
         }
         
         try {
+            $item = Get-Item $this.PreferencesFilePath -ErrorAction Stop
+            if ($item.Length -eq 0) {
+                return $this.CreateDefaultPreferences()
+            }
+            
             $content = Get-Content $this.PreferencesFilePath -Raw -ErrorAction Stop
+            if ([string]::IsNullOrWhiteSpace($content)) {
+                return $this.CreateDefaultPreferences()
+            }
+
             $preferences = ConvertFrom-Json $content -ErrorAction Stop
             
             # Validate and normalize preferences
