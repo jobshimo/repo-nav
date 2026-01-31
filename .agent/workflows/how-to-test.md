@@ -1,66 +1,35 @@
----
-description: How to write SOLID tests using Pester and Interfaces
----
 # How to Test in repo-nav
 
-We strictly follow SOLID principles and use Pester 5 for testing. We avoid fragile "patching" of objects (using `Add-Member` on live objects) in favor of **Dependency Injection** with Interfaces and Test Doubles (Mocks/Stubs).
+> **🔥 CRITICAL:** Read the full guide at `docs/how-to-test.md` before writing any tests.
 
-## 1. Philosophy
-- **Clean Code**: Tests are code. They must be readable and maintainable.
-- **Dependency Inversion**: Classes should depend on Interfaces, not concrete implementations.
-- **Pure Pester**: Use standard Pester mocks for global commands (`Get-ChildItem`, `git`). Use Class Mocks for dependencies.
+We strictly follow SOLID principles and use Pester 5.
 
-## 2. Directory Structure
-- `tests/Pester/Unit`: Unit tests isolated from the system.
-- `tests/Pester/Integration`: Tests that verify flow between components.
-- `tests/Mocks`: Reusable Mock classes (e.g., `MockRepositoryManager.ps1`).
+## Quick Cheat Sheet
 
-## 3. How to Mock a Dependency
+### 1. Structure
+- **Unit Tests**: `tests/Pester/Unit/`
+- **Mocks**: `tests/Mocks/` (Re-use existing mocks!)
 
-Instead of using `Add-Member` to overwrite a method on a real object, use an Interface and a Mock Class.
+### 2. Critical Patterns
 
-### Bad Pattern (Do Not Use)
+#### Dependency Injection (The ONLY way)
 ```powershell
-$realService = [RealService]::new()
-$realService | Add-Member -MemberType ScriptMethod -Name "GetData" -Value { return "Fake" } -Force
+# BAD
+$service = [Service]::new() # Real dependencies
+
+# GOOD
+$mock = [MockCommonService]::new()
+$service = [Service]::new($mock)
 ```
 
-### Good Pattern (SOLID)
+#### Mocking Git (Native Commands)
+You **MUST** use the `GitMockStub` pattern found in `docs/how-to-test.md` section 2.
+**DO NOT** try to mock `git` directly without the alias shim.
 
-**1. Define the Interface (src/Core/Interfaces/IYourService.ps1)**
+### 3. Running Tests
 ```powershell
-interface IYourService {
-    [string] GetData()
-}
+# Run with coverage
+npm run test:coverage
 ```
 
-**2. Create a Mock Class (tests/Mocks/MockYourService.ps1)**
-```powershell
-class MockYourService : IYourService {
-    [string] $ReturnValue
-    
-    MockYourService([string]$val) { $this.ReturnValue = $val }
-
-    [string] GetData() {
-        return $this.ReturnValue
-    }
-}
-```
-
-**3. Use in Test**
-```powershell
-$mock = [MockYourService]::new("Fake Data")
-$consumer = [ConsumerClass]::new($mock) # Dependency Injection
-```
-
-## 4. Pester Best Practices
-- Use `BeforeAll` to load types.
-- Use `Context` to group related scenarios.
-- Use `It` for single assertions.
-- Use `Should` for assertions.
-
-## 5. Running Tests
-Run all tests with coverage:
-```powershell
-./scripts/Test-WithCoverage.ps1
-```
+See `docs/how-to-test.md` for the full "Strategy 2.0".
