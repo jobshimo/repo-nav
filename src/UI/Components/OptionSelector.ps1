@@ -1,7 +1,10 @@
 class OptionSelector : ConsoleView {
     [UIRenderer] $Renderer
+    [ViewportManager] $Viewport
+    
     OptionSelector([ConsoleHelper]$console, [object]$renderer) : base($console) {
         $this.Renderer = $renderer
+        $this.Viewport = [ViewportManager]::new()
     }
     
     # ═══════════════════════════════════════════════════════════════════════════
@@ -13,10 +16,12 @@ class OptionSelector : ConsoleView {
         }
         
         $descColor = if ($config.DescriptionColor -eq 0) { [Constants]::ColorWarning } else { $config.DescriptionColor }
-        $selectedIndex = 0
+        
+        # Initialize selection index from config
+        $initialIndex = 0
         for ($i = 0; $i -lt $config.Options.Count; $i++) {
             if ($config.Options[$i].Value -eq $config.CurrentValue) {
-                $selectedIndex = $i
+                $initialIndex = $i
                 break
             }
         }
@@ -43,37 +48,58 @@ class OptionSelector : ConsoleView {
             }
             
             $listStartTop = $this.Console.GetCursorTop()
-            $viewportStart = 0
             $reservedFooter = 6
             
+            # Initial Initialize of Viewport
+            # Use max page size logic here or just a safe default until the loop
+            $this.Viewport.Initialize($config.Options.Count, 10, $initialIndex)
+            
             while ($running) {
+                # Recalculate page size dynamically
                 $pageSize = $this.CalculatePageSize($config.Options.Count, $listStartTop, $reservedFooter)
-                $viewportStart = $this.CalculateViewportStart($selectedIndex, $viewportStart, $pageSize, $config.Options.Count)
+                
+                # Check if page size changed or ensures visibility
+                if ($pageSize -ne $this.Viewport.PageSize) {
+                    $this.Viewport.SetPageSize($pageSize)
+                }
+                # Ensure viewport is correct (defensive)
+                $this.Viewport.EnsureSelectedVisible()
+                
+                $viewportStart = $this.Viewport.ViewportStart
+                $selectedIndex = $this.Viewport.SelectedIndex
+                
                 $this.Console.SetCursorPosition(0, $listStartTop)
                 
+                # Render Loop using Viewport
                 for ($i = 0; $i -lt $pageSize; $i++) {
                     $optionIndex = $viewportStart + $i
-                    $option = $config.Options[$optionIndex]
-                    $isSelected = ($optionIndex -eq $selectedIndex)
-                    $prefix = if ($isSelected) { ">" } else { " " }
                     
-                    if ($null -ne $config.OnRenderItem) {
-                        & $config.OnRenderItem $option $isSelected $prefix
-                    } else {
-                        $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
-                        $currentMarkerStr = if ($config.ShowCurrentMarker -and $option.Value -eq $config.CurrentValue) { " (current)" } else { "" }
-                        $displayLine = "  $prefix $($option.DisplayText)$currentMarkerStr"
+                    if ($optionIndex -lt $config.Options.Count) {
+                        $option = $config.Options[$optionIndex]
+                        $isSelected = ($optionIndex -eq $selectedIndex)
+                        $prefix = if ($isSelected) { ">" } else { " " }
                         
-                        $isColorPreview = $false
-                        if ($option.Value -ne 'None' -and ($option.Value -as [System.ConsoleColor])) {
-                            $isColorPreview = $true
-                        }
-                        $this.ClearLine()
-                        if ($isColorPreview) {
-                            $this.WriteLineColored($displayLine, $option.Value)
+                        if ($null -ne $config.OnRenderItem) {
+                            & $config.OnRenderItem $option $isSelected $prefix
                         } else {
-                            $this.WriteLineColored($displayLine, $color)
+                            $color = if ($isSelected) { [Constants]::ColorSelected } else { [Constants]::ColorMenuText }
+                            $currentMarkerStr = if ($config.ShowCurrentMarker -and $option.Value -eq $config.CurrentValue) { " (current)" } else { "" }
+                            $displayLine = "  $prefix $($option.DisplayText)$currentMarkerStr"
+                            
+                            $isColorPreview = $false
+                            if ($option.Value -ne 'None' -and ($option.Value -as [System.ConsoleColor])) {
+                                $isColorPreview = $true
+                            }
+                            $this.ClearLine()
+                            if ($isColorPreview) {
+                                $this.WriteLineColored($displayLine, $option.Value)
+                            } else {
+                                $this.WriteLineColored($displayLine, $color)
+                            }
                         }
+                    } else {
+                        # Clear empty lines if any
+                        $this.ClearLine()
                     }
                 }
                 
@@ -81,6 +107,7 @@ class OptionSelector : ConsoleView {
                     & $config.OnSelectionChanged $config.Options[$selectedIndex]
                 }
 
+                # Footer
                 $this.NewLine()
                 $this.ClearLine()
                 $this.WriteLineColored("  $($config.CancelText)", [Constants]::ColorHint)
@@ -92,19 +119,19 @@ class OptionSelector : ConsoleView {
                 $key = $this.Console.ReadKey()
                 switch ($key.VirtualKeyCode) {
                     ([Constants]::KEY_UP_ARROW) {
-                        if ($selectedIndex -gt 0) { $selectedIndex-- }
-                        else { $selectedIndex = $config.Options.Count - 1 }
+                        $this.Viewport.MoveUp()
                     }
                     ([Constants]::KEY_DOWN_ARROW) {
-                        if ($selectedIndex -lt ($config.Options.Count - 1)) { $selectedIndex++ }
-                        else { $selectedIndex = 0 }
+                        $this.Viewport.MoveDown()
                     }
                     ([Constants]::KEY_ENTER) {
-                        $result = $config.Options[$selectedIndex].Value
+                        $result = $config.Options[$this.Viewport.SelectedIndex].Value
                         $running = $false
                     }
                     ([Constants]::KEY_Q) { $running = $false }
                     ([Constants]::KEY_ESC) { $running = $false }
+                    ([Constants]::KEY_HOME) { $this.Viewport.MoveToStart() }
+                    ([Constants]::KEY_END) { $this.Viewport.MoveToEnd() }
                 }
             }
         }

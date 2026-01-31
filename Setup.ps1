@@ -362,14 +362,14 @@ function Get-CommandName {
     Write-Host "  Choose a command name to launch repo-nav from any terminal." -ForegroundColor White
     Write-Host ""
     Write-Host "  Examples: " -NoNewline -ForegroundColor Gray
-    Write-Host "list" -NoNewline -ForegroundColor Green
-    Write-Host ", " -NoNewline -ForegroundColor Gray
+    Write-Host "listb" -NoNewline -ForegroundColor Green
+    Write-Host " (dev), " -NoNewline -ForegroundColor Gray
     Write-Host "repos" -NoNewline -ForegroundColor Cyan
     Write-Host ", " -NoNewline -ForegroundColor Gray
     Write-Host "nav" -ForegroundColor Yellow
     Write-Host ""
     
-    $commandName = Read-ValidatedInput "Command name:" "list" {
+    $commandName = Read-ValidatedInput "Command name:" "listb" {
         param($v)
         if ([string]::IsNullOrWhiteSpace($v)) { return $false }
         return $v -match "^[a-zA-Z][a-zA-Z0-9\-_]*$"
@@ -459,6 +459,18 @@ function Update-ConfigurationFiles {
     )
     
     Write-InfoMessage "Updating configuration files..."
+    
+    # Install pre-push hook for development
+    try {
+        $hookInstaller = Join-Path $ScriptPath "scripts\Install-PrePushHook.ps1"
+        if (Test-Path $hookInstaller) {
+            Write-InfoMessage "Installing pre-push hook..."
+            & $hookInstaller | Out-Null
+            Write-SuccessMessage "Pre-push hook installed (tests run before push)"
+        }
+    } catch {
+        Write-Host "  [!!] Warning: Could not install pre-push hook: $_" -ForegroundColor Yellow
+    }
     
     # Skip if no path configured (user chose to configure later)
     if ([string]::IsNullOrWhiteSpace($ReposPath)) {

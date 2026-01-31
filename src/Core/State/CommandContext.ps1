@@ -9,5 +9,6 @@ class CommandContext {
     [LocalizationService] $LocalizationService
     [UserPreferencesService] $PreferencesService
     [HiddenReposService] $HiddenReposService
+    [PathManager] $PathManager
     [string] $BasePath
 }

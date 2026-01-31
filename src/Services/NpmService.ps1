@@ -166,7 +166,10 @@ class NpmService {
                     }
                 }
             }
-            catch {}
+            catch {
+                $logger = [ServiceRegistry]::Resolve('LoggerService')
+                if ($null -ne $logger) { $logger.LogError($_) }
+            }
         }
 
         return [string]::Empty
