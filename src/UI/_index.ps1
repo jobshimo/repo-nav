@@ -9,27 +9,53 @@ $uiPath = $PSScriptRoot
 # ─────────────────────────────────────────────────────────────────────────────
 # UI Base & Framework
 # ─────────────────────────────────────────────────────────────────────────────
-. "$uiPath\Base\ConsoleHelper.ps1"
-. "$uiPath\Base\ViewportManager.ps1"
-. "$uiPath\Framework\ConsoleView.ps1"
+if (-not ([System.Management.Automation.PSTypeName]'ConsoleHelper').Type) {
+    . "$uiPath\Base\ConsoleHelper.ps1"
+}
+if (-not ([System.Management.Automation.PSTypeName]'ViewportManager').Type) {
+    . "$uiPath\Base\ViewportManager.ps1"
+}
+if (-not ([System.Management.Automation.PSTypeName]'ConsoleView').Type) {
+    . "$uiPath\Framework\ConsoleView.ps1"
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ViewModels (used by Renderer)
 # ─────────────────────────────────────────────────────────────────────────────
-. "$uiPath\ViewModels\RepositoryViewModel.ps1"
+if (-not ([System.Management.Automation.PSTypeName]'RepositoryViewModel').Type) {
+    . "$uiPath\ViewModels\RepositoryViewModel.ps1"
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Renderer & Components
 # ─────────────────────────────────────────────────────────────────────────────
-. "$uiPath\UIRenderer.ps1"
-. "$uiPath\Components\ProgressIndicator.ps1"
-. "$uiPath\Components\SelectionOptions.ps1"
-. "$uiPath\Components\OptionSelector.ps1"
-. "$uiPath\Components\ColorSelector.ps1"
-. "$uiPath\Renderers\FilteredListRenderer.ps1"
-. "$uiPath\Renderers\IntegrationFlowRenderer.ps1"
-. "$uiPath\Components\FilteredListSelector.ps1"
-. "$uiPath\Dashboards\IntegrationFlowDashboard.ps1"
+if (-not ([System.Management.Automation.PSTypeName]'UIRenderer').Type) {
+    . "$uiPath\UIRenderer.ps1"
+}
+if (-not ([System.Management.Automation.PSTypeName]'ProgressIndicator').Type) {
+    . "$uiPath\Components\ProgressIndicator.ps1"
+}
+if (-not ([System.Management.Automation.PSTypeName]'SelectionOptions').Type) {
+    . "$uiPath\Components\SelectionOptions.ps1"
+}
+if (-not ([System.Management.Automation.PSTypeName]'OptionSelector').Type) {
+    . "$uiPath\Components\OptionSelector.ps1"
+}
+if (-not ([System.Management.Automation.PSTypeName]'ColorSelector').Type) {
+    . "$uiPath\Components\ColorSelector.ps1"
+}
+if (-not ([System.Management.Automation.PSTypeName]'FilteredListRenderer').Type) {
+    . "$uiPath\Renderers\FilteredListRenderer.ps1"
+}
+if (-not ([System.Management.Automation.PSTypeName]'IntegrationFlowRenderer').Type) {
+    . "$uiPath\Renderers\IntegrationFlowRenderer.ps1"
+}
+if (-not ([System.Management.Automation.PSTypeName]'FilteredListSelector').Type) {
+    . "$uiPath\Components\FilteredListSelector.ps1"
+}
+if (-not ([System.Management.Automation.PSTypeName]'IntegrationFlowDashboard').Type) {
+    . "$uiPath\Dashboards\IntegrationFlowDashboard.ps1"
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Controllers (Refactored)
@@ -41,4 +67,6 @@ $uiPath = $PSScriptRoot
 # ─────────────────────────────────────────────────────────────────────────────
 # UI Services (implements interfaces from Core)
 # ─────────────────────────────────────────────────────────────────────────────
-. "$uiPath\Services\ConsoleProgressReporter.ps1"
+if (-not ([System.Management.Automation.PSTypeName]'ConsoleProgressReporter').Type) {
+    . "$uiPath\Services\ConsoleProgressReporter.ps1"
+}

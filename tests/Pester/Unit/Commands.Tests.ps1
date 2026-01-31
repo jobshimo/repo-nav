@@ -14,7 +14,9 @@ Describe "Complex Commands" {
         . "$srcRoot\Core\Interfaces\IProgressReporter.ps1"
         . "$srcRoot\Core\Interfaces\IRepositoryManager.ps1"
         . "$srcRoot\Startup\ServiceRegistry.ps1"
-        . "$srcRoot\Core\State\NavigationState.ps1"
+        if (-not ([System.Management.Automation.PSTypeName]'NavigationState').Type) {
+            . "$srcRoot\Core\State\NavigationState.ps1"
+        }
         . "$srcRoot\Services\_index.ps1"
         
         # 4. UI
@@ -27,10 +29,14 @@ Describe "Complex Commands" {
         . "$srcRoot\Core\RepositoryManager.ps1"
 
         # 6. State
-        . "$srcRoot\Core\State\CommandContext.ps1"
+        if (-not ([System.Management.Automation.PSTypeName]'CommandContext').Type) {
+            . "$srcRoot\Core\State\CommandContext.ps1"
+        }
 
         # 7. Commands
-        . "$srcRoot\Core\Commands\INavigationCommand.ps1"
+        if (-not ([System.Management.Automation.PSTypeName]'INavigationCommand').Type) {
+            . "$srcRoot\Core\Commands\INavigationCommand.ps1"
+        }
         . "$srcRoot\Core\Commands\NpmCommand.ps1"
 
         # Load Mocks
@@ -113,7 +119,7 @@ Describe "Complex Commands" {
             $repoManager.RepositoryToReturn = $repo
 
             $context = [CommandContext]::new()
-            $context.Console = $mockConsole
+            $context.Console = [ConsoleHelper]$mockConsole
             $context.State = $mockState
             $context.Renderer = $renderer
             $context.RepoManager = $repoManager
@@ -174,7 +180,7 @@ Describe "Complex Commands" {
             $repoManager.RepositoryToReturn = $repo
 
             $context = [CommandContext]::new()
-            $context.Console = $mockConsole
+            $context.Console = [ConsoleHelper]$mockConsole
             $context.State = $mockState
             $context.Renderer = $renderer
             $context.RepoManager = $repoManager
