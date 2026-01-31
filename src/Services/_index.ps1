@@ -67,3 +67,6 @@ if (-not ([System.Management.Automation.PSTypeName]'SearchService').Type) {
 if (-not ([System.Management.Automation.PSTypeName]'RenderOrchestrator').Type) {
     . "$servicesPath\RenderOrchestrator.ps1"
 }
+if (-not ([System.Management.Automation.PSTypeName]'JobService').Type) {
+    . "$servicesPath\JobService.ps1"
+}

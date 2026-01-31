@@ -113,6 +113,7 @@ class NpmCommand : INavigationCommand {
         try {
             $view = [NpmView]::new($context)
             $npmService = [ServiceRegistry]::Resolve('NpmService')
+            $jobService = [ServiceRegistry]::Resolve('JobService')
             $needsRefresh = $false
             
             if ($key -eq [Constants]::KEY_I) {
@@ -120,7 +121,7 @@ class NpmCommand : INavigationCommand {
                 $needsRefresh = $true
             }
             elseif ($key -eq [Constants]::KEY_X) {
-                $needsRefresh = $this.InvokeRemove($context, $currentRepo, $view, $npmService)
+                $needsRefresh = $this.InvokeRemove($context, $currentRepo, $view, $npmService, $jobService)
             }
             
             # Only refresh if an action was actually performed
@@ -169,27 +170,21 @@ class NpmCommand : INavigationCommand {
             $view.ShowError("Error.Npm.Exception", "Error running npm: ", $_)
         }
     }
-    hidden [bool] InvokeRemove($context, $repo, $view, $service) {
+    hidden [bool] InvokeRemove($context, $repo, $view, $service, $jobService) {
+        # ... validation ...
         $nodeModulesPath = Join-Path $repo.FullPath "node_modules"
         
-        # 1. Validation: Show non-blocking inline error if no node_modules
         if (-not ($service.HasNodeModules($repo.FullPath))) {
-            # Get localized message with repo name
+            # ... unchanged ...
             $msgFormat = $view.GetLoc("Error.Repo.NoNodeModules", "No node_modules folder found in {0}")
             $msg = $msgFormat -f $repo.Name
-            
-            # Show non-blocking notification - just return without any redraw
-            # The message will persist until next navigation action clears it
             $context.Console.WriteLineColored("  [!] $msg", [Constants]::ColorWarning)
-            
-            # Return false = no refresh needed, no action was taken
             return $false
         }
 
         $view.ClearAndRenderHeader("Removing", $repo)
         if (-not ($view.ConfirmRemoval("node_modules"))) {
             $view.ShowOperationCancelled()
-            # Return true = screen was modified, needs refresh even though cancelled
             return $true
         }
         $removeLock = $false
@@ -223,7 +218,9 @@ class NpmCommand : INavigationCommand {
                 throw $_
             }
         }
-        $job = Start-Job -ScriptBlock $jobScript -ArgumentList $repo.FullPath, $removeLock
+        
+        $job = $jobService.StartJob($jobScript, @($repo.FullPath, $removeLock))
+        
         try {
             try { [Console]::CursorVisible = $false } catch {}
             $msgBase = $view.GetLoc("Msg.Npm.Removing", "Removing node_modules")
@@ -240,7 +237,9 @@ class NpmCommand : INavigationCommand {
             }
             Write-Host "`r" -NoNewline
             $context.Console.ClearCurrentLine()
-            $results = Receive-Job -Job $job
+            
+            $results = $jobService.ReceiveJob($job)
+            
             $jobError = $job.ChildJobs[0].Error
             if ($job.State -eq 'Completed' -and -not $jobError) {
                  $view.ShowSuccess("Msg.Npm.RemovedSuccess", "node_modules removed successfully!")
@@ -253,7 +252,7 @@ class NpmCommand : INavigationCommand {
             }
         }
         finally {
-            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+            $jobService.RemoveJob($job, $true)
             try { [Console]::CursorVisible = $true } catch {}
         }
         Start-Sleep -Seconds 2

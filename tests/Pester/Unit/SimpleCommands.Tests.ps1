@@ -3,33 +3,8 @@ Describe "Simple Commands" {
         $scriptRoot = Resolve-Path "$PSScriptRoot\..\..\.."
         $srcRoot = Join-Path $scriptRoot "src"
         
-        # 1. Config
-        . "$srcRoot\Config\_index.ps1"
-        [Constants]::Initialize($scriptRoot)
-
-        # 2. Models
-        . "$srcRoot\Models\_index.ps1"
-
-        # 3. Core Infrastructure & Services
-        . "$srcRoot\Core\Interfaces\IProgressReporter.ps1"
-        . "$srcRoot\Core\Interfaces\IRepositoryManager.ps1"
-        . "$srcRoot\Core\State\NavigationState.ps1"
-        . "$srcRoot\Services\_index.ps1"
-        
-        # 4. UI
-        . "$srcRoot\UI\_index.ps1"
-
-        # 5. Core Managers
-        . "$srcRoot\Core\Services\PathManager.ps1"
-        . "$srcRoot\Core\RepositoryManager.ps1"
-
-        # 6. State
-        . "$srcRoot\Core\State\CommandContext.ps1"
-
-        # 7. Commands
-        . "$srcRoot\Core\Commands\INavigationCommand.ps1"
-        . "$srcRoot\Core\Commands\ExitCommand.ps1"
-        . "$srcRoot\Core\Commands\ToggleHiddenVisibilityCommand.ps1"
+        # Use Test-Setup for reliable loading
+        . "$scriptRoot\tests\Test-Setup.ps1" | Out-Null
     }
 
     # Helper function defined inside the test script to access the types defined above

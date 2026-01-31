@@ -4,39 +4,16 @@ using module "..\..\TestHelper.psm1"
 Describe "System Integration Loading" {
     BeforeAll {
         $srcRoot = Resolve-Path "$PSScriptRoot\..\..\..\src"
-        # Load Startup Layer which loads everything else via indices
-        # We need to load repo-nav.ps1 dependencies manually or just load AppBuilder related files?
-        # AppBuilder is in src/App/AppBuilder.ps1
-        # But it requires ALL indices to be loaded.
+        $scriptRoot = $PSScriptRoot
+        $testRoot = Resolve-Path "$scriptRoot\..\..\.."
         
-        # Simulating repo-nav.ps1 loading process but without execution
-        . "$srcRoot\Config\_index.ps1"
-        [Constants]::Initialize("$srcRoot\..")
-        . "$srcRoot\Models\_index.ps1"
-        . "$srcRoot\Core\Interfaces\IProgressReporter.ps1"
-        . "$srcRoot\Core\Interfaces\IRepositoryManager.ps1"
-        . "$srcRoot\Services\WindowSizeCalculator.ps1"
-        . "$srcRoot\Core\State\NavigationState.ps1"
-        . "$srcRoot\Startup\ServiceRegistry.ps1"
-        . "$srcRoot\Services\_index.ps1"
-        . "$srcRoot\UI\_index.ps1"
-        . "$srcRoot\Core\Services\GitStatusManager.ps1"
-        . "$srcRoot\Core\Services\RepositorySorter.ps1"
-        . "$srcRoot\Core\Services\OnboardingService.ps1"
-        . "$srcRoot\Core\Services\PathManager.ps1"
-        . "$srcRoot\Core\RepositoryManager.ps1"
-        # UI Controllers... skip for AppBuilder backend context?
-        # AppBuilder uses UIRenderer, etc.
-        . "$srcRoot\UI\Controllers\PreferencesActionDispatcher.ps1"
-        . "$srcRoot\UI\Controllers\PreferencesMenuRenderer.ps1"
-        . "$srcRoot\UI\Controllers\PreferencesMenuController.ps1"
-        . "$srcRoot\UI\Views\RepositoryManagementView.ps1"
-        . "$srcRoot\UI\Views\AliasView.ps1"
-        . "$srcRoot\UI\Views\SearchView.ps1"
+        # Use Test-Setup for reliable loading
+        . "$testRoot\tests\Test-Setup.ps1" | Out-Null
         
-        . "$srcRoot\Core\State\ApplicationContext.ps1"
-        
-        # Load AppBuilder
+        # Load AppBuilder specifically if not part of Test-Setup (it ends at Startup layer usually)
+        # Test-Setup loads "Startup\_index.ps1" which loads ServiceRegistry.
+        # Check if AppBuilder needs explicit load or if it's in Startup?
+        # App/AppBuilder.ps1 is typically the entry point.
         . "$srcRoot\App\AppBuilder.ps1"
     }
 

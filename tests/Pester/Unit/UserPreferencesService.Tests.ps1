@@ -1,22 +1,24 @@
-
 # tests/Pester/Unit/UserPreferencesService.Tests.ps1
 using module "..\..\TestHelper.psm1"
 
 Describe "UserPreferencesService" {
     BeforeAll {
         $srcRoot = Resolve-Path "$PSScriptRoot\..\..\..\src"
-        . "$srcRoot\Config\_index.ps1"
-        [Constants]::Initialize("$srcRoot\..")
-        . "$srcRoot\Models\_index.ps1"
-        . "$srcRoot\Services\ArrayHelper.ps1" # Dependency
-        . "$srcRoot\Startup\ServiceRegistry.ps1" # Used for logging error
+        $scriptRoot = $PSScriptRoot
+        $testRoot = Resolve-Path "$scriptRoot\..\..\.."
+        
+        # Use Test-Setup for reliable loading
+        . "$testRoot\tests\Test-Setup.ps1" | Out-Null
+        
+        # Explicitly load the service to ensure it's available (workaround for type missing error)
         . "$srcRoot\Services\UserPreferencesService.ps1"
     }
 
     BeforeEach {
         # Create temp file
         $tempFile = [System.IO.Path]::GetTempFileName()
-        $service = [UserPreferencesService]::new($tempFile)
+        # Use New-Object to avoid parse-time type check failure
+        $service = New-Object UserPreferencesService -ArgumentList $tempFile
     }
 
     AfterEach {
