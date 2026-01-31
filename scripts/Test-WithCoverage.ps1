@@ -53,22 +53,28 @@ try {
 
     # 2. Check coverage (Manual parsing of XML is more reliable across Pester versions)
     $actual = 0
-    $coverageFile = Join-Path $repoRoot $config.CodeCoverage.OutputPath
+    $coverageFile = Join-Path $repoRoot $configJson.CodeCoverage.OutputPath
     
     if (Test-Path $coverageFile) {
-        [xml]$xml = Get-Content $coverageFile
-        # Find the global instruction counter at the report level
-        $counters = $xml.SelectNodes("/report/counter[@type='INSTRUCTION']")
-        if ($counters) {
-            # In Jacoco XML from Pester, the global total is usually the last one at the report level
-            $mainCounter = $counters | Select-Object -Last 1
-            $covered = [double]$mainCounter.GetAttribute("covered")
-            $missed = [double]$mainCounter.GetAttribute("missed")
+        Write-Host "Parsing coverage report: $coverageFile" -ForegroundColor Gray
+        [xml]$xml = Get-Content $coverageFile -Raw
+        
+        # In Jacoco, the global total is a counter at the report level
+        $globalCounter = $xml.report.counter | Where-Object { $_.type -eq 'INSTRUCTION' }
+        
+        if ($null -ne $globalCounter) {
+            $covered = [double]$globalCounter.covered
+            $missed = [double]$globalCounter.missed
             $total = $covered + $missed
+            
             if ($total -gt 0) {
                 $actual = [math]::Round(($covered / $total) * 100, 2)
             }
+        } else {
+            Write-Warning "Could not find global INSTRUCTION counter in $coverageFile"
         }
+    } else {
+        Write-Warning "Coverage file not found at $coverageFile"
     }
 
     $isSuccess = $actual -ge $targetValue
@@ -79,7 +85,7 @@ try {
     
     if (-not $isSuccess) {
         Write-Host "CRITICAL: COVERAGE FAILURE! Actual $actual% < Target $targetValue%" -ForegroundColor Red
-        Write-Host "Push blocked. Please add more tests." -ForegroundColor Yellow
+        Write-Host "Push blocked. Please add more tests to meet the $targetValue% requirement." -ForegroundColor Yellow
         exit 1
     }
 
