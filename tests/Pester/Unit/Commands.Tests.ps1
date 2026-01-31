@@ -6,43 +6,9 @@ Describe "Complex Commands" {
         # Use Test-Setup for reliable loading
         . "$scriptRoot\tests\Test-Setup.ps1" | Out-Null
         
-        # Load Mock Repository Manager
-        $mockRepoPath = Join-Path $PSScriptRoot "..\..\Mocks\MockRepositoryManager.ps1"
-        if (Test-Path $mockRepoPath) {
-            . $mockRepoPath
-        } else {
-            Throw "MockRepositoryManager not found at $mockRepoPath"
-        }
-        
-        # Load Common Mock Services (Reusable)
-        $mockServicesPath = Join-Path $PSScriptRoot "..\..\Mocks\MockCommonServices.ps1"
-        if (Test-Path $mockServicesPath) {
-            . $mockServicesPath
-        } else {
-            Throw "MockCommonServices not found at $mockServicesPath"
-        }
-
-        # Dynamic Mock Definitions - Using Interface Pattern (DIP)
-        $mockDefs = @'
-        class MockNavigationState : NavigationState {
-             [array] $Repos = @()
-             [int] $CurrentIndex = 0
-
-             MockNavigationState() : base(@()) {}
-             [void] Stop() {}
-             [void] Resume() {}
-             [void] MarkForFullRedraw() {}
-             [void] SetRepositories([array]$repos) { $this.Repos = $repos }
-             [void] SetCurrentIndex([int]$i) { $this.CurrentIndex = $i }
-             [array] GetRepositories() { return $this.Repos }
-             [int] GetCurrentIndex() { return $this.CurrentIndex }
-        }
-'@
-        # Execute local mock definitions
-        Invoke-Expression $mockDefs
-        
-        # Execute common service mocks (from MockCommonServices.ps1)
-        Invoke-Expression $global:MockServiceDefinitions
+        # Load Mocks (Direct loading - no Invoke-Expression needed)
+        . "$PSScriptRoot\..\..\Mocks\MockRepositoryManager.ps1"
+        . "$PSScriptRoot\..\..\Mocks\MockCommonServices.ps1"
     }
 
     Context "NpmCommand" {

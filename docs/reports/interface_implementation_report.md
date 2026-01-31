@@ -27,6 +27,30 @@ Se ha completado la implementación de interfaces para todas las clases crítica
 
 Todas las interfaces siguen el patrón PowerShell 5.1 (clase base con métodos que lanzan excepciones):
 
+#### ¿Por qué `throw "Not Implemented"`?
+
+PowerShell 5.1 no tiene la palabra clave `interface`. La solución estándar es usar clases base con métodos que lanzan excepciones:
+
+```powershell
+class IMyService {
+    [string] MyMethod([string]$param) {
+        throw "Not Implemented: MyMethod must be overridden"
+    }
+}
+```
+
+**Ventajas de este patrón:**
+- ✅ **Contrato explícito**: Las clases hijas DEBEN implementar todos los métodos
+- ✅ **Error claro**: Si olvidas un método, obtienes un error descriptivo
+- ✅ **Seguro en uso normal**: El throw nunca se ejecuta si implementas correctamente
+- ✅ **Estándar de la industria**: Es la práctica recomendada en PowerShell 5.1
+
+**El throw solo se ejecuta si:**
+- Olvidas implementar un método (error de desarrollo que detectas inmediatamente)
+- Llamas directamente a la interfaz (cosa que no deberías hacer)
+
+En uso normal, las clases hijas reemplazan estos métodos y el throw nunca se ejecuta.
+
 #### Servicios Core
 - **[INpmService.ps1](../../src/Core/Interfaces/INpmService.ps1)**: Abstracción de operaciones npm
 - **[IGitService.ps1](../../src/Core/Interfaces/IGitService.ps1)**: Abstracción de operaciones Git completas

@@ -4,6 +4,60 @@
 **Autor:** Desarrollo Repo-Nav  
 **Propósito:** Guía práctica para escribir tests siguiendo SOLID y el patrón de interfaces
 
+## Patrón de Interfaces en PowerShell 5.1
+
+### ¿Por qué `throw "Not Implemented"`?
+
+PowerShell 5.1 **no tiene** la palabra clave `interface`. Para simular interfaces usamos:
+
+```powershell
+class IMyService {
+    [string] MyMethod([string]$param) {
+        throw "Not Implemented: MyMethod must be overridden"
+    }
+}
+```
+
+**¿Es seguro?** ✅ **SÍ, completamente seguro**
+
+El `throw` actúa como un **contrato de interfaz**:
+- Obliga a las clases hijas a implementar todos los métodos
+- Si olvidas implementar un método, obtienes un error claro al llamarlo
+- Es la práctica estándar en PowerShell 5.1 para interfaces
+
+**¿Cuándo se ejecuta el throw?**
+- ❌ **Nunca en uso normal** - las clases hijas reemplazan los métodos
+- ✅ **Solo si olvidas implementar** un método (error de desarrollo)
+- ✅ **Solo si llamas a la interfaz directamente** (no deberías hacerlo)
+
+**Ejemplo:**
+```powershell
+# Interfaz con throw
+class IConsoleHelper {
+    [void] Clear() { throw "Not Implemented" }
+}
+
+# Clase que implementa correctamente
+class ConsoleHelper : IConsoleHelper {
+    [void] Clear() { 
+        Clear-Host  # ✅ Reemplaza el throw
+    }
+}
+
+# Uso normal
+$console = [ConsoleHelper]::new()
+$console.Clear()  # ✅ Funciona, no lanza excepción
+
+# Error de implementación
+class BadConsole : IConsoleHelper {
+    # ❌ Olvidé implementar Clear()
+}
+$bad = [BadConsole]::new()
+$bad.Clear()  # ❌ Lanza: "Not Implemented" - te avisa del error!
+```
+
+Este patrón es **más seguro** que no tener interfaces, porque detecta errores temprano.
+
 ## Introducción
 
 Esta guía explica cómo escribir tests correctos en el proyecto `repo-nav` después de la implementación completa de interfaces. Todos los tests DEBEN seguir estos patrones para garantizar compatibilidad y mantenibilidad.
@@ -22,25 +76,10 @@ Describe "Mi Componente" {
         . "$scriptRoot\tests\Test-Setup.ps1" | Out-Null
         
         # ───────────────────────────────────────────────────────────────
-        # PASO 2: Cargar mocks reutilizables
+        # PASO 2: Cargar mocks reutilizables (Direct loading)
         # ───────────────────────────────────────────────────────────────
         . "$PSScriptRoot\..\..\Mocks\MockCommonServices.ps1"
         . "$PSScriptRoot\..\..\Mocks\MockRepositoryManager.ps1"
-        
-        # ───────────────────────────────────────────────────────────────
-        # PASO 3: Definir mocks específicos del test
-        # ───────────────────────────────────────────────────────────────
-        $localMocks = @'
-        class MockMiClaseEspecifica : IMiInterfaz {
-            [string] MiMetodo([string]$param) { return "mock" }
-        }
-'@
-        Invoke-Expression $localMocks
-        
-        # ───────────────────────────────────────────────────────────────
-        # PASO 4: Cargar mocks comunes (de MockCommonServices.ps1)
-        # ───────────────────────────────────────────────────────────────
-        Invoke-Expression $global:MockServiceDefinitions
     }
     
     Context "Escenario específico" {
@@ -136,9 +175,9 @@ Todos estos mocks están listos para usar:
 
 ```powershell
 BeforeAll {
-    # Cargar mocks
+    # Cargar mocks (direct loading - como cualquier archivo .ps1)
     . "$PSScriptRoot\..\..\Mocks\MockCommonServices.ps1"
-    Invoke-Expression $global:MockServiceDefinitions
+    . "$PSScriptRoot\..\..\Mocks\MockRepositoryManager.ps1"
 }
 
 Context "Mi test" {
@@ -163,27 +202,9 @@ Describe "NavigationCommand Tests" {
         # Cargar entorno
         . "$PSScriptRoot\..\..\..\tests\Test-Setup.ps1" | Out-Null
         
-        # Cargar mocks comunes
+        # Cargar mocks comunes (direct loading)
         . "$PSScriptRoot\..\..\Mocks\MockCommonServices.ps1"
         . "$PSScriptRoot\..\..\Mocks\MockRepositoryManager.ps1"
-        
-        # Mock específico para NavigationState (hereda de clase base)
-        $customMock = @'
-        class MockNavigationState : NavigationState {
-            [array] $Repos = @()
-            [int] $CurrentIndex = 0
-            
-            MockNavigationState() : base(@()) {}
-            
-            [void] SetRepositories([array]$repos) { $this.Repos = $repos }
-            [array] GetRepositories() { return $this.Repos }
-            [int] GetCurrentIndex() { return $this.CurrentIndex }
-        }
-'@
-        Invoke-Expression $customMock
-        
-        # Cargar mocks comunes
-        Invoke-Expression $global:MockServiceDefinitions
     }
     
     Context "Cuando se ejecuta un comando" {

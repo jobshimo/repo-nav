@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    MockServices - Reusable mock implementations for testing
+    MockCommonServices - Reusable mock implementations for testing
     
 .DESCRIPTION
     This file provides standard mock implementations of core service interfaces.
@@ -8,19 +8,34 @@
     
 .USAGE
     # In your test file:
-    . "$PSScriptRoot\..\..\Mocks\MockServices.ps1"
-    Invoke-Expression $global:MockServiceDefinitions
+    . "$PSScriptRoot\..\..\Mocks\MockCommonServices.ps1"
     
-    # Then use:
+    # Then use directly:
     $mockNpm = New-Object MockNpmService
     $mockConsole = New-Object MockConsoleHelper
+    $mockState = New-Object MockNavigationState
     
 .NOTES
     All mocks implement their corresponding interfaces to ensure type compatibility.
-    Mocks are defined as a string to be executed with Invoke-Expression in tests.
+    Load directly like any other PowerShell class file - no Invoke-Expression needed.
 #>
 
-$global:MockServiceDefinitions = @'
+# ═════════════════════════════════════════════════════════════════════════════
+# MOCK NAVIGATION STATE
+# ═════════════════════════════════════════════════════════════════════════════
+class MockNavigationState : NavigationState {
+    [array] $Repos = @()
+    [int] $CurrentIndex = 0
+
+    MockNavigationState() : base(@()) {}
+    [void] Stop() {}
+    [void] Resume() {}
+    [void] MarkForFullRedraw() {}
+    [void] SetRepositories([array]$repos) { $this.Repos = $repos }
+    [void] SetCurrentIndex([int]$i) { $this.CurrentIndex = $i }
+    [array] GetRepositories() { return $this.Repos }
+    [int] GetCurrentIndex() { return $this.CurrentIndex }
+}
 
 # ═════════════════════════════════════════════════════════════════════════════
 # MOCK NPM SERVICE
@@ -156,5 +171,3 @@ class MockLocalizationService : ILocalizationService {
     [string] GetCurrentLanguage() { return "en" }
     [void] SetLanguage([string]$language) {}
 }
-
-'@
