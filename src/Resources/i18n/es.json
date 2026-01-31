@@ -296,6 +296,7 @@
     "Flow.Quick.Opt.CreateBranch": "Crear Nueva Rama",
     "Flow.Quick.Opt.PushBranch": "Subir Rama Local (Push)",
     "Flow.Quick.Opt.Delete": "Borrar Rama...",
+    "Flow.Quick.Opt.DeleteRemoteOnly": "Borrar SOLO Rama Remota...",
     "Flow.Quick.Back": "Volver al Menú",
     "Flow.Quick.Prompt.CommitMsg": "Introduce mensaje del commit: ",
     "Error.Aborted": "Abortado (Mensaje vacío)",

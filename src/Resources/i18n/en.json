@@ -300,6 +300,7 @@
     "Flow.Quick.Opt.CreateBranch": "Create New Branch",
     "Flow.Quick.Opt.PushBranch": "Push Local Branch",
     "Flow.Quick.Opt.Delete": "Delete Branch...",
+    "Flow.Quick.Opt.DeleteRemoteOnly": "Delete Remote Branch Only...",
     "Flow.Quick.Back": "Back to Menu",
     "Flow.Quick.Prompt.CommitMsg": "Enter commit message: ",
     "Error.Aborted": "Aborted (Empty message)",

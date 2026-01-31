@@ -81,6 +81,9 @@ class QuickChangeFlowController : FlowControllerBase {
             $optDelete = $this.Context.LocalizationService.Get("Flow.Quick.Opt.Delete", "Delete Branch...")
             $options += @{ DisplayText = $optDelete; Value = "DeleteBranch" }
             
+            $optDeleteRemote = $this.Context.LocalizationService.Get("Flow.Quick.Opt.DeleteRemoteOnly", "Delete Remote Branch Only...")
+            $options += @{ DisplayText = $optDeleteRemote; Value = "DeleteRemoteOnly" }
+            
             # OPT 5: Back
             $optBack = $this.Context.LocalizationService.Get("Flow.Quick.Back", "Back to Menu")
             $options += @{ DisplayText = $optBack; Value = "Back" }
@@ -121,15 +124,63 @@ class QuickChangeFlowController : FlowControllerBase {
                         $tempMessageColor = [Constants]::ColorError # Red
                     }
                 }
-                "PushBranch"   { $this.HandlePushBranch() }
-                "PullBranch"   { $this.HandlePullBranch() }
-                "Commit"       { $this.HandleCommit() }
-                "Stash"        { $this.HandleStash() }
-                "CreateBranch" { $this.HandleCreateBranch() }
-                "DeleteBranch" { $this.HandleDeleteBranch() }
+                "PushBranch"        { $this.HandlePushBranch() }
+                "PullBranch"        { $this.HandlePullBranch() }
+                "Commit"            { $this.HandleCommit() }
+                "Stash"             { $this.HandleStash() }
+                "CreateBranch"      { $this.HandleCreateBranch() }
+                "DeleteBranch"      { $this.HandleDeleteBranch() }
+                "DeleteRemoteOnly"  { $this.HandleDeleteRemoteOnly() }
             }
         }
         return ""
+    }
+
+    # ... existing handlers ...
+
+    hidden [void] HandleDeleteRemoteOnly() {
+        $this.ShowMessage($this.Context.LocalizationService.Get("Flow.Init.Fetching", "Fetching remotes..."), [Constants]::ColorHint)
+        $this.GitWriteService.Fetch($this.Repo.FullPath) | Out-Null
+        
+        # 1. Select Remote Branch to Delete
+        $remotes = $this.GitReadService.GetRemoteBranches($this.Repo.FullPath)
+        
+        if ($null -eq $remotes -or $remotes.Count -eq 0) {
+            $this.ShowMessage($this.Context.LocalizationService.Get("Flow.Error.NoBranches", "No branches found"), [Constants]::ColorWarning)
+            Start-Sleep -Seconds 1
+            return
+        }
+
+        $title = "DELETE REMOTE BRANCH ONLY"
+        $sel = $this.ListSelector.ShowSelection($title, $remotes, @{ Prompt="Select Remote Branch to Delete"; InitialFocus=[Constants]::FocusInput })
+        
+        if ($null -eq $sel) { return }
+        # remote branch name usually comes as "origin/branch", we need just "branch" for DeleteRemoteBranch method?
+        # Verify usage: GitWriteService.DeleteRemoteBranch takes "branchName".
+        # If I pass "origin/feature", `git push origin --delete origin/feature` is wrong. It should be `feature`.
+        # However, `GetRemoteBranches` returns what? "origin/main", "origin/feature".
+        # So I need to strip "origin/" prefix.
+        
+        $selectedRemote = $sel.Value.Trim()
+        $cleanBranchName = $selectedRemote -replace "^origin/", ""
+        
+        # 2. Remote Delete Prompt
+        $promptRemote = $this.Context.LocalizationService.Get("Flow.Prompt.DeleteRemote", "Delete remote branch 'origin/{0}'? (IRREVERSIBLE)") -f $cleanBranchName
+        $confirmRemote = $this.ListSelector.ShowSelection("DELETE REMOTE ONLY?", @("Yes", "No"), @{ Prompt = $promptRemote })
+        
+        if ($confirmRemote.Value -eq "Yes") {
+             $this.ShowMessage("Deleting remote branch...", [Constants]::ColorWarning)
+             $remRes = $this.GitWriteService.DeleteRemoteBranch($this.Repo.FullPath, $cleanBranchName)
+             if ($remRes.Success) {
+                 # Reuse existing status message
+                 $msgRem = $this.Context.LocalizationService.Get("Flow.Status.RemoteDeleted", "Remote branch 'origin/{0}' deleted.") -f $cleanBranchName
+                 $this.ShowMessage($msgRem, [Constants]::ColorSuccess)
+             } else {
+                 $this.ShowMessage("Remote Delete Failed: $($remRes.Output)", [Constants]::ColorError)
+             }
+             Start-Sleep -Seconds 1
+        }
+        Start-Sleep -Milliseconds 500
     }
     
     hidden [string] HandleSwitchBranch([bool]$hasChanges) {
