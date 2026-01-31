@@ -65,25 +65,41 @@ if (Test-Path $validationScript) {
 }
 #endregion
 
-#region 2. Unit Tests
-if (Test-Path $testRunner) {
-    Write-Host "  [2/2] Running unit tests..." -ForegroundColor Yellow
+#region 2. Pester Tests (New)
+$pesterPath = Join-Path $repoRoot "tests\Pester"
+$srcPath = Join-Path $repoRoot "src"
+
+if (Test-Path $pesterPath) {
+    Write-Host "  [2/2] Running Pester tests with coverage..." -ForegroundColor Yellow
     
     try {
-        & $testRunner
+        # Define coverage paths (all .ps1 files in src, excluding _index.ps1)
+        # Note: Pester 5+ CodeCoverage syntax
+        $pesterCommand = "
+            `$config = [PesterConfiguration]::Default
+            `$config.Run.Path = '$pesterPath'
+            `$config.Run.Exit = `$true
+            `$config.Output.Verbosity = 'Detailed'
+            `$config.CodeCoverage.Enabled = `$true
+            `$config.CodeCoverage.Path = '$srcPath'
+            `$config.CodeCoverage.OutputFormat = 'Jacoco'
+            `$config.CodeCoverage.OutputPath = 'coverage.xml'
+            
+            Invoke-Pester -Configuration `$config
+        "
+        
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -Command $pesterCommand
         
         if ($LASTEXITCODE -ne 0) {
-            $totalErrors += $LASTEXITCODE
-            Write-Host "      [FAIL] Tests failed" -ForegroundColor Red
+            $totalErrors += 1
+            Write-Host "      [FAIL] Pester tests failed" -ForegroundColor Red
         } else {
-            Write-Host "      [OK] All tests passed" -ForegroundColor Green
+            Write-Host "      [OK] Pester tests passed" -ForegroundColor Green
         }
     } catch {
-        Write-Host "      [FAIL] Test runner error: $_" -ForegroundColor Red
+        Write-Host "      [FAIL] Pester runner error: $_" -ForegroundColor Red
         $totalErrors++
     }
-} else {
-    Write-Host "  [2/2] Test runner not found - SKIPPED" -ForegroundColor Yellow
 }
 #endregion
 

@@ -34,36 +34,37 @@ class ConfigurationService {
         
         try {
             $content = Get-Content $this.ConfigFilePath -Raw -ErrorAction Stop
-            $config = ConvertFrom-Json $content -ErrorAction Stop
+            # -AsHashtable is safer for manipulation in PS 5+ but let's stick to object and rebuild
+            $jsonObj = ConvertFrom-Json $content -ErrorAction Stop
             
-            # Handle old format (just aliases without favorites)
-            if (-not ($config.PSObject.Properties.Name -contains 'favorites')) {
-                return [PSCustomObject]@{
-                    aliases = $config
-                    favorites = @()
+            # Normalize Aliases
+            $aliases = if ($jsonObj.PSObject.Properties.Match('aliases').Count) { $jsonObj.aliases } else { $jsonObj }
+            # If root aliases property exists, use it. If not (legacy), assume root IS aliases (unless favorites exists)
+            
+            # Handle legacy root-level aliases
+            if (-not ($jsonObj.PSObject.Properties.Match('aliases').Count) -and 
+                -not ($jsonObj.PSObject.Properties.Match('favorites').Count)) {
+                $aliases = $jsonObj
+            } elseif ($null -eq $aliases) {
+                # Aliases property exists but is null?
+                $aliases = [PSCustomObject]@{}
+            }
+
+            # Normalize Favorites
+            $favorites = @()
+            if ($jsonObj.PSObject.Properties.Match('favorites').Count -and $null -ne $jsonObj.favorites) {
+                if ($jsonObj.favorites -is [string]) {
+                     $favorites = @($jsonObj.favorites)
+                } elseif ($jsonObj.favorites -is [array]) {
+                     $favorites = @($jsonObj.favorites | Where-Object { $_ -is [string] })
                 }
             }
-            
-            # Ensure structure exists
-            if (-not $config.aliases) {
-                $config | Add-Member -NotePropertyName 'aliases' -NotePropertyValue ([PSCustomObject]@{}) -Force
+
+            # Reconstruct clean object
+            return [PSCustomObject]@{
+                aliases = $aliases
+                favorites = $favorites
             }
-            
-            # Normalize favorites to always be an array
-            $normalizedFavorites = @()
-            if ($config.favorites) {
-                if ($config.favorites -is [string]) {
-                    # Convert single string to array
-                    $normalizedFavorites = @($config.favorites)
-                }
-                elseif ($config.favorites -is [array]) {
-                    # Already an array, ensure all items are strings
-                    $normalizedFavorites = @($config.favorites | Where-Object { $_ -is [string] })
-                }
-            }
-            $config | Add-Member -NotePropertyName 'favorites' -NotePropertyValue $normalizedFavorites -Force
-            
-            return $config
         }
         catch {
             Write-Warning "Error loading configuration file: $_"
