@@ -12,12 +12,12 @@
 #>
 
 class ColorSelector {
-    [UIRenderer] $Renderer
+    [IUIRenderer] $Renderer
     [ConsoleHelper] $Console
     [OptionSelector] $OptionSelector
     
     # Constructor with dependency injection
-    ColorSelector([object]$renderer, [ConsoleHelper]$console, [object]$optionSelector) {
+    ColorSelector([IUIRenderer]$renderer, [ConsoleHelper]$console, [OptionSelector]$optionSelector) {
         $this.Renderer = $renderer
         $this.Console = $console
         $this.OptionSelector = $optionSelector

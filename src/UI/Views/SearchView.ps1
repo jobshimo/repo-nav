@@ -21,6 +21,10 @@ class SearchView {
     [LocalizationService] $LocalizationService
     [WindowSizeCalculator] $WindowCalculator
     [ViewportManager] $Viewport
+    [string] $InputBuffer
+
+    # Constants
+    static [int] $MAX_RESULTS = 15
     
     # Layout constants
     [int] $HeaderLines = 3          # Title separator lines
@@ -30,11 +34,12 @@ class SearchView {
     [int] $FooterLines = 4          # Separator + hints + blank + separator
     
     # Constructor with dependency injection
-    SearchView([ConsoleHelper]$console, [UIRenderer]$renderer, [LocalizationService]$localizationService) {
+    # Constructor with dependency injection
+    SearchView([ConsoleHelper]$console, [IUIRenderer]$renderer, [LocalizationService]$locService) {
         $this.Console = $console
         $this.Renderer = $renderer
         $this.SearchService = [SearchService]::new()
-        $this.LocalizationService = $localizationService
+        $this.LocalizationService = $locService
         $this.WindowCalculator = [WindowSizeCalculator]::new()
         $this.Viewport = [ViewportManager]::new()
     }

@@ -18,7 +18,7 @@
       - Clone/Delete operations (RepositoryOperationsService)
 #>
 
-class RepositoryManager {
+class RepositoryManager : IRepositoryManager {
     # Dependencies (injected)
     [GitService] $GitService
     [GitReadService] $GitReadService

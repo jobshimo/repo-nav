@@ -19,6 +19,7 @@ class AppBuilder {
         [ServiceRegistry]::Register('GitReadService', [GitReadService]::new())
         [ServiceRegistry]::Register('GitWriteService', [GitWriteService]::new())
         [ServiceRegistry]::Register('NpmService', [NpmService]::new())
+        [ServiceRegistry]::Register('JobService', [JobService]::new())
         [ServiceRegistry]::Register('UserPreferencesService', [UserPreferencesService]::new())
         
         # 2. Localization (Depends on Config)

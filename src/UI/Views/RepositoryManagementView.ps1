@@ -1,10 +1,10 @@
 class RepositoryManagementView {
     [ConsoleHelper] $Console
     [LocalizationService] $LocalizationService
-    [UIRenderer] $Renderer
+    [IUIRenderer] $Renderer
     [OptionSelector] $OptionSelector
 
-    RepositoryManagementView([ConsoleHelper]$console, [LocalizationService]$localizationService, [UIRenderer]$renderer, [OptionSelector]$optionSelector) {
+    RepositoryManagementView([ConsoleHelper]$console, [LocalizationService]$localizationService, [IUIRenderer]$renderer, [OptionSelector]$optionSelector) {
         $this.Console = $console
         $this.LocalizationService = $localizationService
         $this.Renderer = $renderer

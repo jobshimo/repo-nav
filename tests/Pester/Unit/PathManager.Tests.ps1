@@ -4,6 +4,7 @@ Describe "PathManager" {
         
         # Load dependencies
         . "$srcRoot\Config\Constants.ps1"
+        . "$srcRoot\Startup\ServiceRegistry.ps1"
         . "$srcRoot\Services\ArrayHelper.ps1"
         . "$srcRoot\Services\UserPreferencesService.ps1"
         . "$srcRoot\Core\Services\PathManager.ps1"

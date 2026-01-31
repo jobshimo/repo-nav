@@ -9,14 +9,14 @@
 #>
 
 class OnboardingService {
-    [UIRenderer] $Renderer
+    [IUIRenderer] $Renderer
     [ConsoleHelper] $Console
     [LocalizationService] $Loc
     [OptionSelector] $OptionSelector
     [UserPreferencesService] $PreferencesService
 
     OnboardingService(
-        [UIRenderer]$renderer,
+        [IUIRenderer]$renderer,
         [ConsoleHelper]$console,
         [LocalizationService]$loc,
         [OptionSelector]$optionSelector,

@@ -1,14 +1,14 @@
 class AliasView {
     [ConsoleHelper] $Console
     [LocalizationService] $LocalizationService
-    [UIRenderer] $Renderer
+    [IUIRenderer] $Renderer
     [ColorSelector] $ColorSelector
     [OptionSelector] $OptionSelector
 
     AliasView(
         [ConsoleHelper]$console, 
         [LocalizationService]$localizationService, 
-        [UIRenderer]$renderer,
+        [IUIRenderer]$renderer,
         [ColorSelector]$colorSelector,
         [OptionSelector]$optionSelector
     ) {

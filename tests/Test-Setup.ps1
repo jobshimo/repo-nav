@@ -1,92 +1,58 @@
 <#
 .SYNOPSIS
-    Interactive repository navigator for managing multiple Git repositories
-
+    Test Setup Script - Loads the entire application environment in the correct dependency order.
 .DESCRIPTION
-    Navigate between repositories, manage aliases, install/remove node_modules,
-    clone repositories from GitHub, and delete repositories with safety checks.
+    Replicates the loading logic of repo-nav.ps1 to ensure all classes and types 
+    are available before Pester runs any tests.
     
-    This version has been refactored using SOLID principles and OOP:
-    - Single Responsibility Principle: Each class has one clear purpose
-    - Open/Closed Principle: Easy to extend without modifying existing code
-    - Liskov Substitution Principle: Proper inheritance and composition
-    - Interface Segregation Principle: Specialized interfaces for UI, Services
-    - Dependency Inversion Principle: All classes depend on abstractions
-
-.PARAMETER BasePath
-    The base path where repositories are located. If not provided, uses the default from Constants.
-
-.EXAMPLE
-    .\repo-nav.ps1
-    Launches with default path from Constants.ps1
-
-.EXAMPLE
-    .\repo-nav.ps1 -BasePath "C:\Projects"
-    Launches with custom repositories path
-
-.INSTALLATION
-    Run .\Install.ps1 for interactive setup
-
-.USAGE
-    Type your command (e.g., 'list') from any directory to launch the repository navigator
-
-.CONTROLS
-    Navigation: Arrows | Enter=open | Q=quit
-    Aliases:    E=set | R=remove
-    Modules:    I=install | X=remove
-    Repository: C=clone | Del=delete
-    Git Status: L=load current | G=load all
-
-.NOTES
-    Author: Martin Miguel Bernal Garcia
-    Version: 2.0 (Refactored with SOLID/OOP)
-    Requires: PowerShell 5.1+, Git, npm (for node_modules management)
+    Prevents "TypeNotFound" errors caused by Parse Time vs Runtime issues.
+    Includes a guard to prevent re-loading if the environment is already active 
+    (avoiding Class Redefinition errors).
 #>
 
-# Parameters must be at the top of the script
-param(
-    [Parameter(Mandatory=$false)]
-    [string]$BasePath
-)
-
-#region Import Modules
-# ============================================================================
-# IMPORT SYSTEM - Layer-based Indices
-# ============================================================================
-# 
-# ⚠️  FOR AI ASSISTANTS & DEVELOPERS:
-#     When adding a NEW FILE, add it to the appropriate _index.ps1 file
-#     in the corresponding layer folder.
-#
-#     LAYER ORDER (DO NOT CHANGE):
-#     1. Config      → src/Config/_index.ps1
-#     2. Models      → src/Models/_index.ps1
-#     3. Services    → src/Services/_index.ps1
-#     4. UI          → src/UI/_index.ps1
-#     5. Commands    → src/Core/Commands/_index.ps1
-#     6. Flows       → src/Core/Flows/_index.ps1 (includes GitFlowCommand)
-#     7. Engine      → src/Core/Engine/_index.ps1
-#     8. Startup     → src/Startup/_index.ps1
-#
-# ============================================================================
-
 $scriptRoot = $PSScriptRoot
-$srcPath = Join-Path $scriptRoot "src"
+# If running from tests/ folder, go up one level to root. 
+# If running from root context, adjust accordingly.
+# Heuristic: verify if 'src' exists relative to $PSScriptRoot
+if (Test-Path (Join-Path $scriptRoot "..\src")) {
+    $rootPath = Resolve-Path (Join-Path $scriptRoot "..")
+} else {
+    $rootPath = $scriptRoot
+}
+
+$srcPath = Join-Path $rootPath "src"
+
+Write-Host " [Test-Setup] Initializing Test Environment..." -ForegroundColor Cyan
+Write-Host " [Test-Setup] Source Path: $srcPath" -ForegroundColor DarkGray
+
+# -----------------------------------------------------------------------------
+# GUARD: Check if environment is already loaded
+# -----------------------------------------------------------------------------
+# We check for a "Leaf" type (one of the last to be loaded) or a distinct Core type.
+# GitFlowCommand is a good candidate as it depends on almost everything.
+if ("GitFlowCommand" -as [type]) {
+    Write-Host " [Test-Setup] Environment appears to be already loaded. Skipping load to avoid Class Redefinition." -ForegroundColor Yellow
+    return
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 1: CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
+Write-Host " [Test-Setup] Loading Layer 1: Config" -ForegroundColor DarkGray
 . "$srcPath\Config\_index.ps1"
-[Constants]::Initialize($scriptRoot)
+[Constants]::Initialize($rootPath)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 2: MODELS
 # ─────────────────────────────────────────────────────────────────────────────
+Write-Host " [Test-Setup] Loading Layer 2: Models" -ForegroundColor DarkGray
 . "$srcPath\Models\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 3: CORE INFRASTRUCTURE (Interfaces + State)
 # ─────────────────────────────────────────────────────────────────────────────
+Write-Host " [Test-Setup] Loading Layer 3: Core Infrastructure" -ForegroundColor DarkGray
+# These must be loaded BEFORE Services
 . "$srcPath\Core\Interfaces\IProgressReporter.ps1"
 . "$srcPath\Core\Interfaces\IRepositoryManager.ps1"
 . "$srcPath\Services\WindowSizeCalculator.ps1"
@@ -98,16 +64,19 @@ $srcPath = Join-Path $scriptRoot "src"
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 4: SERVICES
 # ─────────────────────────────────────────────────────────────────────────────
+Write-Host " [Test-Setup] Loading Layer 4: Services" -ForegroundColor DarkGray
 . "$srcPath\Services\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 5: UI (Base + Components + Services)
 # ─────────────────────────────────────────────────────────────────────────────
+Write-Host " [Test-Setup] Loading Layer 5: UI" -ForegroundColor DarkGray
 . "$srcPath\UI\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 6: CORE MANAGERS
 # ─────────────────────────────────────────────────────────────────────────────
+Write-Host " [Test-Setup] Loading Layer 6: Core Managers" -ForegroundColor DarkGray
 . "$srcPath\Core\Services\GitStatusManager.ps1"
 . "$srcPath\Core\Services\RepositorySorter.ps1"
 . "$srcPath\Core\Services\OnboardingService.ps1"
@@ -117,6 +86,7 @@ $srcPath = Join-Path $scriptRoot "src"
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 7: UI CONTROLLERS & VIEWS
 # ─────────────────────────────────────────────────────────────────────────────
+Write-Host " [Test-Setup] Loading Layer 7: UI Controllers & Views" -ForegroundColor DarkGray
 . "$srcPath\UI\Controllers\PreferencesActionDispatcher.ps1"
 . "$srcPath\UI\Controllers\PreferencesMenuRenderer.ps1"
 . "$srcPath\UI\Controllers\PreferencesMenuController.ps1"
@@ -127,84 +97,27 @@ $srcPath = Join-Path $scriptRoot "src"
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 8: COMMAND SYSTEM
 # ─────────────────────────────────────────────────────────────────────────────
+Write-Host " [Test-Setup] Loading Layer 8: Command System" -ForegroundColor DarkGray
 . "$srcPath\Core\State\ApplicationContext.ps1"
 . "$srcPath\Core\State\CommandContext.ps1"
 . "$srcPath\Core\Commands\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# LAYER 9: FLOWS (includes GitFlowCommand)
+# LAYER 9: FLOWS
 # ─────────────────────────────────────────────────────────────────────────────
+Write-Host " [Test-Setup] Loading Layer 9: Flows" -ForegroundColor DarkGray
 . "$srcPath\Core\Flows\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LAYER 10: ENGINE
 # ─────────────────────────────────────────────────────────────────────────────
+Write-Host " [Test-Setup] Loading Layer 10: Engine" -ForegroundColor DarkGray
 . "$srcPath\Core\Engine\_index.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# LAYER 11: STARTUP
+# LAYER 11: STARTUP (Partial)
 # ─────────────────────────────────────────────────────────────────────────────
+Write-Host " [Test-Setup] Loading Layer 11: Startup" -ForegroundColor DarkGray
 . "$srcPath\Startup\_index.ps1"
 
-#endregion
-
-#region Main Entry Point
-function Start-RepositoryNavigator {
-    <#
-    .SYNOPSIS
-        Main entry point - creates all dependencies and starts the navigator
-    .DESCRIPTION
-        This function implements the Composition Root pattern:
-        - Creates all service instances
-        - Wires up dependencies
-        - Starts the navigation loop
-    #>
-    
-    param(
-        [string]$BasePath
-    )
-    
-    try {
-        # Build Application Context using Manual DI Container
-        # This keeps the entry point clean and allows for easier testing/swapping in the future
-        $appContext = [AppBuilder]::Build($BasePath)
-
-        # Start navigation loop
-        Start-NavigationLoop -Context $appContext
-    }
-    catch {
-        Write-Host ""
-        Write-Host "Error starting repository navigator:" -ForegroundColor Red
-        Write-Host $_.Exception.Message -ForegroundColor Red
-        Write-Host ""
-        Write-Host "Stack trace:" -ForegroundColor DarkGray
-        Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
-        Write-Host ""
-        Write-Host "Press any key to exit..." -ForegroundColor Gray
-        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    }
-}
-#endregion
-
-#region Execute
-# When script is run directly (not dot-sourced), start the navigator
-if ($MyInvocation.InvocationName -ne '.') {
-    # If no base path provided, check preferences or use default
-    if (-not $BasePath) {
-        # 1. Try to load from preferences
-        try {
-            $tempPrefs = [UserPreferencesService]::new()
-            $defPath = $tempPrefs.GetPreference("repository", "defaultPath")
-            
-            if (-not [string]::IsNullOrWhiteSpace($defPath) -and (Test-Path $defPath)) {
-                $BasePath = $defPath
-            }
-        } catch {}
-        
-    
-    }
-    
-    # Start the navigator
-    Start-RepositoryNavigator -BasePath $BasePath
-}
-#endregion
+Write-Host " [Test-Setup] Environment Loaded Successfully." -ForegroundColor Green

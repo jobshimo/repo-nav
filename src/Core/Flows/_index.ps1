@@ -8,11 +8,19 @@
 $flowsPath = $PSScriptRoot
 
 # Base class first
-. "$flowsPath\FlowControllerBase.ps1"
+if (-not ([System.Management.Automation.PSTypeName]'FlowControllerBase').Type) {
+    . "$flowsPath\FlowControllerBase.ps1"
+}
 
 # Flow implementations
-. "$flowsPath\IntegrationFlowController.ps1"
-. "$flowsPath\QuickChangeFlowController.ps1"
+if (-not ([System.Management.Automation.PSTypeName]'IntegrationFlowController').Type) {
+    . "$flowsPath\IntegrationFlowController.ps1"
+}
+if (-not ([System.Management.Automation.PSTypeName]'QuickChangeFlowController').Type) {
+    . "$flowsPath\QuickChangeFlowController.ps1"
+}
 
 # GitFlowCommand (orchestrator) - MUST be loaded after FlowControllers
-. "$flowsPath\GitFlowCommand.ps1"
+if (-not ([System.Management.Automation.PSTypeName]'GitFlowCommand').Type) {
+    . "$flowsPath\GitFlowCommand.ps1"
+}
