@@ -276,8 +276,14 @@ El proyecto sigue **principios SOLID** con una arquitectura por capas:
 ### Scripts Útiles
 
 ```powershell
+# Ejecutar suite completa de tests (72 tests)
+.\tests\Run-Tests.ps1
+
 # Validar proyecto antes de commit
 .\scripts\Validate-Project.ps1
+
+# Instalar pre-commit hook (ejecuta validación y tests automáticamente)
+.\scripts\Install-PreCommitHook.ps1
 
 # Test rápido en desarrollo
 .\scripts\Test-Dev.ps1
@@ -285,6 +291,9 @@ El proyecto sigue **principios SOLID** con una arquitectura por capas:
 # Generar bundle de distribución
 .\Build-Bundle.ps1
 ```
+
+**Estado de Tests**: 72/72 passing ✅ (100%)  
+Ver [.improvements/MEJORAS-2026-01-31.md](.improvements/MEJORAS-2026-01-31.md) para detalles sobre testing framework y mejoras implementadas.
 
 ### Para Contribuir
 
