@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd"[]>
-<report name="Pester (01/31/2026 11:51:49)">
-  <sessioninfo id="this" start="1769860306542" dump="1769860309544" />
+<report name="Pester (01/31/2026 12:00:27)">
+  <sessioninfo id="this" start="1769860824166" dump="1769860827185" />
   <package name="src/App">
     <class name="src/App/AppBuilder" sourcefilename="App/AppBuilder.ps1">
       <method name="Build" desc="()" line="11">
@@ -4749,8 +4749,8 @@
         <counter type="METHOD" missed="1" covered="0" />
       </method>
       <method name="CalculateInitialPageSize" desc="()" line="93">
-        <counter type="INSTRUCTION" missed="4" covered="5" />
-        <counter type="LINE" missed="4" covered="5" />
+        <counter type="INSTRUCTION" missed="3" covered="6" />
+        <counter type="LINE" missed="3" covered="6" />
         <counter type="METHOD" missed="0" covered="1" />
       </method>
       <method name="AdjustViewportForSelection" desc="()" line="130">
@@ -4758,8 +4758,8 @@
         <counter type="LINE" missed="5" covered="0" />
         <counter type="METHOD" missed="1" covered="0" />
       </method>
-      <counter type="INSTRUCTION" missed="23" covered="5" />
-      <counter type="LINE" missed="22" covered="5" />
+      <counter type="INSTRUCTION" missed="22" covered="6" />
+      <counter type="LINE" missed="21" covered="6" />
       <counter type="METHOD" missed="4" covered="1" />
       <counter type="CLASS" missed="1" covered="0" />
     </class>
@@ -6178,18 +6178,18 @@
       <line nr="96" mi="0" ci="1" mb="0" cb="0" />
       <line nr="97" mi="0" ci="1" mb="0" cb="0" />
       <line nr="99" mi="0" ci="1" mb="0" cb="0" />
-      <line nr="100" mi="0" ci="1" mb="0" cb="0" />
-      <line nr="102" mi="1" ci="0" mb="0" cb="0" />
+      <line nr="100" mi="1" ci="0" mb="0" cb="0" />
+      <line nr="102" mi="0" ci="1" mb="0" cb="0" />
       <line nr="103" mi="1" ci="0" mb="0" cb="0" />
-      <line nr="106" mi="1" ci="0" mb="0" cb="0" />
+      <line nr="106" mi="0" ci="1" mb="0" cb="0" />
       <line nr="109" mi="1" ci="0" mb="0" cb="0" />
       <line nr="130" mi="1" ci="0" mb="0" cb="0" />
       <line nr="131" mi="1" ci="0" mb="0" cb="0" />
       <line nr="133" mi="2" ci="0" mb="0" cb="0" />
       <line nr="134" mi="1" ci="0" mb="0" cb="0" />
       <line nr="136" mi="1" ci="0" mb="0" cb="0" />
-      <counter type="INSTRUCTION" missed="23" covered="5" />
-      <counter type="LINE" missed="22" covered="5" />
+      <counter type="INSTRUCTION" missed="22" covered="6" />
+      <counter type="LINE" missed="21" covered="6" />
       <counter type="METHOD" missed="4" covered="1" />
       <counter type="CLASS" missed="1" covered="0" />
     </sourcefile>
@@ -6217,8 +6217,8 @@
       <counter type="METHOD" missed="0" covered="1" />
       <counter type="CLASS" missed="0" covered="1" />
     </sourcefile>
-    <counter type="INSTRUCTION" missed="1530" covered="187" />
-    <counter type="LINE" missed="1191" covered="138" />
+    <counter type="INSTRUCTION" missed="1529" covered="188" />
+    <counter type="LINE" missed="1190" covered="139" />
     <counter type="METHOD" missed="145" covered="23" />
     <counter type="CLASS" missed="8" covered="11" />
   </package>
@@ -9487,8 +9487,8 @@
     <counter type="METHOD" missed="30" covered="0" />
     <counter type="CLASS" missed="3" covered="0" />
   </package>
-  <counter type="INSTRUCTION" missed="6384" covered="346" />
-  <counter type="LINE" missed="5165" covered="294" />
+  <counter type="INSTRUCTION" missed="6383" covered="347" />
+  <counter type="LINE" missed="5164" covered="295" />
   <counter type="METHOD" missed="529" covered="47" />
   <counter type="CLASS" missed="58" covered="26" />
 </report>

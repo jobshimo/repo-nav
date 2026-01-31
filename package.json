@@ -8,7 +8,7 @@
   "scripts": {
     "start": "powershell -ExecutionPolicy Bypass -File ./repo-nav.ps1",
     "test": "powershell -ExecutionPolicy Bypass -Command \"Invoke-Pester -Path .\\tests\\Pester\\ -Output Detailed\"",
-    "test:coverage": "powershell -ExecutionPolicy Bypass -Command \"& { Import-Module Pester; $config = [PesterConfiguration]::Default; $config.Run.Path = '.\\tests\\Pester\\'; $config.CodeCoverage.Enabled = $true; $config.CodeCoverage.Path = '.\\src\\'; $config.CodeCoverage.OutputFormat = 'Jacoco'; $config.CodeCoverage.OutputPath = 'coverage.xml'; Invoke-Pester -Configuration $config }\"",
+    "test:coverage": "powershell -ExecutionPolicy Bypass -Command \"& { Import-Module Pester; $config = [PesterConfiguration]::Default; $config.Run.Path = '.\\tests\\Pester\\'; $config.CodeCoverage.Enabled = $true; $config.CodeCoverage.Path = '.\\src\\'; $config.CodeCoverage.OutputFormat = 'Jacoco'; $config.CodeCoverage.OutputPath = 'coverage.xml'; $config.CodeCoverage.CoveragePercentTarget = 80; Invoke-Pester -Configuration $config }\"",
     "build": "powershell -ExecutionPolicy Bypass -File ./Build-Bundle.ps1",
     "verify": "powershell -ExecutionPolicy Bypass -File ./scripts/Validate-Project.ps1",
     "check": "npm test && npm run verify",

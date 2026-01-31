@@ -83,11 +83,12 @@ if (Test-Path $pesterPath) {
                 `$config = [PesterConfiguration]::Default
                 `$config.Run.Path = '$pesterPath'
                 `$config.Run.Exit = `$true
-                `$config.Output.Verbosity = 'Detailed'
+                `$config.Output.Verbosity = 'Normal'
                 `$config.CodeCoverage.Enabled = `$true
                 `$config.CodeCoverage.Path = '$srcPath'
                 `$config.CodeCoverage.OutputFormat = 'Jacoco'
                 `$config.CodeCoverage.OutputPath = 'coverage.xml'
+                `$config.CodeCoverage.CoveragePercentTarget = 80
                 
                 Invoke-Pester -Configuration `$config
             } catch {
