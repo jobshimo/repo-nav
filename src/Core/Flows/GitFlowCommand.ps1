@@ -137,14 +137,22 @@ class GitFlowCommand : INavigationCommand {
                         $actionOptions.Add($optPull)
                     }
                     
-                    $optDelete = $this.GetLoc($context, "Flow.Action.Delete", "Delete")
+                    $optDeleteLocal = $this.GetLoc($context, "Flow.Action.DeleteLocal", "Delete Local Branch")
+                    $optDeleteRemote = $this.GetLoc($context, "Flow.Action.DeleteRemote", "Delete Remote Branch")
+                    
                     # Can only delete if NOT current
                     if (-not $isCurrent) {
-                        $actionOptions.Add($optDelete)
+                        $actionOptions.Add($optDeleteLocal)
+                    }
+                    
+                    # Remote Delete option - check if remote exists
+                    $remoteExists = $gitService.RemoteBranchExists($repo.FullPath, $selectedBranch)
+                    if ($remoteExists) {
+                         $actionOptions.Add($optDeleteRemote)
                     }
                     
                     if ($actionOptions.Count -eq 0) {
-                        $statusMessage = "Current branch '$selectedBranch' is up to date."
+                        $statusMessage = $this.GetLoc($context, "Flow.Status.CurrentUpToDate", "Current branch '{0}' is up to date.") -f $selectedBranch
                         $statusColor = [Constants]::ColorInfo
                         continue
                     }
@@ -186,11 +194,6 @@ class GitFlowCommand : INavigationCommand {
                     }
                     elseif ($action -eq $optPull) {
                         # PULL LOGIC
-                        # First checkout (if not current), then pull? 
-                        # Or just pull if we are on it? 
-                        # Usually you pull the current branch. If we are NOT on it, we might need to fetch `origin branch:branch` or checkout then pull.
-                        # For simplicity/safety: Checkout first, then Pull.
-                        
                         # 1. Checkout
                         $checkoutResult = $gitService.Checkout($repo.FullPath, $selectedBranch)
                         if (-not $checkoutResult.Success) {
@@ -210,45 +213,40 @@ class GitFlowCommand : INavigationCommand {
                             }
                         }
                     }
-                    elseif ($action -eq $optDelete) {
-                        # DELETE LOGIC
+                    elseif ($action -eq $optDeleteLocal) {
+                        # DELETE LOCAL LOGIC
+                        $prompt = $this.GetLoc($context, "Flow.Prompt.DeleteLocal", "Delete local branch '{0}'? (FORCE CAREFUL)") -f $selectedBranch
+                        $confirmLocal = $selector.ShowSelection("DELETE LOCAL?", @("Yes", "No"), @{ Prompt = $prompt })
                         
-                        # 1. Confirm Local Delete (Force)
-                        # We use a simple prompt logic or re-use selector? "Yes/No"
-                        # For simplicity, let's assume if they clicked Delete, they want to delete, keeping the flow fast.
-                        # But user asked for: "es importante que al borrar una rama de local, pregunte si tambien se quiere borrar la rama remota"
-                        # So we MUST prompt for remote. Local delete we can assume implied or prompt too?
-                        # "delete branch (con --no-verify)" -> implies FORCE delete without much fuss locally?
-                        # Let's do a safety check for Local.
-                        
-                        $confirmLocal = $selector.ShowSelection("DELETE LOCAL?", @("Yes", "No"), @{ Prompt = "Delete local '$selectedBranch'? (FORCE)" })
                         if ($confirmLocal.Value -eq "Yes") {
                             $delResult = $gitService.DeleteLocalBranch($repo.FullPath, $selectedBranch, $true) # Force = true
                             
                             if ($delResult.Success) {
-                                $localMsg = "Deleted local '$selectedBranch'."
-                                $statusMessage = $localMsg
+                                $statusMessage = $this.GetLoc($context, "Flow.Status.LocalDeleted", "Local branch '{0}' deleted.") -f $selectedBranch
                                 $statusColor = [Constants]::ColorSuccess
-                                
-                                # 2. Check & Prompt Remote Delete
-                                if ($gitService.RemoteBranchExists($repo.FullPath, $selectedBranch)) {
-                                    $confirmRemote = $selector.ShowSelection("DELETE REMOTE?", @("Yes", "No"), @{ Prompt = "Also delete remote 'origin/$selectedBranch'?" })
-                                    
-                                    if ($confirmRemote.Value -eq "Yes") {
-                                        $context.Console.WriteLineColored("Deleting remote branch...", [Constants]::ColorWarning)
-                                        $remResult = $gitService.DeleteRemoteBranch($repo.FullPath, $selectedBranch)
-                                        
-                                        if ($remResult.Success) {
-                                            $statusMessage = "$localMsg Remote deleted."
-                                        } else {
-                                            $statusMessage = "$localMsg Remote delete failed: " + $remResult.Message
-                                            $statusColor = [Constants]::ColorWarning
-                                        }
-                                    }
-                                }
                             } else {
-                                $statusMessage = "Delete failed: " + $delResult.Message
+                                $fmtErr = $this.GetLoc($context, "Flow.Status.DeleteFailed", "Failed to delete: {0}")
+                                $statusMessage = $fmtErr -f $delResult.Message
                                 $statusColor = [Constants]::ColorError
+                            }
+                        }
+                    }
+                    elseif ($action -eq $optDeleteRemote) {
+                        # DELETE REMOTE LOGIC
+                        $prompt = $this.GetLoc($context, "Flow.Prompt.DeleteRemote", "Delete remote branch 'origin/{0}'? (IRREVERSIBLE)") -f $selectedBranch
+                        $confirmRemote = $selector.ShowSelection("DELETE REMOTE?", @("Yes", "No"), @{ Prompt = $prompt })
+                        
+                        if ($confirmRemote.Value -eq "Yes") {
+                            $context.Console.WriteLineColored("Deleting remote branch...", [Constants]::ColorWarning)
+                            $remResult = $gitService.DeleteRemoteBranch($repo.FullPath, $selectedBranch)
+                            
+                            if ($remResult.Success) {
+                                $statusMessage = $this.GetLoc($context, "Flow.Status.RemoteDeleted", "Remote branch 'origin/{0}' deleted.") -f $selectedBranch
+                                $statusColor = [Constants]::ColorSuccess
+                            } else {
+                                $fmtErr = $this.GetLoc($context, "Flow.Status.DeleteFailed", "Failed to delete: {0}")
+                                $statusMessage = $fmtErr -f $remResult.Message
+                                $statusColor = [Constants]::ColorWarning
                             }
                         }
                     }

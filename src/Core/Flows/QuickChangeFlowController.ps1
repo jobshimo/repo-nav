@@ -17,8 +17,10 @@ class QuickChangeFlowController : FlowControllerBase {
             $remoteUrl = $this.GitReadService.GetRemoteUrl($this.Repo.FullPath)
             $hasRemote = -not [string]::IsNullOrWhiteSpace($remoteUrl)
             
-            # 2. Logic for Push
+            # 2. Logic for Push / Pull
             $needsPush = $false
+            $needsPull = $false
+            
             if ($hasRemote) {
                 # Note: GitWriteService or ReadService for GetRemoteBranches? ReadService.
                 $remotes = $this.GitReadService.GetRemoteBranches($this.Repo.FullPath)
@@ -29,6 +31,12 @@ class QuickChangeFlowController : FlowControllerBase {
                     $needsPush = $true # New branch
                 } elseif ($this.GitReadService.HasUnpushedCommits($this.Repo.FullPath)) {
                     $needsPush = $true # Ahead
+                }
+                
+                # Check Pull Status
+                $tracking = $this.GitReadService.GetBranchTrackingStatus($this.Repo.FullPath, $currentBranch)
+                if ($tracking.Behind -gt 0) {
+                    $needsPull = $true
                 }
             }
             
@@ -48,10 +56,14 @@ class QuickChangeFlowController : FlowControllerBase {
             $lblCurrent = $this.Context.LocalizationService.Get("Flow.Quick.Current", "Current Branch: {0}") -f $currentBranch
             $options += @{ DisplayText = $lblCurrent; Value = "SwitchBranch" }
             
-            # OPT 2: Push (Contextual)
+            # OPT 2: Push / Pull (Contextual)
             if ($needsPush) {
                 $lblPush = $this.Context.LocalizationService.Get("Flow.Quick.Opt.PushBranch", "Push Local Branch")
                 $options += @{ DisplayText = "  $lblPush"; Value = "PushBranch" }
+            }
+            if ($needsPull) {
+                $lblPull = $this.Context.LocalizationService.Get("Flow.Action.Pull", "Pull")
+                $options += @{ DisplayText = "  $lblPull"; Value = "PullBranch" }
             }
             
             # OPT 3: Dirty Actions
@@ -65,6 +77,9 @@ class QuickChangeFlowController : FlowControllerBase {
             # OPT 4: Global Actions
             $optCreate = $this.Context.LocalizationService.Get("Flow.Quick.Opt.CreateBranch", "Create New Branch")
             $options += @{ DisplayText = $optCreate; Value = "CreateBranch" }
+            
+            $optDelete = $this.Context.LocalizationService.Get("Flow.Quick.Opt.Delete", "Delete Branch...")
+            $options += @{ DisplayText = $optDelete; Value = "DeleteBranch" }
             
             # OPT 5: Back
             $optBack = $this.Context.LocalizationService.Get("Flow.Quick.Back", "Back to Menu")
@@ -107,9 +122,11 @@ class QuickChangeFlowController : FlowControllerBase {
                     }
                 }
                 "PushBranch"   { $this.HandlePushBranch() }
+                "PullBranch"   { $this.HandlePullBranch() }
                 "Commit"       { $this.HandleCommit() }
                 "Stash"        { $this.HandleStash() }
                 "CreateBranch" { $this.HandleCreateBranch() }
+                "DeleteBranch" { $this.HandleDeleteBranch() }
             }
         }
         return ""
@@ -245,5 +262,70 @@ class QuickChangeFlowController : FlowControllerBase {
             $this.ShowMessage("Failed: $($res.Output)", [Constants]::ColorError)
         }
         Start-Sleep -Milliseconds 1000
+    }
+
+    hidden [void] HandlePullBranch() {
+        $this.ShowMessage("Pulling updates...", [Constants]::ColorHint)
+        $res = $this.GitWriteService.Pull($this.Repo.FullPath)
+        if ($res.Success) {
+            $this.ShowMessage($this.Context.LocalizationService.Get("Status.Success", "Success!"), [Constants]::ColorSuccess)
+        } else {
+             $this.ShowMessage("Pull Failed: $($res.Output)", [Constants]::ColorError)
+             Start-Sleep -Seconds 2
+        }
+        Start-Sleep -Milliseconds 1000
+    }
+
+    hidden [void] HandleDeleteBranch() {
+        # 1. Select Branch to Delete (exclude current)
+        $branches = $this.GitReadService.GetBranches($this.Repo.FullPath)
+        $current = $this.GitReadService.GetCurrentBranch($this.Repo.FullPath)
+        $filtered = $branches | Where-Object { $_ -ne $current }
+        
+        if ($null -eq $filtered -or $filtered.Count -eq 0) {
+            $this.ShowMessage($this.Context.LocalizationService.Get("Flow.Error.NoBranches", "No branches found"), [Constants]::ColorWarning)
+            Start-Sleep -Seconds 1
+            return
+        }
+
+        $title = "DELETE BRANCH"
+        $sel = $this.ListSelector.ShowSelection($title, $filtered, @{ Prompt="Select Branch to Delete"; InitialFocus=[Constants]::FocusInput })
+        
+        if ($null -eq $sel) { return }
+        $branchToDelete = $sel.Value.Trim()
+        
+        # 2. Local Delete Prompt
+        $promptLocal = $this.Context.LocalizationService.Get("Flow.Prompt.DeleteLocal", "Delete local branch '{0}'? (FORCE CAREFUL)") -f $branchToDelete
+        $confirmLocal = $this.ListSelector.ShowSelection("DELETE LOCAL?", @("Yes", "No"), @{ Prompt = $promptLocal })
+        
+        if ($confirmLocal.Value -eq "Yes") {
+            $delRes = $this.GitWriteService.DeleteLocalBranch($this.Repo.FullPath, $branchToDelete, $true)
+            if ($delRes.Success) {
+                $msg = $this.Context.LocalizationService.Get("Flow.Status.LocalDeleted", "Local branch '{0}' deleted.") -f $branchToDelete
+                $this.ShowMessage($msg, [Constants]::ColorSuccess)
+                
+                # 3. Remote Delete Prompt (if exists)
+                if ($this.GitService.RemoteBranchExists($this.Repo.FullPath, $branchToDelete)) {
+                    $promptRemote = $this.Context.LocalizationService.Get("Flow.Prompt.DeleteRemote", "Delete remote branch 'origin/{0}'? (IRREVERSIBLE)") -f $branchToDelete
+                    $confirmRemote = $this.ListSelector.ShowSelection("DELETE REMOTE?", @("Yes", "No"), @{ Prompt = $promptRemote })
+                    
+                    if ($confirmRemote.Value -eq "Yes") {
+                         $this.ShowMessage("Deleting remote branch...", [Constants]::ColorWarning)
+                         $remRes = $this.GitWriteService.DeleteRemoteBranch($this.Repo.FullPath, $branchToDelete)
+                         if ($remRes.Success) {
+                             $msgRem = $this.Context.LocalizationService.Get("Flow.Status.RemoteDeleted", "Remote branch 'origin/{0}' deleted.") -f $branchToDelete
+                             $this.ShowMessage($msgRem, [Constants]::ColorSuccess)
+                         } else {
+                             $this.ShowMessage("Remote Delete Failed: $($remRes.Output)", [Constants]::ColorError)
+                         }
+                         Start-Sleep -Seconds 1
+                    }
+                }
+            } else {
+                $this.ShowMessage("Delete Failed: $($delRes.Output)", [Constants]::ColorError)
+                Start-Sleep -Seconds 2
+            }
+        }
+        Start-Sleep -Milliseconds 500
     }
 }
