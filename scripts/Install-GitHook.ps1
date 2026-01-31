@@ -73,75 +73,16 @@ if (Test-Path $pesterPath) {
     Write-Host "  [2/2] Running Pester tests with coverage..." -ForegroundColor Yellow
     
     try {
-        # Define coverage paths (all .ps1 files in src, excluding _index.ps1)
-        # Note: Pester 5+ CodeCoverage syntax
-        # Create a temporary script for Pester execution to avoid string interpolation hell
-        $tempPesterScript = Join-Path $repoRoot "scripts\Temp-RunPester.ps1"
+        $coverageScript = Join-Path $repoRoot "scripts\Test-WithCoverage.ps1"
         
-        $pesterScriptContent = @"
-`$ErrorActionPreference = 'Stop'
-try {
-    Import-Module Pester -ErrorAction Stop
-    
-    `$config = [PesterConfiguration]::Default
-    `$config.Run.Path = '$pesterPath'
-    `$config.Run.Exit = `$true
-    `$config.Output.Verbosity = 'Normal'
-    `$config.CodeCoverage.Enabled = `$true
-    `$config.CodeCoverage.Path = '$srcPath'
-    `$config.CodeCoverage.OutputFormat = 'Jacoco'
-    `$config.CodeCoverage.OutputPath = 'coverage.xml'
-    `$config.CodeCoverage.CoveragePercentTarget = 10
-    
-    `$result = Invoke-Pester -Configuration `$config
-    
-    if (`$result.FailedCount -gt 0) {
-        Write-Error "TESTS FAILED: `$(`$result.FailedCount) test(s) failed."
-        exit 1
-    }
-    
-    # Manual coverage check via XML report (more reliable)
-    if (Test-Path 'coverage.xml') {
-        [xml]`$xml = Get-Content 'coverage.xml'
-        
-        # Jacoco format parsing
-        `$counters = `$xml.report.counter | Where-Object { `$_.type -eq 'INSTRUCTION' }
-        if (`$counters) {
-            `$covered = [double]`$counters.covered
-            `$missed = [double]`$counters.missed
-            `$total = `$covered + `$missed
-            
-            if (`$total -gt 0) {
-                `$actual = [math]::Round((`$covered / `$total) * 100, 2)
-                `$target = 80
-                
-                if (`$actual -lt `$target) {
-                     Write-Error "COVERAGE FAILURE: Actual coverage is `$actual% which is less than target `$target%"
-                     exit 1
-                }
-            }
-        }
-    } else {
-        Write-Warning "Coverage report not found - skipping threshold check"
-    }
-} catch {
-    Write-Error "CRITICAL ERROR IN PESTER RUNNER: `$_"
-    exit 1
-}
-"@
-        Set-Content -Path $tempPesterScript -Value $pesterScriptContent
-        
-        powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tempPesterScript
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -File $coverageScript
         
         if ($LASTEXITCODE -ne 0) {
             $totalErrors += 1
-            Write-Host "      [FAIL] Pester tests failed" -ForegroundColor Red
+            Write-Host "      [FAIL] Pester tests or coverage failed" -ForegroundColor Red
         } else {
-            Write-Host "      [OK] Pester tests passed" -ForegroundColor Green
+            Write-Host "      [OK] Pester tests and coverage passed" -ForegroundColor Green
         }
-        
-        # Cleanup
-        if (Test-Path $tempPesterScript) { Remove-Item $tempPesterScript -Force }
     } catch {
         Write-Host "      [FAIL] Pester runner error: $_" -ForegroundColor Red
         $totalErrors++
