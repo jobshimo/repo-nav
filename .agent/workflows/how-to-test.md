@@ -142,7 +142,108 @@ class MockMyService : IMyService { ... }
 ```
 Si necesitas flexibilidad rápida (menos recomendado pero posible para DTOs): castear con `[PSCustomObject]` no funciona para tipos estrictos. Usa la clase real con propiedades vacías.
 
-### B. Mocks de Git se sobrescriben
+### B. Mock Incompleto - ¡EL ERROR MÁS COMÚN! 🚨
+**Síntoma:** Tests fallan con errores como:
+- `"Method invocation failed because [MockConsoleHelper] does not contain a method named 'ClearCurrentLine'"`
+- `"A parameter cannot be found that matches parameter name 'default'"`
+- `"Cannot find an overload for 'MethodName' and the argument count: 'X'"`
+
+**Causa:** El mock no implementa TODOS los métodos/sobrecargas que la interfaz real tiene.
+
+**Ejemplo del Problema:**
+```powershell
+# Interfaz real tiene 2 sobrecargas
+interface IConsoleHelper {
+    [bool] ConfirmAction([string]$prompt)
+    [bool] ConfirmAction([string]$prompt, [bool]$default)  # ← Faltaba en el mock!
+}
+
+# Mock solo tenía 1
+class MockConsoleHelper : IConsoleHelper {
+    [bool] ConfirmAction([string]$prompt) { return $true }
+    # Falta la sobrecarga con 2 parámetros
+}
+```
+
+**Cómo Detectarlo:**
+1. **Leer el error:** PowerShell te dirá qué método/parámetro falta
+2. **Buscar la interfaz real:** Encuentra `IConsoleHelper.ps1` o similar
+3. **Comparar:** Verifica que el mock tenga TODOS los métodos y sobrecargas
+
+**Solución - Checklist de Verificación de Mocks:**
+```powershell
+# 1. Abrir la interfaz real
+# Ejemplo: src/Core/Interfaces/IConsoleHelper.ps1
+
+# 2. Listar TODOS los métodos y sobrecargas
+interface IConsoleHelper {
+    [void] ClearForWorkflow()
+    [bool] ConfirmAction([string]$prompt)
+    [bool] ConfirmAction([string]$prompt, [bool]$default)  # ← SOBRECARGA
+    [void] ClearCurrentLine()
+    [int] GetWindowWidth()
+    # ... etc
+}
+
+# 3. Verificar que el mock los tiene TODOS
+class MockConsoleHelper : IConsoleHelper {
+    [void] ClearForWorkflow() {}
+    [bool] ConfirmAction([string]$prompt) { return $true }
+    [bool] ConfirmAction([string]$prompt, [bool]$default) { return $true }  # ✅ Añadido
+    [void] ClearCurrentLine() {}  # ✅ Añadido
+    [int] GetWindowWidth() { return 120 }
+    # ... etc - TODOS implementados
+}
+```
+
+**Mejores Prácticas para Prevenir Esto:**
+1. **Cuando añades un método a una interfaz, actualiza TODOS los mocks inmediatamente**
+2. **Documenta las sobrecargas claramente:**
+   ```powershell
+   # Mock debe tener ambas sobrecargas de ConfirmAction
+   [bool] ConfirmAction([string]$prompt) { return $true }
+   [bool] ConfirmAction([string]$prompt, [bool]$default) { return $true }
+   ```
+3. **Usa comentarios en mocks para trackear versión:**
+   ```powershell
+   # MockConsoleHelper - v2.0 - Updated: 2026-02-01
+   # Implements: IConsoleHelper (all methods + overloads)
+   class MockConsoleHelper : IConsoleHelper { ... }
+   ```
+4. **Test de "Smoke" para mocks:**
+   ```powershell
+   It "Mock implements all interface methods" {
+       $mock = [MockConsoleHelper]::new()
+       # Verifica que existan los métodos críticos
+       $mock.PSObject.Methods.Name -contains 'ClearCurrentLine' | Should -Be $true
+       # O intenta llamarlos con diferentes sobrecargas
+       { $mock.ConfirmAction("test") } | Should -Not -Throw
+       { $mock.ConfirmAction("test", $true) } | Should -Not -Throw
+   }
+   ```
+
+**Caso Real - Lección Aprendida (Enero 2026):**
+Durante los tests de `NpmCommand`, encontramos que `MockConsoleHelper` le faltaban:
+- ✅ Sobrecarga: `ConfirmAction([string]$prompt, [bool]$default)`
+- ✅ Método: `ClearCurrentLine()`
+
+**Impacto:** Tests fallaban con "Cannot find overload" aunque el código de producción era correcto.
+
+**Solución aplicada:**
+```powershell
+# tests/Mocks/MockCommonServices.ps1
+class MockConsoleHelper : IConsoleHelper {
+    # ... métodos existentes ...
+    [bool] ConfirmAction([string]$prompt) { return $true }
+    [bool] ConfirmAction([string]$prompt, [bool]$default) { return $true }  # ← AÑADIDO
+    [void] ClearCurrentLine() {}  # ← AÑADIDO
+    # ...
+}
+```
+
+**Regla de Oro:** Si añades/modificas una interfaz, ejecuta TODOS los tests. Los mocks incompletos se revelarán inmediatamente.
+
+### C. Mocks de Git se sobrescriben
 **Causa:** Pester mocks son específicos de alcance.
 **Solución:** Usa `-ParameterFilter` para diferenciar llamadas a `git`:
 ```powershell
@@ -150,7 +251,7 @@ Mock GitMockStub { return "A" } -ParameterFilter { $Arguments -contains "status"
 Mock GitMockStub { return "B" } -ParameterFilter { $Arguments -contains "branch" }
 ```
 
-### C. `$PSScriptRoot` vacío
+### D. `$PSScriptRoot` vacío
 **Causa:** Pester a veces pierde el contexto del path.
 **Solución:** Usa el snippet robusto de path resolution:
 ```powershell
@@ -164,16 +265,65 @@ $projectRoot = Resolve-Path "$currentPath\..\..\.."
 ## 5. 📚 Catálogo de Mocks Disponibles
 No reinventes la rueda. Mira en `tests/Mocks/`:
 
-| Mock | Interfaz | Uso |
-|------|----------|-----|
-| `MockRepositoryManager` | `IRepositoryManager` | Gestión de repositorios |
-| `MockGitService` | `IGitService` | Operaciones de Git de alto nivel |
-| `MockConsoleHelper` | `IConsoleHelper` | Escribir en consola/host |
-| `MockUIRenderer` | `IUIRenderer` | Renderizado visual |
-| `MockUserPreferencesService` | `IUserPreferencesService` | Configuración de usuario |
+| Mock | Interfaz | Uso | Última Actualización |
+|------|----------|-----|---------------------|
+| `MockRepositoryManager` | `IRepositoryManager` | Gestión de repositorios | 2026-01 |
+| `MockGitService` | `IGitService` | Operaciones de Git de alto nivel | 2026-01 |
+| `MockConsoleHelper` | `IConsoleHelper` | Escribir en consola/host | 2026-02 ✅ |
+| `MockUIRenderer` | `IUIRenderer` | Renderizado visual | 2026-01 |
+| `MockUserPreferencesService` | `IUserPreferencesService` | Configuración de usuario | 2026-01 |
+| `MockNpmService` | `INpmService` | Operaciones npm | 2026-01 |
+| `MockJobService` | `IJobService` | Gestión de background jobs | 2026-02 ✅ |
+
+**⚠️ A🔍 Checklist Pre-Test (OBLIGATORIO)
+
+Antes de escribir o ejecutar tests, verifica:
+
+- [ ] **¿El mock está actualizado?** Compara con la interfaz real
+- [ ] **¿Hay sobrecargas de métodos?** Implementa TODAS
+- [ ] **¿Tests previos pasan?** No rompas lo que funciona
+- [ ] **¿Usas mocks de comandos nativos (git, npm)?** Configura el patrón `Stub + Alias`
+- [ ] **¿El error menciona "cannot find method/overload"?** → Mock incompleto (Sección 4.B)
+
+## 7. Próximos Pasos para IAs
+
+1.  **Leer `HANDOFF_COVERAGE.md`**: Para ver qué archivos faltan.
+2.  **Verificar cobertura**: Ejecuta `.\scripts\Test-FileCoverage.ps1 -SourceFile "<archivo>"`.
+3.  **Seguir el patrón existente**: Copia el estilo de `GitReadService.Tests.ps1` para cosas de bajo nivel o `Commands.Tests.ps1` para comandos.
+4.  **Validar mocks antes de usarlos**: Compara con la interfaz real (Sección 4.B).
+5.  **Documentar cambios en mocks**: Añade comentario con fecha si actualizas un mock.
+
+**Objetivo: 80% Code Coverage global. Sin excepciones.**
 
 ---
 
+## 📖 Aprendizajes de Casos Reales
+
+### Caso 1: Mock Incompleto en NpmCommand (Feb 2026)
+**Problema:** `MockConsoleHelper` no implementaba todos los métodos de `IConsoleHelper`.  
+**Síntoma:** `"A parameter cannot be found that matches parameter name 'default'"`  
+**Causa:** Faltaban sobrecargas y métodos nuevos añadidos a la interfaz.  
+**Solución:** Actualizar el mock con todas las firmas:
+```powershell
+[bool] ConfirmAction([string]$prompt, [bool]$default) { return $true }
+[void] ClearCurrentLine() {}
+```
+**Lección:** Siempre verifica que el mock implemente TODA la interfaz, incluyendo sobrecargas.
+
+### Caso 2: Tests Fallando por Código Interno de Jobs (Feb 2026)
+**Problema:** Tests intentaban verificar `LastScript` en un mock de `JobService`.  
+**Síntoma:** `"Cannot index into a null array"` al intentar acceder a `$mockJob.LastScript`.  
+**Causa:** El scriptblock pasado a un job no es capturables en el mock porque se ejecuta en otro contexto.  
+**Solución:** No intentar verificar el contenido interno de scriptblocks. En su lugar:
+```powershell
+# ❌ MAL: Intentar capturar scriptblock interno
+$script:mockJob.LastScript | Should -Not -BeNullOrEmpty
+
+# ✅ BIEN: Verificar comportamiento observable
+{ $script:command.Execute($key, $context) } | Should -Not -Throw
+# Y/o verificar efectos secundarios (archivos borrados, estado cambiado, etc.)
+```
+**Lección:** Mock comportamiento observable, no implementación interna.
 ## 6. Próximos Pasos para IAs
 
 1.  **Leer `HANDOFF_COVERAGE.md`**: Para ver qué archivos faltan.
