@@ -76,16 +76,24 @@ if (Test-Path $pesterPath) {
         # Define coverage paths (all .ps1 files in src, excluding _index.ps1)
         # Note: Pester 5+ CodeCoverage syntax
         $pesterCommand = "
-            `$config = [PesterConfiguration]::Default
-            `$config.Run.Path = '$pesterPath'
-            `$config.Run.Exit = `$true
-            `$config.Output.Verbosity = 'Detailed'
-            `$config.CodeCoverage.Enabled = `$true
-            `$config.CodeCoverage.Path = '$srcPath'
-            `$config.CodeCoverage.OutputFormat = 'Jacoco'
-            `$config.CodeCoverage.OutputPath = 'coverage.xml'
-            
-            Invoke-Pester -Configuration `$config
+            `$ErrorActionPreference = 'Stop'
+            try {
+                Import-Module Pester -ErrorAction Stop
+                
+                `$config = [PesterConfiguration]::Default
+                `$config.Run.Path = '$pesterPath'
+                `$config.Run.Exit = `$true
+                `$config.Output.Verbosity = 'Detailed'
+                `$config.CodeCoverage.Enabled = `$true
+                `$config.CodeCoverage.Path = '$srcPath'
+                `$config.CodeCoverage.OutputFormat = 'Jacoco'
+                `$config.CodeCoverage.OutputPath = 'coverage.xml'
+                
+                Invoke-Pester -Configuration `$config
+            } catch {
+                Write-Error 'CRITICAL ERROR IN PESTER RUNNER: ' + `$_
+                exit 1
+            }
         "
         
         powershell.exe -NoProfile -ExecutionPolicy Bypass -Command $pesterCommand

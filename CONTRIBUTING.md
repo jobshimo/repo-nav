@@ -247,13 +247,13 @@ This checks:
 We use **Pester** for Unit and Integration testing.
      
 **Run all tests:**
-```powershell
-Invoke-Pester -Path .\tests\Pester\
+```bash
+npm test
 ```
-     
-**Run specific test file:**
-```powershell
-Invoke-Pester -Path .\tests\Pester\Unit\Services.Tests.ps1
+
+**Run tests with coverage:**
+```bash
+npm run test:coverage
 ```
      
 ### Legacy Tests
