@@ -10,6 +10,7 @@ $uiPath = $PSScriptRoot
 # UI Base & Framework
 # ─────────────────────────────────────────────────────────────────────────────
 . "$uiPath\Base\ConsoleHelper.ps1"
+. "$uiPath\Base\ViewportManager.ps1"
 . "$uiPath\Framework\ConsoleView.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -29,6 +30,13 @@ $uiPath = $PSScriptRoot
 . "$uiPath\Renderers\IntegrationFlowRenderer.ps1"
 . "$uiPath\Components\FilteredListSelector.ps1"
 . "$uiPath\Dashboards\IntegrationFlowDashboard.ps1"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Controllers (Refactored)
+# ─────────────────────────────────────────────────────────────────────────────
+# . "$uiPath\Controllers\PreferencesActionDispatcher.ps1" (Moved to repo-nav.ps1 Layer 8)
+# . "$uiPath\Controllers\PreferencesMenuRenderer.ps1"     (Moved to repo-nav.ps1 Layer 8)
+# . "$uiPath\Controllers\PreferencesMenuController.ps1"   (Moved to repo-nav.ps1 Layer 8)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # UI Services (implements interfaces from Core)

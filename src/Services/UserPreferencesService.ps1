@@ -295,6 +295,9 @@ class UserPreferencesService {
                  $newPaths = [ArrayHelper]::AddToArray($currentPaths, $fullPath)
                  $this.SetPreference("repository", "paths", $newPaths)
              }
-        } catch {}
+        } catch {
+            $logger = [ServiceRegistry]::Resolve('LoggerService')
+            if ($null -ne $logger) { $logger.LogError($_) }
+        }
     }
 }
