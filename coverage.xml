@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd"[]>
-<report name="Pester (01/31/2026 12:00:27)">
-  <sessioninfo id="this" start="1769860824166" dump="1769860827185" />
+<report name="Pester (01/31/2026 12:05:59)">
+  <sessioninfo id="this" start="1769861156517" dump="1769861159566" />
   <package name="src/App">
     <class name="src/App/AppBuilder" sourcefilename="App/AppBuilder.ps1">
       <method name="Build" desc="()" line="11">
