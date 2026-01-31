@@ -3,43 +3,16 @@
 Describe "HiddenReposService" {
     BeforeAll {
         $srcRoot = Resolve-Path "$PSScriptRoot\..\..\..\..\src"
+        $testRoot = Resolve-Path "$PSScriptRoot\..\..\.."
+        
+        # Load logic/interfaces
         . "$srcRoot\Services\ArrayHelper.ps1"
         . "$srcRoot\Core\Interfaces\IUserPreferencesService.ps1"
         . "$srcRoot\Core\Interfaces\IHiddenReposService.ps1"
         . "$srcRoot\Services\HiddenReposService.ps1"
 
-        # Define Mock Class
-        $mockClass = @"
-        class MockPreferencesService : IUserPreferencesService {
-            [PSCustomObject] `$MockPrefs
-            [string] `$LastSection
-            [string] `$LastKey
-            [object] `$LastValue
-
-            MockPreferencesService([PSCustomObject]`$prefs) {
-                `$this.MockPrefs = `$prefs
-            }
-
-            [PSCustomObject] LoadPreferences() {
-                return `$this.MockPrefs
-            }
-
-            [bool] SetPreference([string]`$section, [string]`$key, [object]`$value) {
-                `$this.LastSection = `$section
-                `$this.LastKey = `$key
-                `$this.LastValue = `$value
-                return `$true
-            }
-
-            [bool] SavePreferences([PSCustomObject]`$prefs) {
-                `$this.MockPrefs = `$prefs
-                return `$true
-            }
-        }
-"@
-        if (-not ("MockPreferencesService" -as [type])) {
-            Invoke-Expression $mockClass
-        }
+        # Load centralized mocks
+        . "$testRoot\Mocks\MockUserPreferencesService.ps1"
     }
 
     BeforeEach {
@@ -50,7 +23,7 @@ Describe "HiddenReposService" {
             }
         }
         
-        $script:mockService = [MockPreferencesService]::new($prefs)
+        $script:mockService = [MockUserPreferencesService]::new($prefs)
         $script:service = [HiddenReposService]::new($script:mockService)
     }
 
@@ -77,7 +50,7 @@ Describe "HiddenReposService" {
             $result | Should -BeTrue
             $script:service.IsHidden("Repo3") | Should -BeTrue
             
-            # Verify "Persistence"
+            # Verify Persistence in Mock
             $script:mockService.MockPrefs.hidden.hiddenRepos | Should -Contain "Repo3"
         }
 

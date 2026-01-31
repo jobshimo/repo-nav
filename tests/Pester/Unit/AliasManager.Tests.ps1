@@ -9,81 +9,76 @@ Describe "AliasManager" {
         # Ensure dependencies are loaded
         . "$srcRoot\Models\AliasInfo.ps1"
         . "$srcRoot\Config\ColorPalette.ps1"
-        . "$srcRoot\Services\ConfigurationService.ps1"
+        . "$srcRoot\Core\Interfaces\IConfigurationService.ps1"
         . "$srcRoot\Services\AliasManager.ps1"
+
+        # Load Mock
+        . "$testRoot\tests\Mocks\MockConfigurationService.ps1"
     }
 
     BeforeEach {
-        $tempFile = [System.IO.Path]::GetTempFileName()
-        $configService = New-Object ConfigurationService -ArgumentList $tempFile
-        $aliasManager = New-Object AliasManager -ArgumentList $configService
-    }
-
-    AfterEach {
-        if (Test-Path $tempFile) {
-            Remove-Item $tempFile -Force
-        }
+        $script:mockConfig = [MockConfigurationService]::new()
+        $script:aliasManager = [AliasManager]::new($script:mockConfig)
     }
 
     Context "Alias Management" {
         It "Starts with no aliases" {
-            $aliasManager.GetAllAliases().Count | Should -Be 0
+            $script:aliasManager.GetAllAliases().Count | Should -Be 0
         }
 
         It "Sets and gets an alias" {
             $info = [AliasInfo]::new("MyAlias", [System.ConsoleColor]::Cyan)
-            $aliasManager.SetAlias("C:\Repo", $info) | Should -BeTrue
+            $script:aliasManager.SetAlias("C:\Repo", $info) | Should -BeTrue
             
-            $aliasManager.HasAlias("C:\Repo") | Should -BeTrue
-            $retrieved = $aliasManager.GetAlias("C:\Repo")
+            $script:aliasManager.HasAlias("C:\Repo") | Should -BeTrue
+            $retrieved = $script:aliasManager.GetAlias("C:\Repo")
             $retrieved.Alias | Should -Be "MyAlias"
             $retrieved.Color | Should -Be ([System.ConsoleColor]::Cyan).ToString()
         }
 
         It "Removes an alias" {
             $info = [AliasInfo]::new("Alias", [System.ConsoleColor]::White)
-            $aliasManager.SetAlias("C:\Repo", $info)
-            $aliasManager.RemoveAlias("C:\Repo") | Should -BeTrue
-            $aliasManager.HasAlias("C:\Repo") | Should -BeFalse
+            $script:aliasManager.SetAlias("C:\Repo", $info)
+            $script:aliasManager.RemoveAlias("C:\Repo") | Should -BeTrue
+            $script:aliasManager.HasAlias("C:\Repo") | Should -BeFalse
         }
 
         It "Handles legacy alias format (hashtable)" {
-            $legacyJson = @{
-                aliases = @{
-                    "C:\Repo" = @{ alias = "Legacy"; color = "Green" }
-                }
-            } | ConvertTo-Json
-            $legacyJson | Set-Content $tempFile -Encoding UTF8
+            # Mock configuration state
+            $legacyAliases = [PSCustomObject]@{
+                "C:\Repo" = @{ alias = "Legacy"; color = "Green" }
+            }
+            $script:mockConfig.SetMockAliases($legacyAliases)
             
-            $aliasManager.HasAlias("C:\Repo") | Should -BeTrue
-            $aliasManager.GetAlias("C:\Repo").Alias | Should -Be "Legacy"
+            $script:aliasManager.HasAlias("C:\Repo") | Should -BeTrue
+            $script:aliasManager.GetAlias("C:\Repo").Alias | Should -Be "Legacy"
         }
     }
 
     Context "Favorite Management" {
         It "Adds and removes favorites" {
-            $aliasManager.AddFavorite("MyRepo") | Should -BeTrue
-            $aliasManager.IsFavorite("MyRepo") | Should -BeTrue
+            $script:aliasManager.AddFavorite("MyRepo") | Should -BeTrue
+            $script:aliasManager.IsFavorite("MyRepo") | Should -BeTrue
             
-            $aliasManager.RemoveFavorite("MyRepo") | Should -BeTrue
-            $aliasManager.IsFavorite("MyRepo") | Should -BeFalse
+            $script:aliasManager.RemoveFavorite("MyRepo") | Should -BeTrue
+            $script:aliasManager.IsFavorite("MyRepo") | Should -BeFalse
         }
 
         It "Toggles favorites" {
-            $aliasManager.IsFavorite("RepoX") | Should -BeFalse
+            $script:aliasManager.IsFavorite("RepoX") | Should -BeFalse
             
-            $aliasManager.ToggleFavorite("RepoX") | Should -BeTrue
-            $aliasManager.IsFavorite("RepoX") | Should -BeTrue
+            $script:aliasManager.ToggleFavorite("RepoX") | Should -BeTrue
+            $script:aliasManager.IsFavorite("RepoX") | Should -BeTrue
             
-            $aliasManager.ToggleFavorite("RepoX") | Should -BeTrue
-            $aliasManager.IsFavorite("RepoX") | Should -BeFalse
+            $script:aliasManager.ToggleFavorite("RepoX") | Should -BeTrue
+            $script:aliasManager.IsFavorite("RepoX") | Should -BeFalse
         }
 
         It "Returns all favorites" {
-            $aliasManager.AddFavorite("A")
-            $aliasManager.AddFavorite("B")
+            $script:aliasManager.AddFavorite("A")
+            $script:aliasManager.AddFavorite("B")
             
-            $favs = $aliasManager.GetFavorites()
+            $favs = $script:aliasManager.GetFavorites()
             $favs | Should -Contain "A"
             $favs | Should -Contain "B"
             $favs.Count | Should -Be 2

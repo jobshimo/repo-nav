@@ -7,11 +7,9 @@
     - SRP: Only responsible for parallel Git status loading
     - DIP: Can be injected into RepositoryManager
     - OCP: Can be extended for different parallel strategies
-    
-    Extracted from RepositoryManager to separate parallel execution concerns.
 #>
 
-class ParallelGitLoader {
+class ParallelGitLoader : IParallelGitLoader {
     # Configuration
     [int] $MaxConcurrency
     [int] $TimeoutSeconds = 30

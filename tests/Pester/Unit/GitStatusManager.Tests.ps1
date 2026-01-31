@@ -1,24 +1,18 @@
-
 # tests/Pester/Unit/GitStatusManager.Tests.ps1
-using module "..\..\TestHelper.psm1"
 
 Describe "GitStatusManager" {
     BeforeAll {
         $srcRoot = Resolve-Path "$PSScriptRoot\..\..\..\src"
-        . "$srcRoot\Config\_index.ps1"
-        [Constants]::Initialize("$srcRoot\..")
-        . "$srcRoot\Models\_index.ps1"
+        $testRoot = Resolve-Path "$PSScriptRoot\..\..\.."
+        . "$testRoot\tests\Test-Setup.ps1" | Out-Null
         
-        . "$srcRoot\Services\GitService.ps1"
-        . "$srcRoot\Services\ParallelGitLoader.ps1"
-        . "$srcRoot\Services\UserPreferencesService.ps1"
-        . "$srcRoot\Core\Interfaces\IProgressReporter.ps1"
+        # Load specialized logic if not in Test-Setup (though most are)
         . "$srcRoot\Core\Services\GitStatusManager.ps1"
         
         # Load Mocks
-        . "$srcRoot\..\tests\Mocks\MockParallelGitLoader.ps1"
-        . "$srcRoot\..\tests\Mocks\MockUserPreferencesService.ps1"
-        . "$srcRoot\..\tests\Mocks\MockProgressReporter.ps1"
+        . "$testRoot\tests\Mocks\MockParallelGitLoader.ps1"
+        . "$testRoot\tests\Mocks\MockUserPreferencesService.ps1"
+        . "$testRoot\tests\Mocks\MockProgressReporter.ps1"
     }
 
     Context "Loading Status" {
@@ -81,7 +75,8 @@ Describe "GitStatusManager" {
             $manager = [GitStatusManager]::new($gitService, $mockParallel, $mockPrefs, $mockProgress)
         }
         It "PerformAutoLoadGitStatus calls loader if preference set to All" {
-             $mockPrefs.SetMockPreference("git", "autoLoadGitStatusMode", "All")
+             # Use the new mock method pattern
+             $mockPrefs.SetPreference("git", "autoLoadGitStatusMode", "All")
              
              $repo = [RepositoryModel]::new("C:\Test\Repo")
              
@@ -91,7 +86,7 @@ Describe "GitStatusManager" {
         }
         
         It "PerformAutoLoadGitStatus does nothing if preference is None" {
-             $mockPrefs.SetMockPreference("git", "autoLoadGitStatusMode", "None")
+             $mockPrefs.SetPreference("git", "autoLoadGitStatusMode", "None")
              
              $repo = [RepositoryModel]::new("C:\Test\Repo")
              

@@ -64,6 +64,8 @@ Write-Host " [Test-Setup] Loading Layer 3: Core Infrastructure" -ForegroundColor
 . "$srcPath\Core\Interfaces\ILoggerService.ps1"
 . "$srcPath\Core\Interfaces\ILocalizationService.ps1"
 . "$srcPath\Core\Interfaces\IUserPreferencesService.ps1"
+. "$srcPath\Core\Interfaces\IConfigurationService.ps1"
+. "$srcPath\Core\Interfaces\IParallelGitLoader.ps1"
 . "$srcPath\Core\Interfaces\IHiddenReposService.ps1"
 . "$srcPath\Core\Interfaces\IPathManager.ps1"
 . "$srcPath\Core\Common\ConsoleView.ps1"

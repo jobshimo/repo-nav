@@ -15,10 +15,10 @@
 #>
 
 class AliasManager {
-    [ConfigurationService] $ConfigService
+    [IConfigurationService] $ConfigService
     
     # Constructor with dependency injection
-    AliasManager([ConfigurationService]$configService) {
+    AliasManager([IConfigurationService]$configService) {
         $this.ConfigService = $configService
     }
     

@@ -13,7 +13,7 @@
     - Favorite repositories
 #>
 
-class ConfigurationService {
+class ConfigurationService : IConfigurationService {
     [string] $ConfigFilePath      # Aliases
     
     # Constructor

@@ -1,19 +1,14 @@
 
 # tests/Mocks/MockConfigurationService.ps1
 
-class MockConfigurationService : ConfigurationService {
+class MockConfigurationService : IConfigurationService {
     [PSCustomObject] $MockConfig
     [bool] $SaveResult
     [int] $SaveCallCount
     
     MockConfigurationService() {
-        # Call base constructor with dummy path
-        # Note: PowerShell classes don't support explicit base constructor call like C# base(), 
-        # but Default constructor is called automatically.
-        # If ConfigurationService has parameterless ctor, it's fine. It does.
-        
         $this.MockConfig = [PSCustomObject]@{
-            aliases = [System.Collections.ArrayList]::new()
+            aliases = [PSCustomObject]@{}
             favorites = @()
         }
         $this.SaveResult = $true
@@ -29,8 +24,29 @@ class MockConfigurationService : ConfigurationService {
         $this.SaveCallCount++
         return $this.SaveResult
     }
+
+    [bool] ConfigurationExists() {
+        return $true
+    }
+
+    [PSCustomObject] CreateEmptyConfiguration() {
+        return [PSCustomObject]@{
+            aliases = [PSCustomObject]@{}
+            favorites = @()
+        }
+    }
+
+    [hashtable] GetConfigurationInfo() {
+        return @{
+            Exists = $true
+            Path = "MOCK_PATH"
+            Size = 100
+            LastModified = [DateTime]::Now
+        }
+    }
     
-    [void] SetMockAliases([System.Collections.ArrayList]$aliases) {
+    # Helper for tests
+    [void] SetMockAliases([PSCustomObject]$aliases) {
         $this.MockConfig.aliases = $aliases
     }
 }
