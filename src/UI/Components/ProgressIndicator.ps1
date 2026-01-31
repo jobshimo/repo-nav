@@ -18,9 +18,9 @@
     This class uses background jobs for animated indicators to avoid blocking
 #>
 
-class ProgressIndicator {
+class ProgressIndicator : IProgressIndicator {
     # Dependencies
-    [ConsoleHelper] $Console      # ConsoleHelper
+    [IConsoleHelper] $Console      # IConsoleHelper
     
     # State
     [int] $StartLine
@@ -28,7 +28,7 @@ class ProgressIndicator {
     [bool] $IsRunning
     
     # Constructor
-    ProgressIndicator([ConsoleHelper]$console) {
+    ProgressIndicator([IConsoleHelper]$console) {
         $this.Console = $console
         $this.IsRunning = $false
     }

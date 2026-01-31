@@ -13,7 +13,7 @@
     - String formatting support (e.g. "Values: {0}, {1}")
 #>
 
-class LocalizationService {
+class LocalizationService : ILocalizationService {
     [hashtable] $Translations
     [hashtable] $FallbackTranslations
     [string] $CurrentLanguage

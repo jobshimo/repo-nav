@@ -11,13 +11,13 @@
     Provides interactive color selection with arrow keys
 #>
 
-class ColorSelector {
+class ColorSelector : IColorSelector {
     [IUIRenderer] $Renderer
-    [ConsoleHelper] $Console
-    [OptionSelector] $OptionSelector
+    [IConsoleHelper] $Console
+    [IOptionSelector] $OptionSelector
     
     # Constructor with dependency injection
-    ColorSelector([IUIRenderer]$renderer, [ConsoleHelper]$console, [OptionSelector]$optionSelector) {
+    ColorSelector([IUIRenderer]$renderer, [IConsoleHelper]$console, [IOptionSelector]$optionSelector) {
         $this.Renderer = $renderer
         $this.Console = $console
         $this.OptionSelector = $optionSelector

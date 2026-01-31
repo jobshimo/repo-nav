@@ -42,16 +42,25 @@ We have successfully stabilized the `repo-nav` application, resolving critical s
 | **NPM Command** | ✅ Pass | correctly handles Install/Remove flows via `IJobService`. |
 | **Git Command** | ✅ Pass | Flow logic verify via `IUIRenderer` mocks. |
 | **Preferences** | ✅ Pass | Persistence logic verified; warnings silenced. |
-| **Core State** | ✅ Pass | `CommandContext` now correctly uses `INavigationState` and `IConsoleHelper`. |
+| **Core State** | ✅ Pass | `CommandContext` and `ApplicationContext` now depend entirely on interfaces. |
+| **Interactive Logic** | ✅ Pass | `IConsoleHelper` and `IOptionSelector` allow testing interactive commands without real I/O. |
 
-## Latest Refactorings (Post-Validation)
-Following the initial stabilization, we further decoupled the Core layer to enable advanced testing scenarios:
-1.  **Refactored `ConsoleHelper` -> `IConsoleHelper`**:
-    *   This allows future tests to use a `MockConsole` that captures output in memory instead of writing to the host UI.
-2.  **Refactored `NavigationState` -> `INavigationState`**:
-    *   Critical for testing navigation logic without instantiating the entire UI stack.
-    *   `CommandContext` updated to use the interface.
-    *   Fixed cyclic dependency issues in `Test-Setup.ps1` by correcting load order (Interfaces first).
+## Refactoring Milestones (Final Phase)
+We have successfully transitioned the repository to a full Dependency Inversion architecture:
+
+1.  **Service Layer Abstraction (Phase 1)**:
+    *   `ILoggerService`, `ILocalizationService`, `IUserPreferencesService`, `IHiddenReposService`, `IPathManager`.
+    *   All core logic now depends on these interfaces, allowing mock data for preferences or translations.
+
+2.  **UI Component abstraction (Phase 2)**:
+    *   `IOptionSelector`, `IColorSelector`, `IProgressIndicator`.
+    *   `ConsoleView` base class moved to Core to support interface inheritance.
+    *   `SelectionOptions` moved to Models to resolve dependency circularity.
+
+3.  **Proof of Value**:
+    *   `tests/Pester/Unit/Reference/ValueProof.Tests.ps1` demonstrates how to test an interactive prompt (like a delete confirmation) by providing a pre-canned answer to a `MockConsole`.
+
+**Conclusion:** The application is now fully testable in isolation. New features can be developed using a Test-Driven Development (TDD) approach without needing a real terminal or filesystem.
 
 ## Recommendations for Future AI/Developers
 

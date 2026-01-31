@@ -10,11 +10,11 @@
     Eliminates desync between memory (Context.BasePath) and file (preferences).
 #>
 
-class PathManager {
-    [UserPreferencesService] $PreferencesService
+class PathManager : IPathManager {
+    [IUserPreferencesService] $PreferencesService
     [string] hidden $CachedCurrentPath = ""
     
-    PathManager([UserPreferencesService]$preferencesService) {
+    PathManager([IUserPreferencesService]$preferencesService) {
         $this.PreferencesService = $preferencesService
         $this.SyncFromPreferences()
     }

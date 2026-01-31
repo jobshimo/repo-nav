@@ -1,8 +1,8 @@
 class IntegrationFlowDashboard {
-    [ConsoleHelper] $Console
+    [IConsoleHelper] $Console
 
     [IUIRenderer] $Renderer
-    [LocalizationService] $LocService
+    [ILocalizationService] $LocService
 
     # Layout Configuration
     [int] $HeaderLines = 3
@@ -11,7 +11,7 @@ class IntegrationFlowDashboard {
     # Track current input selection to minimize redraws
     [int] $LastSelectedIndex = -1
 
-    IntegrationFlowDashboard([ConsoleHelper]$console, [IUIRenderer]$renderer, [LocalizationService]$locService) {
+    IntegrationFlowDashboard([IConsoleHelper]$console, [IUIRenderer]$renderer, [ILocalizationService]$locService) {
         $this.Console = $console
         $this.Renderer = $renderer
         $this.LocService = $locService

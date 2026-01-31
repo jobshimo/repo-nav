@@ -10,17 +10,17 @@
 
 class OnboardingService {
     [IUIRenderer] $Renderer
-    [ConsoleHelper] $Console
-    [LocalizationService] $Loc
-    [OptionSelector] $OptionSelector
-    [UserPreferencesService] $PreferencesService
+    [IConsoleHelper] $Console
+    [ILocalizationService] $Loc
+    [IOptionSelector] $OptionSelector
+    [IUserPreferencesService] $PreferencesService
 
     OnboardingService(
         [IUIRenderer]$renderer,
-        [ConsoleHelper]$console,
-        [LocalizationService]$loc,
-        [OptionSelector]$optionSelector,
-        [UserPreferencesService]$preferencesService
+        [IConsoleHelper]$console,
+        [ILocalizationService]$loc,
+        [IOptionSelector]$optionSelector,
+        [IUserPreferencesService]$preferencesService
     ) {
         $this.Renderer = $renderer
         $this.Console = $console

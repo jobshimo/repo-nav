@@ -3,12 +3,12 @@ class CommandContext {
     [IRepositoryManager] $RepoManager
     [IUIRenderer] $Renderer
     [IConsoleHelper] $Console
-    [LoggerService] $Logger
-    [ColorSelector] $ColorSelector
-    [OptionSelector] $OptionSelector
-    [LocalizationService] $LocalizationService
-    [UserPreferencesService] $PreferencesService
-    [HiddenReposService] $HiddenReposService
-    [PathManager] $PathManager
+    [ILoggerService] $Logger
+    [IColorSelector] $ColorSelector
+    [IOptionSelector] $OptionSelector
+    [ILocalizationService] $LocalizationService
+    [IUserPreferencesService] $PreferencesService
+    [IHiddenReposService] $HiddenReposService
+    [IPathManager] $PathManager
     [string] $BasePath
 }

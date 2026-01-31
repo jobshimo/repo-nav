@@ -16,7 +16,7 @@ if (-not ([System.Management.Automation.PSTypeName]'ViewportManager').Type) {
     . "$uiPath\Base\ViewportManager.ps1"
 }
 if (-not ([System.Management.Automation.PSTypeName]'ConsoleView').Type) {
-    . "$uiPath\Framework\ConsoleView.ps1"
+    . "$PSScriptRoot\..\Core\Common\ConsoleView.ps1"
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -36,7 +36,7 @@ if (-not ([System.Management.Automation.PSTypeName]'ProgressIndicator').Type) {
     . "$uiPath\Components\ProgressIndicator.ps1"
 }
 if (-not ([System.Management.Automation.PSTypeName]'SelectionOptions').Type) {
-    . "$uiPath\Components\SelectionOptions.ps1"
+    . "$PSScriptRoot\..\Models\SelectionOptions.ps1"
 }
 if (-not ([System.Management.Automation.PSTypeName]'OptionSelector').Type) {
     . "$uiPath\Components\OptionSelector.ps1"

@@ -1,8 +1,8 @@
-class OptionSelector : ConsoleView {
+class OptionSelector : IOptionSelector {
     [IUIRenderer] $Renderer
     [ViewportManager] $Viewport
     
-    OptionSelector([ConsoleHelper]$console, [IUIRenderer]$renderer) : base($console) {
+    OptionSelector([IConsoleHelper]$console, [IUIRenderer]$renderer) : base($console) {
         $this.Renderer = $renderer
         $this.Viewport = [ViewportManager]::new()
     }

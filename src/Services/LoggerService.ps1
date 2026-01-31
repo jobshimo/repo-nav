@@ -1,4 +1,4 @@
-class LoggerService {
+class LoggerService : ILoggerService {
     [string] $LogFilePath
 
     LoggerService([string]$scriptRoot) {
