@@ -40,4 +40,5 @@ $RECYCLE.BIN/
 coverage.xml
 coverage-single.xml
 coverage-temp.xml
+coverage-*.xml
 
