@@ -4,17 +4,19 @@ class MockNpmService : INpmService {
     [bool] $PackageJsonExists
     [string] $NpmPath
     [bool] $NodeModulesExists
+    [bool] $PackageLockExists
     
     MockNpmService() { 
         $this.PackageJsonExists = $true 
         $this.NpmPath = "C:\fake\npm.exe"
         $this.NodeModulesExists = $true
+        $this.PackageLockExists = $false
     }
     
     [bool] HasPackageJson([string]$path) { return $this.PackageJsonExists }
     [string] GetNpmExecutablePath() { return $this.NpmPath }
     [bool] HasNodeModules([string]$path) { return $this.NodeModulesExists }
-    [bool] HasPackageLock([string]$path) { return $false }
+    [bool] HasPackageLock([string]$path) { return $this.PackageLockExists }
     [string] GetVersion() { return "1.0.0" }
 }
 
@@ -34,7 +36,6 @@ class MockJobServiceV10 : IJobService {
     [array] $LastArgs
     
     [object] StartJob([scriptblock]$scriptBlock, [array]$args) {
-        Write-Host "DEBUG SERVICE: StartJob Called"
         $this.LastScript = $scriptBlock
         $this.LastArgs = $args
         
@@ -47,7 +48,6 @@ class MockJobServiceV10 : IJobService {
         $j | Add-Member -MemberType NoteProperty -Name 'State' -Value 'Completed'
         $j | Add-Member -MemberType NoteProperty -Name 'ChildJobs' -Value $list
         
-        Write-Host "DEBUG SERVICE: Created object State=$($j.State)"
         return $j
     }
     

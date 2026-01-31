@@ -11,6 +11,7 @@ class MockRepositoryManager : IRepositoryManager {
     
     # Tracking method calls (Simple Spy)
     [System.Collections.ArrayList] $MethodCalls
+    [int] $RefreshRepositoryCallCount
     
     MockRepositoryManager() {
         $this.Repositories = @()
@@ -18,6 +19,7 @@ class MockRepositoryManager : IRepositoryManager {
         $this.BooleanResult = $true
         $this.IntResult = 0
         $this.MethodCalls = [System.Collections.ArrayList]::new()
+        $this.RefreshRepositoryCallCount = 0
     }
     
     # Helper to track calls
@@ -87,7 +89,10 @@ class MockRepositoryManager : IRepositoryManager {
         return $this.IntResult
     }
     
-    [void] RefreshRepository([RepositoryModel]$repository) { $this.TrackCall("RefreshRepository", @($repository)) }
+    [void] RefreshRepository([RepositoryModel]$repository) { 
+        $this.TrackCall("RefreshRepository", @($repository))
+        $this.RefreshRepositoryCallCount++
+    }
     
     [bool] SetAlias([RepositoryModel]$repository, [AliasInfo]$aliasInfo) {
         $this.TrackCall("SetAlias", @($repository, $aliasInfo))
