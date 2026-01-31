@@ -19,13 +19,17 @@
 
 $ErrorActionPreference = 'Stop'
 
-# Get repo root (two levels up from .git/hooks)
-$hookDir = $PSScriptRoot
-if ($hookDir -match "\.git\\hooks$") {
-    $repoRoot = Split-Path (Split-Path $hookDir -Parent) -Parent
+# Get repo root - always go up from scripts folder
+$scriptPath = $PSScriptRoot
+if ($scriptPath -match "scripts$") {
+    # Running from scripts/ folder
+    $repoRoot = Split-Path $scriptPath -Parent
+} elseif ($scriptPath -match "\.git\\hooks$") {
+    # Running from .git/hooks (shouldn't happen with bash wrapper, but just in case)
+    $repoRoot = Split-Path (Split-Path $scriptPath -Parent) -Parent
 } else {
-    # Running directly (not from git hook)
-    $repoRoot = $PSScriptRoot
+    # Fallback - assume we're somewhere in the repo
+    $repoRoot = $scriptPath
 }
 
 Write-Host ""
