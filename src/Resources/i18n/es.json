@@ -128,6 +128,7 @@
     
     "Prompt.Continue": "¿Continuar?",
     "Msg.ActionCancelled": "Operación cancelada.",
+    "Msg.Back": "Cancelar",
 
     "Msg.Npm.DeleteWarning": "Esto eliminará: {0}",
     "Msg.Npm.RemoveLockPrompt": "¿Deseas eliminar también package-lock.json?",

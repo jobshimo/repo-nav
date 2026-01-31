@@ -38,6 +38,7 @@ class GitFlowCommand : INavigationCommand {
         $config.Options = $options
         $config.Description = $prompt
         $config.DescriptionColor = [Constants]::ColorWarning
+        $config.CancelText = $this.GetLoc($context, "Msg.Back", "Cancel")
         
         $selection = $context.OptionSelector.Show($config)
         return $selection -eq "Yes"

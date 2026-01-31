@@ -134,6 +134,7 @@
     "Alias.KeepColorTitle": "Keep current color?",
 
     "Msg.ActionCancelled": "Operation cancelled.",
+    "Msg.Back": "Cancel",
 
     "Msg.Npm.DeleteWarning": "This will delete: {0}",
     "Msg.Npm.RemoveLockPrompt": "Do you also want to remove package-lock.json?",
