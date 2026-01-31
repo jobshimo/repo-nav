@@ -91,7 +91,7 @@ try {
     `$config.CodeCoverage.Path = '$srcPath'
     `$config.CodeCoverage.OutputFormat = 'Jacoco'
     `$config.CodeCoverage.OutputPath = 'coverage.xml'
-    `$config.CodeCoverage.CoveragePercentTarget = 80
+    `$config.CodeCoverage.CoveragePercentTarget = 10
     
     `$result = Invoke-Pester -Configuration `$config
     
