@@ -38,4 +38,5 @@ $RECYCLE.BIN/
 
 # Cobertura de tests
 coverage.xml
+coverage-single.xml
 

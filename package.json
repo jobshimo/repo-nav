@@ -9,6 +9,7 @@
     "start": "powershell -ExecutionPolicy Bypass -File ./repo-nav.ps1",
     "test": "powershell -ExecutionPolicy Bypass -Command \"Invoke-Pester -Path .\\tests\\Pester\\ -Output Detailed\"",
     "test:coverage": "powershell -ExecutionPolicy Bypass -File ./scripts/Test-WithCoverage.ps1",
+    "coverage": "powershell -ExecutionPolicy Bypass -File ./scripts/Show-Coverage.ps1",
     "build": "powershell -ExecutionPolicy Bypass -File ./Build-Bundle.ps1",
     "verify": "powershell -ExecutionPolicy Bypass -File ./scripts/Validate-Project.ps1",
     "check": "npm test && npm run verify",
