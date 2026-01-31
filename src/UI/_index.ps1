@@ -15,9 +15,8 @@ if (-not ([System.Management.Automation.PSTypeName]'ConsoleHelper').Type) {
 if (-not ([System.Management.Automation.PSTypeName]'ViewportManager').Type) {
     . "$uiPath\Base\ViewportManager.ps1"
 }
-if (-not ([System.Management.Automation.PSTypeName]'ConsoleView').Type) {
-    . "$PSScriptRoot\..\Core\Common\ConsoleView.ps1"
-}
+# ConsoleView moved to Core/Common, loaded in Layer 3
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ViewModels (used by Renderer)
@@ -35,9 +34,8 @@ if (-not ([System.Management.Automation.PSTypeName]'UIRenderer').Type) {
 if (-not ([System.Management.Automation.PSTypeName]'ProgressIndicator').Type) {
     . "$uiPath\Components\ProgressIndicator.ps1"
 }
-if (-not ([System.Management.Automation.PSTypeName]'SelectionOptions').Type) {
-    . "$PSScriptRoot\..\Models\SelectionOptions.ps1"
-}
+# SelectionOptions moved to Models, loaded in Layer 2
+
 if (-not ([System.Management.Automation.PSTypeName]'OptionSelector').Type) {
     . "$uiPath\Components\OptionSelector.ps1"
 }
