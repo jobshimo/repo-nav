@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Shows coverage percentage for each file from the last test run.
     
@@ -38,7 +38,7 @@ if (-not (Test-Path $coveragePath)) {
 
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Cyan
-Write-Host "  CODE COVERAGE BY FILE" -ForegroundColor Cyan
+Write-Host "                 CODE COVERAGE BY FILE                          " -ForegroundColor Cyan -BackgroundColor DarkBlue
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -95,13 +95,27 @@ $globalCoverage = if ($totalLines -gt 0) {
 
 # Display results
 if ($fileStats.Count -eq 0) {
-    Write-Host "  All files are at or above $MinCoverage% coverage!" -ForegroundColor Green
+    Write-Host "  [OK] " -ForegroundColor Green -NoNewline
+    Write-Host "All files are at or above " -NoNewline
+    Write-Host "$MinCoverage%" -ForegroundColor Green -NoNewline
+    Write-Host " coverage!" -ForegroundColor White
     Write-Host ""
 } else {
-    Write-Host "Files below $MinCoverage% coverage:" -ForegroundColor Yellow
+    Write-Host "Files below " -NoNewline -ForegroundColor Gray
+    Write-Host "$MinCoverage%" -ForegroundColor Yellow -NoNewline
+    Write-Host " coverage:" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "  Coverage  Lines       File" -ForegroundColor DarkGray
-    Write-Host "  --------  ----------  -----------------------------------------" -ForegroundColor DarkGray
+    
+    # Header
+    Write-Host "  +----------+-------------+---------------------------------------+" -ForegroundColor DarkCyan
+    Write-Host "  | " -ForegroundColor DarkCyan -NoNewline
+    Write-Host "Coverage" -ForegroundColor White -NoNewline
+    Write-Host " | " -ForegroundColor DarkCyan -NoNewline
+    Write-Host "Lines      " -ForegroundColor White -NoNewline
+    Write-Host " | " -ForegroundColor DarkCyan -NoNewline
+    Write-Host "File                                 " -ForegroundColor White -NoNewline
+    Write-Host " |" -ForegroundColor DarkCyan
+    Write-Host "  +----------+-------------+---------------------------------------+" -ForegroundColor DarkCyan
     
     foreach ($stat in $fileStats) {
         # Color coding
@@ -110,23 +124,52 @@ if ($fileStats.Count -eq 0) {
                  elseif ($stat.Coverage -ge 40) { "DarkYellow" }
                  else { "Red" }
         
-        $coverageStr = "$($stat.Coverage.ToString().PadLeft(6))%"
-        $linesStr = "$($stat.Covered)/$($stat.Total)".PadRight(10)
+        # Status symbol
+        $symbol = if ($stat.Coverage -ge 80) { "[OK]" }
+                  elseif ($stat.Coverage -ge 60) { "[ -]" }
+                  else { "[!!]" }
         
-        Write-Host "  " -NoNewline
+        $coverageStr = "$($stat.Coverage.ToString().PadLeft(5))%"
+        $linesStr = "$($stat.Covered)/$($stat.Total)".PadRight(11)
+        $fileStr = $stat.File
+        if ($fileStr.Length -gt 37) { $fileStr = "..." + $fileStr.Substring($fileStr.Length - 34) }
+        $fileStr = $fileStr.PadRight(37)
+        
+        Write-Host "  | " -ForegroundColor DarkCyan -NoNewline
+        Write-Host $symbol -ForegroundColor $color -NoNewline
+        Write-Host " " -NoNewline
         Write-Host $coverageStr -ForegroundColor $color -NoNewline
-        Write-Host "  " -NoNewline
-        Write-Host $linesStr -ForegroundColor DarkGray -NoNewline
-        Write-Host "  $($stat.File)" -ForegroundColor White
+        Write-Host " | " -ForegroundColor DarkCyan -NoNewline
+        Write-Host $linesStr -ForegroundColor Gray -NoNewline
+        Write-Host " | " -ForegroundColor DarkCyan -NoNewline
+        Write-Host $fileStr -ForegroundColor White -NoNewline
+        Write-Host " |" -ForegroundColor DarkCyan
     }
     
+    Write-Host "  +----------+-------------+---------------------------------------+" -ForegroundColor DarkCyan
     Write-Host ""
-    Write-Host "Total: $fileStats.Count files below $MinCoverage%" -ForegroundColor Yellow
+    Write-Host "  Total: " -NoNewline -ForegroundColor Gray
+    Write-Host $fileStats.Count -ForegroundColor Yellow -NoNewline
+    Write-Host " files below " -NoNewline -ForegroundColor Gray
+    Write-Host "$MinCoverage%" -ForegroundColor Yellow
 }
 
 Write-Host ""
-Write-Host "Global Coverage: $globalCoverage%" -ForegroundColor $(if ($globalCoverage -ge 80) { "Green" } else { "Yellow" })
+Write-Host "================================================================" -ForegroundColor Cyan
+$coverageColor = if ($globalCoverage -ge 80) { "Green" } else { "Yellow" }
+Write-Host " Global Coverage: " -ForegroundColor White -NoNewline
+Write-Host "$globalCoverage%" -ForegroundColor $coverageColor -BackgroundColor $(if ($globalCoverage -ge 80) { "DarkGreen" } else { "DarkYellow" })
+Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Next steps:" -ForegroundColor Gray
-Write-Host "  .\scripts\Test-FileCoverage.ps1 -SourceFile 'path/to/file.ps1' -ShowUncovered" -ForegroundColor DarkGray
+Write-Host "  Legend:  " -ForegroundColor Gray -NoNewline
+Write-Host "[OK]" -ForegroundColor Green -NoNewline
+Write-Host " >= 80%   " -ForegroundColor Gray -NoNewline
+Write-Host "[ - ]" -ForegroundColor Yellow -NoNewline
+Write-Host " 60-79%   " -ForegroundColor Gray -NoNewline
+Write-Host "[!!]" -ForegroundColor Red -NoNewline
+Write-Host " < 60%" -ForegroundColor Gray
 Write-Host ""
+Write-Host "  Next: " -ForegroundColor Gray -NoNewline
+Write-Host ".\scripts\Test-FileCoverage.ps1 -SourceFile 'path/to/file.ps1' -ShowUncovered" -ForegroundColor DarkGray
+Write-Host ""
+
