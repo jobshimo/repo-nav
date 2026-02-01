@@ -7,14 +7,18 @@ Describe "Simple Commands" {
         # Load standard mocks
         . "$projectRoot/tests/Mocks/MockCommonServices.ps1"
         . "$projectRoot/tests/Mocks/MockRepositoryManager.ps1"
+        
+        # Mock PowerShell commands
+        Mock Start-Sleep {}
+        Mock Write-Host {}
     }
 
     Context "ExitCommand" {
         It "CanExecute returns true for Q, ESC and Quit Keys" {
             $cmd = [ExitCommand]::new()
             
-            $keyQ = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_Q }
-            $keyEsc = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_ESC }
+            $keyQ = New-MockKeyInfo -VirtualKeyCode ([Constants]::KEY_Q)
+            $keyEsc = New-MockKeyInfo -VirtualKeyCode ([Constants]::KEY_ESC)
             
             $cmd.CanExecute($keyQ, $null) | Should -BeTrue
             $cmd.CanExecute($keyEsc, $null) | Should -BeTrue
@@ -22,7 +26,7 @@ Describe "Simple Commands" {
 
         It "CanExecute returns false for other keys" {
              $cmd = [ExitCommand]::new()
-             $keyX = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_X }
+             $keyX = New-MockKeyInfo -VirtualKeyCode ([Constants]::KEY_X)
              $cmd.CanExecute($keyX, $null) | Should -BeFalse
         }
     }
@@ -49,7 +53,7 @@ Describe "Simple Commands" {
         }
 
         It "CanExecute returns true for V key" {
-            $keyV = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_V }
+            $keyV = New-MockKeyInfo -VirtualKeyCode ([Constants]::KEY_V)
             $cmd.CanExecute($keyV, $null) | Should -BeTrue
         }
         

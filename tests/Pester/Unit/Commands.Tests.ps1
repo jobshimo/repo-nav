@@ -59,7 +59,7 @@ Describe "Complex Commands" {
 
         It "Execute (Key I) runs invoke install" {
             # Key "I"
-            $keyPress = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_I }
+            $keyPress = New-MockKeyInfo -VirtualKeyCode ([Constants]::KEY_I)
             
             $cmd.Execute($keyPress, $context)
             
@@ -68,7 +68,7 @@ Describe "Complex Commands" {
 
         It "Execute (Key X) runs invoke remove (Delete)" {
             # Key "X"
-            $keyPress = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_X }
+            $keyPress = New-MockKeyInfo -VirtualKeyCode ([Constants]::KEY_X)
 
             $cmd.Execute($keyPress, $context)
             

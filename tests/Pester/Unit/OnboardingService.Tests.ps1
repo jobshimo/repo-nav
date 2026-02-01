@@ -3,6 +3,10 @@ BeforeAll {
     . "$PSScriptRoot/../../../tests/Mocks/MockCommonServices.ps1"
     . "$PSScriptRoot/../../../tests/Mocks/MockNpmServices.ps1"
     
+    # Mock PowerShell commands
+    Mock Start-Sleep {}
+    Mock Write-Host {}
+    
     # Create mock instances using proper Mock classes
     $script:mockRenderer = New-Object MockUIRenderer
     $script:mockConsole = New-Object MockConsoleHelper
@@ -202,7 +206,6 @@ Describe "OnboardingService" -Tag "Unit", "OnboardingService" {
             )
             
             Mock Read-Host { return $testPath } -ModuleName $null
-            Mock Start-Sleep { }
             
             # Act & Assert - Should not throw
             { $service.HandleEmptyState("") } | Should -Not -Throw
@@ -228,7 +231,6 @@ Describe "OnboardingService" -Tag "Unit", "OnboardingService" {
             )
             
             Mock Read-Host { return $invalidPath } -ModuleName $null
-            Mock Start-Sleep { }
             
             # Act
             $result = $service.HandleEmptyState("")
@@ -253,7 +255,6 @@ Describe "OnboardingService" -Tag "Unit", "OnboardingService" {
             )
             
             Mock Read-Host { return "   " } -ModuleName $null
-            Mock Start-Sleep { }
             
             # Act
             $result = $service.HandleEmptyState("")
