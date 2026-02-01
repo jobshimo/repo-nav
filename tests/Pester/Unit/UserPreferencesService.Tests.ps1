@@ -12,6 +12,9 @@ Describe "UserPreferencesService" {
         
         # Explicitly load the service to ensure it's available (workaround for type missing error)
         . "$srcRoot\Services\UserPreferencesService.ps1"
+        . "$srcRoot\Models\Preferences\UserPreferences.ps1"
+        . "$srcRoot\Models\Preferences\RepositoryPreferences.ps1"
+        . "$srcRoot\Models\Preferences\PathAlias.ps1"
     }
 
     BeforeEach {
@@ -108,7 +111,7 @@ Describe "UserPreferencesService" {
               $service.EnsurePathInPreferences($tempDir)
               
               $prefs = $service.LoadPreferences()
-              $prefs.repository.paths | Should -Contain (Resolve-Path $tempDir).Path
+              $prefs.Repository.Paths | Should -Contain (Resolve-Path $tempDir).Path
          }
 
          It "Does not add duplicate paths" {
@@ -117,7 +120,43 @@ Describe "UserPreferencesService" {
               $service.EnsurePathInPreferences($tempDir)
               
               $prefs = $service.LoadPreferences()
-              $prefs.repository.paths.Count | Should -Be 1
+              $prefs.Repository.Paths.Count | Should -Be 1
+         }
+    }
+
+    Context "Strong Typing Mapping" {
+         It "Maps Favorites correctly" {
+              $json = '{"repository": {"favorites": ["RepoA", "RepoB"]}}'
+              $json | Set-Content $tempFile -Encoding UTF8
+              
+              $prefs = $service.LoadPreferences()
+              $prefs.Repository.Favorites | Should -Contain "RepoA"
+              $prefs.Repository.Favorites.Count | Should -Be 2
+         }
+
+         It "Maps PathAliases correctly (Legacy and Object)" {
+              $json = @'
+{
+    "repository": {
+        "pathAliases": {
+             "Path1": "Alias1",
+             "Path2": { "Text": "Alias2", "Color": "Green" }
+        }
+    }
+}
+'@
+              $json | Set-Content $tempFile -Encoding UTF8
+              
+              $prefs = $service.LoadPreferences()
+              
+              $aliases = $prefs.Repository.PathAliases
+              $aliases.ContainsKey("Path1") | Should -BeTrue
+              $aliases["Path1"].Text | Should -Be "Alias1"
+              $aliases["Path1"].Color | Should -Be "Default"
+              
+              $aliases.ContainsKey("Path2") | Should -BeTrue
+              $aliases["Path2"].Text | Should -Be "Alias2"
+              $aliases["Path2"].Color | Should -Be "Green"
          }
     }
 }

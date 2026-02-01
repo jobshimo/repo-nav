@@ -91,7 +91,7 @@ class ParallelGitLoader : IParallelGitLoader {
             try {
                 $local:isGitRepo = Test-Path ".git"
                 if (-not $local:isGitRepo) {
-                    return [PSCustomObject]@{
+                    return @{
                         IsGitRepo            = $false
                         CurrentBranch        = ""
                         HasUncommittedChanges = $false
@@ -117,7 +117,7 @@ class ParallelGitLoader : IParallelGitLoader {
                     $local:hasUnpushedResult = ([int]$local:countStr -gt 0)
                 }
                 
-                return [PSCustomObject]@{
+                return @{
                     IsGitRepo             = $local:isGitRepo
                     CurrentBranch         = $local:branchResult
                     HasUncommittedChanges = $local:hasChangesResult

@@ -5,41 +5,28 @@
 .DESCRIPTION
     Following SOLID principles:
     - SRP: Only responsible for favorite management
-    - DIP: Depends on ConfigurationService abstraction
-    - OCP: Can be extended for new favorite features (groups, tags, etc.)
-    
-    Extracted from AliasManager to separate favorite concerns from alias concerns.
-    
-.NOTES
-    This service delegates persistence to ConfigurationService and provides
-    a clean API for favorite operations.
+    - DIP: Depends on UserPreferencesService abstraction
+    - OCP: Can be extended for new favorite features
 #>
 
 class FavoriteService : IFavoriteService {
     # Dependencies
-    [IConfigurationService] $ConfigService
+    [IUserPreferencesService] $PreferencesService
     
     # Constructor with dependency injection
-    FavoriteService([IConfigurationService]$configService) {
-        $this.ConfigService = $configService
+    FavoriteService([IUserPreferencesService]$preferencesService) {
+        $this.PreferencesService = $preferencesService
     }
     
-    <#
-    .SYNOPSIS
-        Gets all favorite repository names
-        
-    .RETURNS
-        Array of repository names marked as favorites
-    #>
+    # Gets all favorite repository names
     [string[]] GetFavorites() {
-        $config = $this.ConfigService.LoadConfiguration()
-        [string[]]$favorites = @($config.favorites)
-        return $favorites
+        $prefs = $this.PreferencesService.LoadPreferences()
+        return [ArrayHelper]::EnsureArray($prefs.Repository.Favorites)
     }
     
     # Check if a repository is marked as favorite
     [bool] IsFavorite([string]$repoPath) {
-        [string[]]$favorites = $this.GetFavorites()
+        $favorites = $this.GetFavorites()
         return $favorites -contains $repoPath
     }
     
@@ -49,32 +36,36 @@ class FavoriteService : IFavoriteService {
             return $false
         }
         
-        $config = $this.ConfigService.LoadConfiguration()
-        [string[]]$currentFavorites = @($config.favorites)
+        $prefs = $this.PreferencesService.LoadPreferences()
+        $currentFavs = [string[]] ([ArrayHelper]::EnsureArray($prefs.Repository.Favorites))
+        $favorites = [System.Collections.Generic.List[string]]::new($currentFavs)
         
         # Already a favorite
-        if ($currentFavorites -contains $repoPath) {
+        if ($favorites.Contains($repoPath)) {
             return $true
         }
         
         # Add and save
-        $config.favorites = @($currentFavorites + $repoPath)
-        return $this.ConfigService.SaveConfiguration($config)
+        $favorites.Add($repoPath)
+        $prefs.Repository.Favorites = $favorites.ToArray()
+        return $this.PreferencesService.SavePreferences($prefs)
     }
     
     # Remove a repository from favorites
     [bool] RemoveFavorite([string]$repoPath) {
-        $config = $this.ConfigService.LoadConfiguration()
-        [string[]]$currentFavorites = @($config.favorites)
+        $prefs = $this.PreferencesService.LoadPreferences()
+        $currentFavs = [string[]] ([ArrayHelper]::EnsureArray($prefs.Repository.Favorites))
+        $favorites = [System.Collections.Generic.List[string]]::new($currentFavs)
         
-        # Not a favorite
-        if ($currentFavorites -notcontains $repoPath) {
+        # Not a favorite check logic optimization
+        if (-not $favorites.Contains($repoPath)) {
             return $true
         }
         
         # Remove and save
-        $config.favorites = @($currentFavorites | Where-Object { $_ -ne $repoPath })
-        return $this.ConfigService.SaveConfiguration($config)
+        $favorites.Remove($repoPath) | Out-Null
+        $prefs.Repository.Favorites = $favorites.ToArray()
+        return $this.PreferencesService.SavePreferences($prefs)
     }
     
     # Toggle favorite status
@@ -94,21 +85,8 @@ class FavoriteService : IFavoriteService {
     
     # Clear all favorites
     [bool] ClearAllFavorites() {
-        $config = $this.ConfigService.LoadConfiguration()
-        $config.favorites = @()
-        return $this.ConfigService.SaveConfiguration($config)
-    }
-    
-    # Update repository model with favorite status
-    [void] UpdateRepositoryModel([RepositoryModel]$repository) {
-        $repository.MarkAsFavorite($this.IsFavorite($repository.FullPath))
-    }
-    
-    # Update multiple repository models
-    [void] UpdateRepositoryModels([array]$repositories) {
-        $favorites = $this.GetFavorites()
-        foreach ($repo in $repositories) {
-            $repo.MarkAsFavorite($favorites -contains $repo.FullPath)
-        }
+        $prefs = $this.PreferencesService.LoadPreferences()
+        $prefs.Repository.Favorites = @()
+        return $this.PreferencesService.SavePreferences($prefs)
     }
 }

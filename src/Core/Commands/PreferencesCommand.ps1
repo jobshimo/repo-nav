@@ -28,7 +28,7 @@ class PreferencesCommand : INavigationCommand {
             } else {
                 # Fallback to direct preferences read if PathManager not available
                 $prefs = $context.PreferencesService.LoadPreferences()
-                $newDefaultPath = $prefs.repository.defaultPath
+                $newDefaultPath = $prefs.Repository.DefaultPath
             }
             
             # Check if we still have a valid path

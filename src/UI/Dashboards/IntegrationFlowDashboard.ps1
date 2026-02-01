@@ -1,4 +1,4 @@
-class IntegrationFlowDashboard {
+class IntegrationFlowDashboard : IIntegrationFlowDashboard {
     [IConsoleHelper] $Console
 
     [IUIRenderer] $Renderer

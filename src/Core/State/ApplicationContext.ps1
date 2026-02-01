@@ -1,7 +1,6 @@
 class ApplicationContext {
     # Core Services
     [IRepositoryManager]        $RepoManager
-    [ConfigurationService]      $ConfigurationService
     [IUserPreferencesService]    $PreferencesService
     [ILocalizationService]       $LocalizationService
     [IPathManager]               $PathManager

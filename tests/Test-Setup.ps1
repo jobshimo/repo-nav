@@ -65,7 +65,7 @@ Write-Host " [Test-Setup] Loading Layer 3: Core Infrastructure" -ForegroundColor
 . "$srcPath\Core\Interfaces\ILoggerService.ps1"
 . "$srcPath\Core\Interfaces\ILocalizationService.ps1"
 . "$srcPath\Core\Interfaces\IUserPreferencesService.ps1"
-. "$srcPath\Core\Interfaces\IConfigurationService.ps1"
+
 . "$srcPath\Core\Interfaces\IParallelGitLoader.ps1"
 . "$srcPath\Core\Interfaces\IHiddenReposService.ps1"
 . "$srcPath\Core\Interfaces\IPathManager.ps1"
@@ -84,7 +84,14 @@ Write-Host " [Test-Setup] Loading Layer 3: Core Infrastructure" -ForegroundColor
 . "$srcPath\Core\Interfaces\IGitReadService.ps1"
 . "$srcPath\Core\Interfaces\IGitWriteService.ps1"
 . "$srcPath\Core\Interfaces\IViewportManager.ps1"
+. "$srcPath\Core\Interfaces\IViewportManager.ps1"
 . "$srcPath\Core\Interfaces\IArrayHelper.ps1"
+. "$srcPath\Core\Interfaces\IFilteredListRenderer.ps1"
+. "$srcPath\Core\Interfaces\IIntegrationFlowDashboard.ps1"
+. "$srcPath\Core\Interfaces\IIntegrationFlowRenderer.ps1"
+. "$srcPath\Core\Interfaces\IPreferencesMenuRenderer.ps1"
+. "$srcPath\Core\Interfaces\IPreferencesMenuController.ps1"
+. "$srcPath\Core\Interfaces\IPreferencesActionDispatcher.ps1"
 . "$srcPath\Startup\ServiceRegistry.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────

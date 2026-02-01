@@ -15,9 +15,7 @@ if (-not ([System.Management.Automation.PSTypeName]'WindowSizeCalculator').Type)
 }
 
 # Base services
-if (-not ([System.Management.Automation.PSTypeName]'ConfigurationService').Type) {
-    . "$servicesPath\ConfigurationService.ps1"
-}
+
 if (-not ([System.Management.Automation.PSTypeName]'UserPreferencesService').Type) {
     . "$servicesPath\UserPreferencesService.ps1"
 }

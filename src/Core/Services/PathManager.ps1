@@ -22,8 +22,8 @@ class PathManager : IPathManager {
     # Syncs internal cache from preferences file
     [void] hidden SyncFromPreferences() {
         $prefs = $this.PreferencesService.LoadPreferences()
-        $this.CachedCurrentPath = if ($prefs.repository.defaultPath) { 
-            $prefs.repository.defaultPath 
+        $this.CachedCurrentPath = if ($prefs.Repository.DefaultPath) { 
+            $prefs.Repository.DefaultPath 
         } else { 
             "" 
         }
@@ -38,21 +38,21 @@ class PathManager : IPathManager {
     [void] SetCurrentPath([string]$path) {
         if ([string]::IsNullOrWhiteSpace($path)) {
             $this.CachedCurrentPath = ""
-            $this.PreferencesService.SetPreference("repository", "defaultPath", "")
+            $this.PreferencesService.SetPreference("Repository", "DefaultPath", "")
         } else {
             $resolvedPath = $path
             if (Test-Path $path) {
                 $resolvedPath = (Resolve-Path $path).Path
             }
             $this.CachedCurrentPath = $resolvedPath
-            $this.PreferencesService.SetPreference("repository", "defaultPath", $resolvedPath)
+            $this.PreferencesService.SetPreference("Repository", "DefaultPath", $resolvedPath)
         }
     }
     
     # Gets all configured paths (sanitized, never null)
     [string[]] GetAllPaths() {
         $prefs = $this.PreferencesService.LoadPreferences()
-        return [ArrayHelper]::EnsureArray($prefs.repository.paths)
+        return [ArrayHelper]::EnsureArray($prefs.Repository.Paths)
     }
     
     # Adds a path to the list (with validation)
@@ -68,7 +68,7 @@ class PathManager : IPathManager {
         }
         
         $newPaths = [ArrayHelper]::AddToArray($currentPaths, $resolvedPath)
-        $this.PreferencesService.SetPreference("repository", "paths", $newPaths)
+        $this.PreferencesService.SetPreference("Repository", "Paths", $newPaths)
         
         # If no current path set, set this as default
         if ([string]::IsNullOrWhiteSpace($this.CachedCurrentPath)) {
@@ -85,7 +85,7 @@ class PathManager : IPathManager {
         $currentPaths = $this.GetAllPaths()
         $newPaths = [ArrayHelper]::RemoveFromArray($currentPaths, $path)
         
-        $this.PreferencesService.SetPreference("repository", "paths", $newPaths)
+        $this.PreferencesService.SetPreference("Repository", "Paths", $newPaths)
         
         # Update defaultPath if needed
         if ($this.CachedCurrentPath -eq $path -or $newPaths.Count -eq 0) {

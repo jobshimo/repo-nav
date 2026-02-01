@@ -6,19 +6,26 @@ Describe "AliasManager" {
         $testRoot = Resolve-Path "$PSScriptRoot\..\..\.."
         . "$testRoot\tests\Test-Setup.ps1" | Out-Null
         
-        # Ensure dependencies are loaded
+        # Dependencies
         . "$srcRoot\Models\AliasInfo.ps1"
+        . "$srcRoot\Models\Preferences\PathAlias.ps1"
+        . "$srcRoot\Models\Preferences\UserPreferences.ps1"
+        . "$srcRoot\Models\Preferences\RepositoryPreferences.ps1"
         . "$srcRoot\Config\ColorPalette.ps1"
-        . "$srcRoot\Core\Interfaces\IConfigurationService.ps1"
+        . "$srcRoot\Core\Interfaces\IUserPreferencesService.ps1"
+        . "$srcRoot\Core\Interfaces\IAliasManager.ps1"
         . "$srcRoot\Services\AliasManager.ps1"
-
+        
         # Load Mock
-        . "$testRoot\tests\Mocks\MockConfigurationService.ps1"
+        . "$testRoot\tests\Mocks\MockUserPreferencesService.ps1"
     }
 
     BeforeEach {
-        $script:mockConfig = [MockConfigurationService]::new()
-        $script:aliasManager = [AliasManager]::new($script:mockConfig)
+        # Mock IUserPreferencesService
+        $script:mockPrefsService = [MockUserPreferencesService]::new()
+        $script:prefs = $script:mockPrefsService.Preferences
+        
+        $script:aliasManager = [AliasManager]::new($script:mockPrefsService)
     }
 
     Context "Alias Management" {
@@ -30,58 +37,30 @@ Describe "AliasManager" {
             $info = [AliasInfo]::new("MyAlias", [System.ConsoleColor]::Cyan)
             $script:aliasManager.SetAlias("C:\Repo", $info) | Should -BeTrue
             
-            $script:aliasManager.HasAlias("C:\Repo") | Should -BeTrue
+            # Verify it was saved to prefs
+            $script:prefs.Repository.PathAliases.ContainsKey("C:\Repo") | Should -BeTrue
+            $savedAlias = $script:prefs.Repository.PathAliases["C:\Repo"]
+            $savedAlias.Text | Should -Be "MyAlias"
+            
+            # Verify retrieving it
             $retrieved = $script:aliasManager.GetAlias("C:\Repo")
             $retrieved.Alias | Should -Be "MyAlias"
             $retrieved.Color | Should -Be ([System.ConsoleColor]::Cyan).ToString()
         }
 
         It "Removes an alias" {
-            $info = [AliasInfo]::new("Alias", [System.ConsoleColor]::White)
-            $script:aliasManager.SetAlias("C:\Repo", $info)
+            # Setup initial state
+            $script:prefs.Repository.PathAliases["C:\Repo"] = [PathAlias]::new("Alias", "White")
+            
             $script:aliasManager.RemoveAlias("C:\Repo") | Should -BeTrue
-            $script:aliasManager.HasAlias("C:\Repo") | Should -BeFalse
+            $script:prefs.Repository.PathAliases.ContainsKey("C:\Repo") | Should -BeFalse
         }
-
-        It "Handles legacy alias format (hashtable)" {
-            # Mock configuration state
-            $legacyAliases = [PSCustomObject]@{
-                "C:\Repo" = @{ alias = "Legacy"; color = "Green" }
-            }
-            $script:mockConfig.SetMockAliases($legacyAliases)
-            
-            $script:aliasManager.HasAlias("C:\Repo") | Should -BeTrue
-            $script:aliasManager.GetAlias("C:\Repo").Alias | Should -Be "Legacy"
-        }
-    }
-
-    Context "Favorite Management" {
-        It "Adds and removes favorites" {
-            $script:aliasManager.AddFavorite("MyRepo") | Should -BeTrue
-            $script:aliasManager.IsFavorite("MyRepo") | Should -BeTrue
-            
-            $script:aliasManager.RemoveFavorite("MyRepo") | Should -BeTrue
-            $script:aliasManager.IsFavorite("MyRepo") | Should -BeFalse
-        }
-
-        It "Toggles favorites" {
-            $script:aliasManager.IsFavorite("RepoX") | Should -BeFalse
-            
-            $script:aliasManager.ToggleFavorite("RepoX") | Should -BeTrue
-            $script:aliasManager.IsFavorite("RepoX") | Should -BeTrue
-            
-            $script:aliasManager.ToggleFavorite("RepoX") | Should -BeTrue
-            $script:aliasManager.IsFavorite("RepoX") | Should -BeFalse
-        }
-
-        It "Returns all favorites" {
-            $script:aliasManager.AddFavorite("A")
-            $script:aliasManager.AddFavorite("B")
-            
-            $favs = $script:aliasManager.GetFavorites()
-            $favs | Should -Contain "A"
-            $favs | Should -Contain "B"
-            $favs.Count | Should -Be 2
+        
+        It "IsAliasNameTaken detects duplicates" {
+             $script:prefs.Repository.PathAliases["Repo1"] = [PathAlias]::new("MyAlias", "Green")
+             
+             $script:aliasManager.IsAliasNameTaken("MyAlias") | Should -BeTrue
+             $script:aliasManager.IsAliasNameTaken("OtherAlias") | Should -BeFalse
         }
     }
 }

@@ -9,8 +9,7 @@
 #>
 
 class Constants {
-    # Paths (loaded from config file)
-    static [string] $AliasFileName = ".repo-aliases.json"
+
     
     # Script root path
     static [string] $ScriptRoot
@@ -143,9 +142,6 @@ class Constants {
         [Constants]::ScriptRoot = $scriptRoot
     }
     
-    # Methods to get derived values
-    static [string] GetAliasFilePath() {
-        return Join-Path ([Constants]::ScriptRoot) ([Constants]::AliasFileName)
-    }
+
 }
 

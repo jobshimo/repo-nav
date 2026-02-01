@@ -119,10 +119,10 @@ class RenderOrchestrator {
         
         # Load preferences to check MenuMode
         $prefs = $this.PreferencesService.LoadPreferences()
-        $menuMode = $prefs.display.menuMode
+        $menuMode = $prefs.Display.MenuMode
         
         # Header (Takes 3 lines)
-        $pathDisplayMode = if ($prefs.display.pathDisplayMode) { $prefs.display.pathDisplayMode } else { "Path" }
+        $pathDisplayMode = if ($prefs.Display.PathDisplayMode) { $prefs.Display.PathDisplayMode } else { "Path" }
         $currentPath = $state.BasePath
         
         # Determine what to show
@@ -133,18 +133,20 @@ class RenderOrchestrator {
         $aliasText = $null
         $aliasColor = [Constants]::ColorFavorite # Default
         
-        if ($prefs.repository.pathAliases) {
-            # Robust property access for paths which may contain spaces/special chars
-            if ($prefs.repository.pathAliases.PSObject.Properties.Match($currentPath).Count -gt 0) {
-                $aliasRaw = $prefs.repository.pathAliases."$currentPath"
+        if ($prefs.Repository.PathAliases) {
+            # Check if alias exists for current path
+            if ($prefs.Repository.PathAliases.ContainsKey($currentPath)) {
+                $aliasRaw = $prefs.Repository.PathAliases[$currentPath]
                 
                 # Check if it's an object (New style) or string (Legacy)
                 if ($aliasRaw -is [string]) {
                     $aliasText = $aliasRaw
                 } 
-                elseif ($aliasRaw.PSObject.Properties.Name -contains 'Text') {
+                # PathAlias or PSCustomObject (Safe compatibility)
+                elseif ($aliasRaw -is [PathAlias] -or $aliasRaw.PSObject.Properties.Match('Text').Count) {
                     $aliasText = $aliasRaw.Text
-                    if ($aliasRaw.PSObject.Properties.Name -contains 'Color') {
+                    
+                    if ($aliasRaw -is [PathAlias] -or $aliasRaw.PSObject.Properties.Match('Color').Count) {
                          # Convert string color to ConsoleColor
                          try {
                              $aliasColor = [System.Enum]::Parse([System.ConsoleColor], $aliasRaw.Color)

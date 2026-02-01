@@ -1,8 +1,8 @@
 class RepositoryViewModel {
     [RepositoryModel] $Model
-    [PSCustomObject] $Preferences
+    [UserPreferences] $Preferences
     
-    RepositoryViewModel([RepositoryModel]$model, [PSCustomObject]$preferences) {
+    RepositoryViewModel([RepositoryModel]$model, [UserPreferences]$preferences) {
         $this.Model = $model
         $this.Preferences = $preferences
     }
@@ -17,7 +17,7 @@ class RepositoryViewModel {
         } 
         
         if ($isSelected) { 
-            $bgColor = $this.Preferences.display.selectedBackground
+            $bgColor = $this.Preferences.Display.SelectedBackground
             return [Constants]::GetTextColorForBackground($bgColor)
         } 
         

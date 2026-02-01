@@ -44,10 +44,8 @@ class UIRenderer : IUIRenderer {
     # Helper: Check preference for headers
     [bool] ShouldShowHeaders() {
         $preferences = $this.PreferencesService.LoadPreferences()
-        if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') {
-            return $preferences.display.showHeaders
-        }
-        return $true
+        # With strict types, we can access directly
+        return $preferences.Display.ShowHeaders
     }
 
     # Render header
@@ -168,15 +166,16 @@ class UIRenderer : IUIRenderer {
         
         if ($mode -eq 'Custom') {
             $preferences = $this.PreferencesService.LoadPreferences()
-            if ($preferences.display.PSObject.Properties.Name -contains 'menuSections') {
-                $sections = $preferences.display.menuSections
-                $showNav     = if ($sections.PSObject.Properties.Name -contains 'navigation') { $sections.navigation } else { $true }
-                $showAlias   = if ($sections.PSObject.Properties.Name -contains 'alias') { $sections.alias } else { $true }
-                $showModules = if ($sections.PSObject.Properties.Name -contains 'modules') { $sections.modules } else { $true }
-                $showRepo    = if ($sections.PSObject.Properties.Name -contains 'repository') { $sections.repository } else { $true }
-                $showGit     = if ($sections.PSObject.Properties.Name -contains 'git') { $sections.git } else { $true }
-                $showTools   = if ($sections.PSObject.Properties.Name -contains 'tools') { $sections.tools } else { $true }
-            }
+            # Check if MenuSections is available (it should be with strong types)
+            $sections = $preferences.Display.MenuSections
+            
+            # Access properties directly (PascalCase)
+            $showNav     = $sections.Navigation
+            $showAlias   = $sections.Alias
+            $showModules = $sections.Modules
+            $showRepo    = $sections.Repository
+            $showGit     = $sections.Git
+            $showTools   = $sections.Tools
         }
         
         # Common constants
@@ -287,7 +286,7 @@ class UIRenderer : IUIRenderer {
         $rightDelimiter = ''
         
         if ($isSelected) {
-            $bgColor = $preferences.display.selectedBackground
+            $bgColor = $preferences.Display.SelectedBackground
             
             if ($bgColor -ne 'None') {
                 $backgroundColor = $bgColor
@@ -297,7 +296,7 @@ class UIRenderer : IUIRenderer {
             $selectedTextColor = [Constants]::GetTextColorForBackground($bgColor)
             
             # Get delimiter
-            $delimiterName = $preferences.display.selectedDelimiter
+            $delimiterName = $preferences.Display.SelectedDelimiter
             $delimiter = [Constants]::AvailableDelimiters | Where-Object { $_.Name -eq $delimiterName } | Select-Object -First 1
             if ($delimiter) {
                 $leftDelimiter = $delimiter.Left
@@ -342,9 +341,9 @@ class UIRenderer : IUIRenderer {
         }
         
         # Alias Configuration
-        $aliasPosition = if ($preferences.display.PSObject.Properties.Name -contains 'aliasPosition') { $preferences.display.aliasPosition } else { "After" }
-        $aliasSeparator = if ($preferences.display.PSObject.Properties.Name -contains 'aliasSeparator') { $preferences.display.aliasSeparator } else { " - " }
-        $aliasWrapper = if ($preferences.display.PSObject.Properties.Name -contains 'aliasWrapper') { $preferences.display.aliasWrapper } else { "None" }
+        $aliasPosition = $preferences.Display.AliasPosition
+        $aliasSeparator = $preferences.Display.AliasSeparator
+        $aliasWrapper = $preferences.Display.AliasWrapper
 
         # Prepare Alias Content
         $shouldRenderAlias = $repo.HasAlias -and $repo.AliasInfo -and (-not $repo.IsContainer)
@@ -466,7 +465,7 @@ class UIRenderer : IUIRenderer {
         $backgroundColor = $null
         if ($isSelected) {
             $preferences = $this.PreferencesService.LoadPreferences()
-            $bgColor = $preferences.display.selectedBackground
+            $bgColor = $preferences.Display.SelectedBackground
             if ($bgColor -ne 'None') {
                 $backgroundColor = $bgColor
             }

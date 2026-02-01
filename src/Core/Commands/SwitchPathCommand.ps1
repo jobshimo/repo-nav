@@ -12,7 +12,7 @@ class SwitchPathCommand : INavigationCommand {
         # We generally assume Commands are run from Main View or specific contexts
         
         $preferences = $context.PreferencesService.LoadPreferences()
-        $paths = if ($preferences.repository.paths) { $preferences.repository.paths } else { @() }
+        $paths = if ($preferences.Repository.Paths) { $preferences.Repository.Paths } else { @() }
         $currentPath = $context.BasePath
         
         # Initialize variables
@@ -30,14 +30,14 @@ class SwitchPathCommand : INavigationCommand {
             # For now, just show it as an option so user knows where they are
         }
         
-        $pathAliases = if ($preferences.repository.pathAliases) { $preferences.repository.pathAliases } else { ([PSCustomObject]@{}) }
-        $defaultPath = if ($preferences.repository.defaultPath) { $preferences.repository.defaultPath } else { "" }
+        $pathAliases = if ($preferences.Repository.PathAliases) { $preferences.Repository.PathAliases } else { @{} }
+        $defaultPath = if ($preferences.Repository.DefaultPath) { $preferences.Repository.DefaultPath } else { "" }
         
         foreach ($p in $paths) {
              # Resolve Alias
              $displayAlias = ""
-             if ($pathAliases.$p) { 
-                 $aliasVal = $pathAliases.$p
+             if ($pathAliases.ContainsKey($p)) { 
+                 $aliasVal = $pathAliases[$p]
                  if ($aliasVal -is [string]) {
                      $displayAlias = " [$aliasVal]"
                  } elseif ($aliasVal.PSObject.Properties.Name -contains 'Text') {

@@ -28,7 +28,7 @@ class UserPreferencesService : IUserPreferencesService {
     }
     
     # Load preferences from file
-    [PSCustomObject] LoadPreferences() {
+    [UserPreferences] LoadPreferences() {
         if (-not (Test-Path $this.PreferencesFilePath)) {
             return $this.CreateDefaultPreferences()
         }
@@ -44,12 +44,11 @@ class UserPreferencesService : IUserPreferencesService {
                 return $this.CreateDefaultPreferences()
             }
 
-            $preferences = ConvertFrom-Json $content -ErrorAction Stop
+            # First deserialize to PSCustomObject (what ConvertFrom-Json returns)
+            $jsonObj = ConvertFrom-Json $content -ErrorAction Stop
             
-            # Validate and normalize preferences
-            $normalized = $this.NormalizePreferences($preferences)
-            
-            return $normalized
+            # Then map to our strong types
+            return $this.MapToUserPreferences($jsonObj)
         }
         catch {
             Write-Warning "Error loading preferences file: $_"
@@ -58,8 +57,9 @@ class UserPreferencesService : IUserPreferencesService {
     }
     
     # Save preferences to file
-    [bool] SavePreferences([PSCustomObject]$preferences) {
+    [bool] SavePreferences([UserPreferences]$preferences) {
         try {
+            # Convert to JSON directly - strong types serialize cleanly
             $json = $preferences | ConvertTo-Json -Depth 10
             $json | Set-Content $this.PreferencesFilePath -Encoding UTF8 -ErrorAction Stop
             return $true
@@ -70,173 +70,104 @@ class UserPreferencesService : IUserPreferencesService {
         }
     }
     
-    # Create default preferences structure (in-memory only, not persisted)
-    [PSCustomObject] CreateDefaultPreferences() {
-        $defaults = [PSCustomObject]@{
-            hidden = [PSCustomObject]@{
-                hiddenRepos = @()
-            }
-            general = [PSCustomObject]@{
-                language = "en"
-            }
-            display = [PSCustomObject]@{
-                favoritesOnTop = $true
-                selectedBackground = "DarkGray"
-                selectedDelimiter = "None"
-                aliasPosition = "After" # After | Before
-                aliasSeparator = " - "  # " - " | " : " | " | " | "None"
-                aliasWrapper = "None"   # None | Parens | Brackets | Braces
-                menuMode = "Full" # Full | Minimal | Hidden | Custom
-                menuSections = [PSCustomObject]@{
-                    navigation = $true
-                    alias = $true
-                    modules = $true
-                    repository = $true
-                    git = $true
-                    tools = $true
-                }
-            }
-            git = [PSCustomObject]@{
-                autoLoadGitStatusMode = "None" # None | Favorites | All
-            }
-        }
-        
-        # Note: Do NOT auto-save here. Let the onboarding flow handle persistence.
-        return $defaults
+    # Create default preferences structure
+    [UserPreferences] CreateDefaultPreferences() {
+        return [UserPreferences]::new()
     }
     
-    # Normalize preferences to ensure all required fields exist
-    [PSCustomObject] NormalizePreferences([PSCustomObject]$preferences) {
-        # General Section
-        if (-not ($preferences.PSObject.Properties.Name -contains 'general')) {
-            $preferences | Add-Member -NotePropertyName 'general' -NotePropertyValue ([PSCustomObject]@{}) -Force
-        }
+    # Map dynamic JSON object to strong types
+    hidden [UserPreferences] MapToUserPreferences([PSCustomObject]$json) {
+        $prefs = [UserPreferences]::new()
         
-        if (-not ($preferences.general.PSObject.Properties.Name -contains 'language')) {
-
-            $preferences.general | Add-Member -NotePropertyName 'language' -NotePropertyValue "en" -Force
-        }
-        
-        # Repository Section
-        if (-not ($preferences.PSObject.Properties.Name -contains 'repository')) {
-            $preferences | Add-Member -NotePropertyName 'repository' -NotePropertyValue ([PSCustomObject]@{}) -Force
-        }
-        
-        if (-not ($preferences.repository.PSObject.Properties.Name -contains 'defaultPath')) {
-            $preferences.repository | Add-Member -NotePropertyName 'defaultPath' -NotePropertyValue "" -Force
+        # General
+        if ($json.PSObject.Properties.Match('general').Count) {
+            if ($json.general.PSObject.Properties.Match('language').Count) { $prefs.General.Language = $json.general.language }
+            if ($json.general.PSObject.Properties.Match('debugMode').Count) { $prefs.General.DebugMode = $json.general.debugMode }
         }
 
-        # Display Section
-        if (-not ($preferences.PSObject.Properties.Name -contains 'display')) {
-            $preferences | Add-Member -NotePropertyName 'display' -NotePropertyValue ([PSCustomObject]@{}) -Force
+        # Display
+        if ($json.PSObject.Properties.Match('display').Count) {
+             $d = $json.display
+             if ($d.PSObject.Properties.Match('favoritesOnTop').Count) { $prefs.Display.FavoritesOnTop = [bool]$d.favoritesOnTop }
+             if ($d.PSObject.Properties.Match('selectedBackground').Count) { $prefs.Display.SelectedBackground = $d.selectedBackground }
+             if ($d.PSObject.Properties.Match('selectedDelimiter').Count) { $prefs.Display.SelectedDelimiter = $d.selectedDelimiter }
+             if ($d.PSObject.Properties.Match('aliasPosition').Count) { $prefs.Display.AliasPosition = $d.aliasPosition }
+             if ($d.PSObject.Properties.Match('aliasSeparator').Count) { $prefs.Display.AliasSeparator = $d.aliasSeparator }
+             if ($d.PSObject.Properties.Match('aliasWrapper').Count) { $prefs.Display.AliasWrapper = $d.aliasWrapper }
+             if ($d.PSObject.Properties.Match('menuMode').Count) { $prefs.Display.MenuMode = $d.menuMode }
+             if ($d.PSObject.Properties.Match('pathDisplayMode').Count) { $prefs.Display.PathDisplayMode = $d.pathDisplayMode }
+             
+             if ($d.PSObject.Properties.Match('menuSections').Count) {
+                $ms = $d.menuSections
+                if ($ms.PSObject.Properties.Match('navigation').Count) { $prefs.Display.MenuSections.Navigation = [bool]$ms.navigation }
+                if ($ms.PSObject.Properties.Match('alias').Count) { $prefs.Display.MenuSections.Alias = [bool]$ms.alias }
+                if ($ms.PSObject.Properties.Match('modules').Count) { $prefs.Display.MenuSections.Modules = [bool]$ms.modules }
+                if ($ms.PSObject.Properties.Match('repository').Count) { $prefs.Display.MenuSections.Repository = [bool]$ms.repository }
+                if ($ms.PSObject.Properties.Match('paths').Count) { $prefs.Display.MenuSections.Paths = [bool]$ms.paths }
+                if ($ms.PSObject.Properties.Match('git').Count) { $prefs.Display.MenuSections.Git = [bool]$ms.git }
+                if ($ms.PSObject.Properties.Match('tools').Count) { $prefs.Display.MenuSections.Tools = [bool]$ms.tools }
+             }
         }
         
-        if (-not ($preferences.display.PSObject.Properties.Name -contains 'favoritesOnTop')) {
-            $preferences.display | Add-Member -NotePropertyName 'favoritesOnTop' -NotePropertyValue $true -Force
-        }
-        
-        if ($preferences.display.favoritesOnTop -isnot [bool]) {
-            $preferences.display.favoritesOnTop = [bool]$preferences.display.favoritesOnTop
-        }
-        
-        if (-not ($preferences.display.PSObject.Properties.Name -contains 'selectedBackground')) {
-            $preferences.display | Add-Member -NotePropertyName 'selectedBackground' -NotePropertyValue "DarkGray" -Force
-        }
-        
-        if (-not ($preferences.display.PSObject.Properties.Name -contains 'selectedDelimiter')) {
-            $preferences.display | Add-Member -NotePropertyName 'selectedDelimiter' -NotePropertyValue "None" -Force
-        }
-        
-        if (-not ($preferences.display.PSObject.Properties.Name -contains 'aliasPosition')) {
-            $preferences.display | Add-Member -NotePropertyName 'aliasPosition' -NotePropertyValue "After" -Force
-        }
-        if (-not ($preferences.display.PSObject.Properties.Name -contains 'aliasSeparator')) {
-            $preferences.display | Add-Member -NotePropertyName 'aliasSeparator' -NotePropertyValue " - " -Force
-        }
-        if (-not ($preferences.display.PSObject.Properties.Name -contains 'aliasWrapper')) {
-            $preferences.display | Add-Member -NotePropertyName 'aliasWrapper' -NotePropertyValue "None" -Force
-        }
-        
-        if (-not ($preferences.display.PSObject.Properties.Name -contains 'pathDisplayMode')) {
-            $preferences.display | Add-Member -NotePropertyName 'pathDisplayMode' -NotePropertyValue "Path" -Force
-        }
-
-        if (-not ($preferences.display.PSObject.Properties.Name -contains 'menuMode')) {
-            $preferences.display | Add-Member -NotePropertyName 'menuMode' -NotePropertyValue "Full" -Force
-        }
-        
-        if (-not ($preferences.display.PSObject.Properties.Name -contains 'menuSections')) {
-            $menuSections = [PSCustomObject]@{
-                navigation = $true
-                alias = $true
-                modules = $true
-                repository = $true
-                paths = $true
-                git = $true
-                tools = $true
+        # Git
+        if ($json.PSObject.Properties.Match('git').Count) {
+            # Migration logic
+            if ($json.git.PSObject.Properties.Match('autoLoadFavoritesStatus').Count -and 
+                -not $json.git.PSObject.Properties.Match('autoLoadGitStatusMode').Count) {
+                $oldVal = [bool]$json.git.autoLoadFavoritesStatus
+                $prefs.Git.AutoLoadGitStatusMode = if ($oldVal) { "Favorites" } else { "None" }
             }
-            $preferences.display | Add-Member -NotePropertyName 'menuSections' -NotePropertyValue $menuSections -Force
-        }
-        else {
-            # Normalize menuSections
-            $sections = $preferences.display.menuSections
-            if (-not ($sections.PSObject.Properties.Name -contains 'navigation')) { $sections | Add-Member -NotePropertyName 'navigation' -NotePropertyValue $true -Force }
-            if (-not ($sections.PSObject.Properties.Name -contains 'alias')) { $sections | Add-Member -NotePropertyName 'alias' -NotePropertyValue $true -Force }
-            if (-not ($sections.PSObject.Properties.Name -contains 'modules')) { $sections | Add-Member -NotePropertyName 'modules' -NotePropertyValue $true -Force }
-            if (-not ($sections.PSObject.Properties.Name -contains 'repository')) { $sections | Add-Member -NotePropertyName 'repository' -NotePropertyValue $true -Force }
-            if (-not ($sections.PSObject.Properties.Name -contains 'paths')) { $sections | Add-Member -NotePropertyName 'paths' -NotePropertyValue $true -Force }
-            if (-not ($sections.PSObject.Properties.Name -contains 'git')) { $sections | Add-Member -NotePropertyName 'git' -NotePropertyValue $true -Force }
-            if (-not ($sections.PSObject.Properties.Name -contains 'tools')) { $sections | Add-Member -NotePropertyName 'tools' -NotePropertyValue $true -Force }
-        }
-
-        if (-not ($preferences.PSObject.Properties.Name -contains 'git')) {
-            $preferences | Add-Member -NotePropertyName 'git' -NotePropertyValue ([PSCustomObject]@{}) -Force
+            elseif ($json.git.PSObject.Properties.Match('autoLoadGitStatusMode').Count) {
+                $prefs.Git.AutoLoadGitStatusMode = $json.git.autoLoadGitStatusMode
+            }
         }
         
-        # Backward compatibility / Migration
-        if ($preferences.git.PSObject.Properties.Name -contains 'autoLoadFavoritesStatus' -and 
-            -not ($preferences.git.PSObject.Properties.Name -contains 'autoLoadGitStatusMode')) {
+        # Hidden
+        if ($json.PSObject.Properties.Match('hidden').Count) {
+            if ($json.hidden.PSObject.Properties.Match('hiddenRepos').Count) {
+                # Ensure array
+                $raw = $json.hidden.hiddenRepos
+                if ($raw -is [Array]) { $prefs.Hidden.HiddenRepos = $raw }
+                elseif ($null -ne $raw) { $prefs.Hidden.HiddenRepos = @($raw) }
+            }
+        }
+        
+        # Repository
+        if ($json.PSObject.Properties.Match('repository').Count) {
+            $r = $json.repository
+            if ($r.PSObject.Properties.Match('defaultPath').Count) { $prefs.Repository.DefaultPath = $r.defaultPath }
             
-            $oldVal = [bool]$preferences.git.autoLoadFavoritesStatus
-            $mode = if ($oldVal) { "Favorites" } else { "None" }
-            $preferences.git | Add-Member -NotePropertyName 'autoLoadGitStatusMode' -NotePropertyValue $mode -Force
-        }
-        
-        if (-not ($preferences.git.PSObject.Properties.Name -contains 'autoLoadGitStatusMode')) {
-            $preferences.git | Add-Member -NotePropertyName 'autoLoadGitStatusMode' -NotePropertyValue "None" -Force
-        }
-        
-        # Hidden Section
-        if (-not ($preferences.PSObject.Properties.Name -contains 'hidden')) {
-            $preferences | Add-Member -NotePropertyName 'hidden' -NotePropertyValue ([PSCustomObject]@{
-                hiddenRepos = @()
-            }) -Force
-        }
-        
-        # defaultVisibility removed
-        
-        if (-not ($preferences.hidden.PSObject.Properties.Name -contains 'hiddenRepos')) {
-            $preferences.hidden | Add-Member -NotePropertyName 'hiddenRepos' -NotePropertyValue @() -Force
-        }
-        
-        if (-not ($preferences.hidden.PSObject.Properties.Name -contains 'hiddenRepos')) {
-            $preferences.hidden | Add-Member -NotePropertyName 'hiddenRepos' -NotePropertyValue @() -Force
+            if ($r.PSObject.Properties.Match('paths').Count) {
+                 $raw = $r.paths
+                 if ($raw -is [Array]) { $prefs.Repository.Paths = $raw }
+                 elseif ($null -ne $raw) { $prefs.Repository.Paths = @($raw) }
+            }
+            
+            if ($r.PSObject.Properties.Match('pathAliases').Count) {
+                if ($r.pathAliases -is [PSCustomObject] -or $r.pathAliases -is [Hashtable]) {
+                    # Convert to hashtable of PathAlias
+                    $prefs.Repository.PathAliases = @{}
+                    $r.pathAliases.PSObject.Properties | ForEach-Object {
+                        $val = $_.Value
+                        if ($val -is [string]) {
+                            # Legacy string alias
+                            $prefs.Repository.PathAliases[$_.Name] = [PathAlias]::new($val, "Default")
+                        } elseif ($val.PSObject.Properties.Match('Text').Count) {
+                             $color = if ($val.PSObject.Properties.Match('Color').Count) { $val.Color } else { "Default" }
+                             $prefs.Repository.PathAliases[$_.Name] = [PathAlias]::new($val.Text, $color)
+                        }
+                    }
+                }
+            }
+            
+            if ($r.PSObject.Properties.Match('favorites').Count) {
+                 $raw = $r.favorites
+                 if ($raw -is [Array]) { $prefs.Repository.Favorites = $raw }
+                 elseif ($null -ne $raw) { $prefs.Repository.Favorites = @($raw) }
+            }
         }
 
-        # Repository Section
-        if (-not ($preferences.PSObject.Properties.Name -contains 'repository')) {
-            $preferences | Add-Member -NotePropertyName 'repository' -NotePropertyValue ([PSCustomObject]@{}) -Force
-        }
-        
-        if (-not ($preferences.repository.PSObject.Properties.Name -contains 'paths')) {
-            $preferences.repository | Add-Member -NotePropertyName 'paths' -NotePropertyValue @() -Force
-        }
-        
-        if (-not ($preferences.repository.PSObject.Properties.Name -contains 'pathAliases')) {
-            $preferences.repository | Add-Member -NotePropertyName 'pathAliases' -NotePropertyValue ([PSCustomObject]@{}) -Force
-        }
-        
-        return $preferences
+        return $prefs
     }
     
     # Check if preferences file exists
@@ -244,14 +175,18 @@ class UserPreferencesService : IUserPreferencesService {
         return Test-Path $this.PreferencesFilePath
     }
     
-    # Get specific preference value
+    # Get specific preference value using reflection/dynamic access is trickier with strong types
+    # So we'll impl a robust way or simplify. For now, matching previous logic but safer.
     [object] GetPreference([string]$section, [string]$key) {
         $preferences = $this.LoadPreferences()
         
-        if ($preferences.PSObject.Properties.Name -contains $section) {
-            $sectionObj = $preferences.$section
-            if ($sectionObj.PSObject.Properties.Name -contains $key) {
-                return $sectionObj.$key
+        # Use reflection to get property
+        $sectionProp = $preferences.GetType().GetProperty($section, [System.Reflection.BindingFlags]'IgnoreCase,Public,Instance')
+        if ($null -ne $sectionProp) {
+            $sectionObj = $sectionProp.GetValue($preferences)
+            $keyProp = $sectionObj.GetType().GetProperty($key, [System.Reflection.BindingFlags]'IgnoreCase,Public,Instance')
+            if ($null -ne $keyProp) {
+                return $keyProp.GetValue($sectionObj)
             }
         }
         
@@ -262,19 +197,31 @@ class UserPreferencesService : IUserPreferencesService {
     [bool] SetPreference([string]$section, [string]$key, [object]$value) {
         $preferences = $this.LoadPreferences()
         
-        # Ensure section exists
-        if (-not ($preferences.PSObject.Properties.Name -contains $section)) {
-            $preferences | Add-Member -NotePropertyName $section -NotePropertyValue ([PSCustomObject]@{}) -Force
+        $sectionProp = $preferences.GetType().GetProperty($section, [System.Reflection.BindingFlags]'IgnoreCase,Public,Instance')
+        if ($null -eq $sectionProp) { return $false }
+        
+        $sectionObj = $sectionProp.GetValue($preferences)
+        $keyProp = $sectionObj.GetType().GetProperty($key, [System.Reflection.BindingFlags]'IgnoreCase,Public,Instance')
+        
+        if ($null -ne $keyProp) {
+            try {
+                # Convert value if needed
+                $targetType = $keyProp.PropertyType
+                $convertedValue = $value
+                if ($targetType -eq [bool] -and $value -isnot [bool]) {
+                     $convertedValue = [bool]$value
+                }
+                
+                $keyProp.SetValue($sectionObj, $convertedValue)
+                return $this.SavePreferences($preferences)
+            }
+            catch {
+                Write-Error "Failed to set preference $section.$key : $_"
+                return $false
+            }
         }
         
-        # Set value
-        if ($preferences.$section.PSObject.Properties.Name -contains $key) {
-            $preferences.$section.$key = $value
-        } else {
-            $preferences.$section | Add-Member -NotePropertyName $key -NotePropertyValue $value -Force
-        }
-        
-        return $this.SavePreferences($preferences)
+        return $false
     }
     
     # Toggle a boolean preference
@@ -294,15 +241,17 @@ class UserPreferencesService : IUserPreferencesService {
         
         $preferences = $this.LoadPreferences()
         
-        # Use ArrayHelper to safely handle arrays
-        $currentPaths = [ArrayHelper]::EnsureArray($preferences.repository.paths)
-        
-        # Normalize and add
         try {
              $fullPath = (Resolve-Path $path).Path
-             if (-not [ArrayHelper]::Contains($currentPaths, $fullPath)) {
-                 $newPaths = [ArrayHelper]::AddToArray($currentPaths, $fullPath)
-                 $this.SetPreference("repository", "paths", $newPaths)
+             
+             # Use generic list for easier manipulation if needed, or simple array addition
+             if ($preferences.Repository.Paths -notcontains $fullPath) {
+                 # Create new array manually to ensure distinct
+                 $newPaths = [System.Collections.Generic.List[string]]::new($preferences.Repository.Paths)
+                 $newPaths.Add($fullPath)
+                 $preferences.Repository.Paths = $newPaths.ToArray()
+                 
+                 $this.SavePreferences($preferences) | Out-Null
              }
         } catch {
             $logger = [ServiceRegistry]::Resolve('LoggerService')

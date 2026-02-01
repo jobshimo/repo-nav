@@ -1,4 +1,4 @@
-class FilteredListRenderer {
+class FilteredListRenderer : IFilteredListRenderer {
     [ConsoleHelper] $Console
     [IUIRenderer] $UIRenderer
 

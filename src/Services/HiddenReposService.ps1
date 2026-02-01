@@ -38,10 +38,10 @@ class HiddenReposService : IHiddenReposService {
         }
         
         $preferences = $this.PreferencesService.LoadPreferences()
-        $this.EnsureHiddenSection($preferences)
+        # EnsureHiddenSection removed - MapToUserPreferences guarantees structure
         
         # Get current list
-        $hiddenList = [System.Collections.ArrayList]@($preferences.hidden.hiddenRepos)
+        $hiddenList = [System.Collections.ArrayList]@($preferences.Hidden.HiddenRepos)
         
         # Check if already hidden
         if ($repoPath -in $hiddenList) {
@@ -50,7 +50,7 @@ class HiddenReposService : IHiddenReposService {
         
         # Add to list
         $hiddenList.Add($repoPath) | Out-Null
-        $preferences.hidden.hiddenRepos = $hiddenList.ToArray()
+        $preferences.Hidden.HiddenRepos = $hiddenList.ToArray()
         
         return $this.PreferencesService.SavePreferences($preferences)
     }
@@ -70,7 +70,7 @@ class HiddenReposService : IHiddenReposService {
         # Remove from list
         if ($repoPath -in $hiddenList) {
             $hiddenList.Remove($repoPath)
-            $preferences.hidden.hiddenRepos = $hiddenList.ToArray()
+            $preferences.Hidden.HiddenRepos = $hiddenList.ToArray()
             return $this.PreferencesService.SavePreferences($preferences)
         }
         
@@ -80,10 +80,9 @@ class HiddenReposService : IHiddenReposService {
     # Get the full list of hidden repositories
     [string[]] GetHiddenList() {
         $preferences = $this.PreferencesService.LoadPreferences()
-        $this.EnsureHiddenSection($preferences)
         
-        if ($preferences.hidden.hiddenRepos -is [array]) {
-            return $preferences.hidden.hiddenRepos
+        if ($preferences.Hidden.HiddenRepos) {
+            return $preferences.Hidden.HiddenRepos
         }
         return @()
     }
@@ -96,9 +95,8 @@ class HiddenReposService : IHiddenReposService {
     # Clear all hidden repositories
     [bool] ClearAllHidden() {
         $preferences = $this.PreferencesService.LoadPreferences()
-        $this.EnsureHiddenSection($preferences)
         
-        $preferences.hidden.hiddenRepos = @()
+        $preferences.Hidden.HiddenRepos = @()
         return $this.PreferencesService.SavePreferences($preferences)
     }
     
@@ -120,16 +118,5 @@ class HiddenReposService : IHiddenReposService {
         $this.ShowHiddenRepos = $show
     }
     
-    # Helper: Ensure hidden section exists in preferences
-    hidden [void] EnsureHiddenSection([PSCustomObject]$preferences) {
-        if (-not ($preferences.PSObject.Properties.Name -contains 'hidden')) {
-            $preferences | Add-Member -NotePropertyName 'hidden' -NotePropertyValue ([PSCustomObject]@{
-                hiddenRepos = @()
-            }) -Force
-        }
-        
-        if (-not ($preferences.hidden.PSObject.Properties.Name -contains 'hiddenRepos')) {
-            $preferences.hidden | Add-Member -NotePropertyName 'hiddenRepos' -NotePropertyValue @() -Force
-        }
-    }
+
 }

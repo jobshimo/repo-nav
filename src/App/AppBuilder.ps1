@@ -10,9 +10,7 @@ class AppBuilder {
         # Reset registry for clean start
         [ServiceRegistry]::Reset()
 
-        # 0. Load Configuration (Centralized)
-        $configService = [ConfigurationService]::new()
-        [ServiceRegistry]::Register('ConfigurationService', $configService)
+
 
         # 1. Base Services (No dependencies)
         [ServiceRegistry]::Register('GitService', [GitService]::new())
@@ -31,8 +29,8 @@ class AppBuilder {
         $localizationService.SetLanguage($language)
 
         # 3. Intermediate Managers (Depend on Services)
-        [ServiceRegistry]::Register('AliasManager', [AliasManager]::new($configService))
-        [ServiceRegistry]::Register('FavoriteService', [FavoriteService]::new($configService))
+        [ServiceRegistry]::Register('AliasManager', [AliasManager]::new($preferencesService))
+        [ServiceRegistry]::Register('FavoriteService', [FavoriteService]::new($preferencesService))
         [ServiceRegistry]::Register('HiddenReposService', [HiddenReposService]::new($preferencesService))
         [ServiceRegistry]::Register('ParallelGitLoader', [ParallelGitLoader]::new())
         
@@ -65,7 +63,6 @@ class AppBuilder {
             [ServiceRegistry]::Resolve('GitWriteService'),
             [ServiceRegistry]::Resolve('NpmService'),
             [ServiceRegistry]::Resolve('AliasManager'),
-            $configService,
             $preferencesService,
             [ServiceRegistry]::Resolve('FavoriteService'),
             [ServiceRegistry]::Resolve('ParallelGitLoader'),
@@ -120,7 +117,6 @@ class AppBuilder {
         $context.LocalizationService = $localizationService
         $context.PreferencesService  = $preferencesService
         $context.HiddenReposService  = [ServiceRegistry]::Resolve('HiddenReposService')
-        $context.ConfigurationService = $configService
         $context.BasePath            = $pathManager.GetCurrentPath()
         
         return $context

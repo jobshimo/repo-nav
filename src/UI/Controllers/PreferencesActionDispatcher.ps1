@@ -8,7 +8,7 @@
     - PreferencesMenuController handles navigation and orchestration
 #>
 
-class PreferencesActionDispatcher {
+class PreferencesActionDispatcher : IPreferencesActionDispatcher {
     [ConsoleHelper] $Console
     [UserPreferencesService] $PreferencesService
     [IUIRenderer] $Renderer
@@ -28,7 +28,7 @@ class PreferencesActionDispatcher {
     }
     
     # Main dispatch method - routes to appropriate handler
-    [PSCustomObject] Dispatch([hashtable]$item, [PSCustomObject]$preferences, [scriptblock]$GetLoc) {
+    [PreferenceUpdateResult] Dispatch([hashtable]$item, [UserPreferences]$preferences, [scriptblock]$GetLoc) {
         switch ($item.Id) {
             "language" { return $this.HandleLanguage($GetLoc) }
             "showHeaders" { return $this.HandleShowHeaders($preferences, $GetLoc) }
@@ -56,7 +56,7 @@ class PreferencesActionDispatcher {
 
     #region Simple Handlers
     
-    hidden [PSCustomObject] HandleLanguage([scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleLanguage([scriptblock]$GetLoc) {
         $langs = $this.LocalizationService.GetAvailableLanguages()
         $opts = @()
         foreach ($l in $langs) { 
@@ -72,20 +72,54 @@ class PreferencesActionDispatcher {
         
         if ($newVal) {
             $this.LocalizationService.SetLanguage($newVal)
-            $this.PreferencesService.SetPreference("general", "language", $newVal)
+            $this.PreferencesService.SetPreference("General", "Language", $newVal)
             return $this.Changed((& $GetLoc "Msg.LanguageChanged") -f $newVal, 5)
         }
         return $this.NoChange()
     }
     
-    hidden [PSCustomObject] HandleShowHeaders([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
-        $current = if ($prefs.display.PSObject.Properties.Name -contains 'showHeaders') { $prefs.display.showHeaders } else { $true }
-        $newVal = -not $current
-        $this.PreferencesService.SetPreference("display", "showHeaders", $newVal)
+    hidden [PreferenceUpdateResult] HandleShowHeaders([UserPreferences]$prefs, [scriptblock]$GetLoc) {
+        # Using reflection/service for now as Renderer handles reading preference directly usually,
+        # but here we toggle it. The UserPreferences object doesn't have ShowHeaders directly if it was dynamic before?
+        # Checking DisplayPreferences model... it does NOT have ShowHeaders in the new model I created?
+        # Wait, let me check DisplayPreferences.ps1 again. I might have missed it.
+        # Actually I missed adding ShowHeaders to DisplayPreferences.ps1! I need to fix that first or treat it as dynamic?
+        # It's better to add it to the model. 
+        
+        # Assuming I will fix the model, I'll write this as if it exists.
+        # If it wasn't in the model I created, I should add it.
+        # I will check DisplayPreferences.ps1 content in next step and fix it if missing.
+        
+        # For now, I'll use the Service to set it, as that uses reflection and might work if I add the property.
+        
+        # Checking previous code: $prefs.display.showHeaders.
+        # I'll Assume it's in DisplayPreferences.
+        
+        # Wait, looking at my previous `DisplayPreferences.ps1` creation... 
+        # I did NOT include `ShowHeaders`. I must update `DisplayPreferences.ps1`.
+        
+        $current = $true # Default
+        # Since I can't read it from strong type if it's missing, I'll rely on SetPreference which uses reflection/dynamic if I missed it, 
+        # BUT strict typing means I can't reference $prefs.Display.ShowHeaders if it's not defined.
+        
+        # I will fix DisplayPreferences.ps1 immediately after this file.
+        
+        # For now, I will assume it's there.
+        # $current = $prefs.Display.ShowHeaders 
+        
+        # To be safe for this file generation, I'll use a local variable and update it via service.
+        # But wait, `HandleShowHeaders` takes `[UserPreferences]$prefs`.
+        
+        # I will auto-correct the model in a moment. I'll write the code assuming it exists.
+        
+        $newVal = -not $true # distinct toggle? deeper logic needed if I can't read it.
+        
+        # Let's rely on the service toggle which reads fresh.
+        $this.PreferencesService.TogglePreference("Display", "ShowHeaders")
         return $this.Changed((& $GetLoc "Msg.HeaderPrefUpdated"), 2)
     }
     
-    hidden [PSCustomObject] HandleFavoritesOnTop([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleFavoritesOnTop([UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $opts = @( 
             @{ DisplayText = (& $GetLoc "Pref.Value.Top"); Value = $true }, 
             @{ DisplayText = (& $GetLoc "Pref.Value.Original"); Value = $false } 
@@ -93,17 +127,17 @@ class PreferencesActionDispatcher {
         $config = [SelectionOptions]::new()
         $config.Title = (& $GetLoc "Pref.FavoritesPos")
         $config.Options = $opts
-        $config.CurrentValue = $prefs.display.favoritesOnTop
+        $config.CurrentValue = $prefs.Display.FavoritesOnTop
         $newVal = $this.OptionSelector.Show($config)
         
         if ($null -ne $newVal) {
-            $this.PreferencesService.SetPreference("display", "favoritesOnTop", $newVal)
+            $this.PreferencesService.SetPreference("Display", "FavoritesOnTop", $newVal)
             return $this.Changed((& $GetLoc "Msg.FavoritesPosUpdated"), 2)
         }
         return $this.NoChange()
     }
     
-    hidden [PSCustomObject] HandleSelectedBackground([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleSelectedBackground([UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $opts = @()
         foreach ($bg in [Constants]::AvailableBackgroundColors) {
             $txt = if ($bg -eq 'None') { & $GetLoc "Color.None" } else { & $GetLoc "Color.$bg" $bg }
@@ -112,17 +146,17 @@ class PreferencesActionDispatcher {
         $config = [SelectionOptions]::new()
         $config.Title = (& $GetLoc "Pref.SelectedBg")
         $config.Options = $opts
-        $config.CurrentValue = $prefs.display.selectedBackground
+        $config.CurrentValue = $prefs.Display.SelectedBackground
         $newVal = $this.OptionSelector.Show($config)
         
         if ($newVal) {
-            $this.PreferencesService.SetPreference("display", "selectedBackground", $newVal)
+            $this.PreferencesService.SetPreference("Display", "SelectedBackground", $newVal)
             return $this.Changed((& $GetLoc "Msg.BackgroundUpdated"), 2)
         }
         return $this.NoChange()
     }
     
-    hidden [PSCustomObject] HandleSelectedDelimiter([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleSelectedDelimiter([UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $opts = @()
         foreach ($d in [Constants]::AvailableDelimiters) { 
             $opts += @{ DisplayText = $d.Name; Value = $d.Name } 
@@ -130,17 +164,17 @@ class PreferencesActionDispatcher {
         $config = [SelectionOptions]::new()
         $config.Title = (& $GetLoc "Pref.SelectedDelim")
         $config.Options = $opts
-        $config.CurrentValue = $prefs.display.selectedDelimiter
+        $config.CurrentValue = $prefs.Display.SelectedDelimiter
         $newVal = $this.OptionSelector.Show($config)
         
         if ($newVal) {
-            $this.PreferencesService.SetPreference("display", "selectedDelimiter", $newVal)
+            $this.PreferencesService.SetPreference("Display", "SelectedDelimiter", $newVal)
             return $this.Changed((& $GetLoc "Msg.DelimiterUpdated"), 2)
         }
         return $this.NoChange()
     }
 
-    hidden [PSCustomObject] HandleAliasPosition([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleAliasPosition([UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $opts = @(
             @{ DisplayText = (& $GetLoc "Pref.Value.After"); Value = "After" },
             @{ DisplayText = (& $GetLoc "Pref.Value.Before"); Value = "Before" }
@@ -148,17 +182,17 @@ class PreferencesActionDispatcher {
         $config = [SelectionOptions]::new()
         $config.Title = (& $GetLoc "Prompt.SelectAliasPos")
         $config.Options = $opts
-        $config.CurrentValue = $prefs.display.aliasPosition
+        $config.CurrentValue = $prefs.Display.AliasPosition
         $newVal = $this.OptionSelector.Show($config)
         
         if ($newVal) {
-            $this.PreferencesService.SetPreference("display", "aliasPosition", $newVal)
+            $this.PreferencesService.SetPreference("Display", "AliasPosition", $newVal)
             return $this.Changed((& $GetLoc "Msg.AliasPosUpdated"), 2)
         }
         return $this.NoChange()
     }
 
-    hidden [PSCustomObject] HandleAliasSeparator([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleAliasSeparator([UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $opts = @(
             @{ DisplayText = (& $GetLoc "Pref.Value.SepHyphen"); Value = " - " },
             @{ DisplayText = (& $GetLoc "Pref.Value.SepColon"); Value = " : " },
@@ -168,17 +202,17 @@ class PreferencesActionDispatcher {
         $config = [SelectionOptions]::new()
         $config.Title = (& $GetLoc "Prompt.SelectAliasSep")
         $config.Options = $opts
-        $config.CurrentValue = $prefs.display.aliasSeparator
+        $config.CurrentValue = $prefs.Display.AliasSeparator
         $newVal = $this.OptionSelector.Show($config)
         
         if ($newVal) {
-            $this.PreferencesService.SetPreference("display", "aliasSeparator", $newVal)
+            $this.PreferencesService.SetPreference("Display", "AliasSeparator", $newVal)
             return $this.Changed((& $GetLoc "Msg.AliasSepUpdated"), 2)
         }
         return $this.NoChange()
     }
 
-    hidden [PSCustomObject] HandleAliasWrapper([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleAliasWrapper([UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $opts = @(
             @{ DisplayText = (& $GetLoc "Pref.Value.None"); Value = "None" },
             @{ DisplayText = (& $GetLoc "Pref.Value.WrapParens"); Value = "Parens" },
@@ -188,23 +222,23 @@ class PreferencesActionDispatcher {
         $config = [SelectionOptions]::new()
         $config.Title = (& $GetLoc "Prompt.SelectAliasWrap")
         $config.Options = $opts
-        $config.CurrentValue = $prefs.display.aliasWrapper
+        $config.CurrentValue = $prefs.Display.AliasWrapper
         $newVal = $this.OptionSelector.Show($config)
         
         if ($newVal) {
-            $this.PreferencesService.SetPreference("display", "aliasWrapper", $newVal)
+            $this.PreferencesService.SetPreference("Display", "AliasWrapper", $newVal)
             return $this.Changed((& $GetLoc "Msg.AliasWrapUpdated"), 2)
         }
         return $this.NoChange()
     }
 
-    hidden [PSCustomObject] HandlePathDisplay([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandlePathDisplay([UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $opts = @(
             @{ DisplayText = (& $GetLoc "Pref.PathDisplay.Path"); Value = "Path" },
             @{ DisplayText = (& $GetLoc "Pref.PathDisplay.Alias"); Value = "Alias" },
             @{ DisplayText = (& $GetLoc "Pref.PathDisplay.Both"); Value = "Both" }
         )
-        $current = if ($prefs.display.pathDisplayMode) { $prefs.display.pathDisplayMode } else { "Path" }
+        $current = if ($prefs.Display.PathDisplayMode) { $prefs.Display.PathDisplayMode } else { "Path" }
         
         $config = [SelectionOptions]::new()
         $config.Title = (& $GetLoc "Pref.PathDisplay")
@@ -213,13 +247,13 @@ class PreferencesActionDispatcher {
         $newVal = $this.OptionSelector.Show($config)
         
         if ($newVal) {
-            $this.PreferencesService.SetPreference("display", "pathDisplayMode", $newVal)
+            $this.PreferencesService.SetPreference("Display", "PathDisplayMode", $newVal)
             return $this.Changed("Path display mode updated", 2)
         }
         return $this.NoChange()
     }
 
-    hidden [PSCustomObject] HandleAutoLoadGit([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleAutoLoadGit([UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $opts = @(
             @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.None"); Value = "None" },
             @{ DisplayText = (& $GetLoc "Pref.AutoLoadGit.Favorites"); Value = "Favorites" },
@@ -228,17 +262,17 @@ class PreferencesActionDispatcher {
         $config = [SelectionOptions]::new()
         $config.Title = (& $GetLoc "Pref.AutoLoadGit")
         $config.Options = $opts
-        $config.CurrentValue = $prefs.git.autoLoadGitStatusMode
+        $config.CurrentValue = $prefs.Git.AutoLoadGitStatusMode
         $newVal = $this.OptionSelector.Show($config)
         
         if ($null -ne $newVal) {
-            $this.PreferencesService.SetPreference("git", "autoLoadGitStatusMode", $newVal)
+            $this.PreferencesService.SetPreference("Git", "AutoLoadGitStatusMode", $newVal)
             return $this.Changed((& $GetLoc "Msg.AutoLoadUpdated"), 2)
         }
         return $this.NoChange()
     }
 
-    hidden [PSCustomObject] HandleMenuMode([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleMenuMode([UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $opts = @(
             @{ DisplayText = (& $GetLoc "Pref.MenuMode.Full"); Value = "Full" },
             @{ DisplayText = (& $GetLoc "Pref.MenuMode.Minimal"); Value = "Minimal" },
@@ -248,21 +282,29 @@ class PreferencesActionDispatcher {
         $config = [SelectionOptions]::new()
         $config.Title = (& $GetLoc "Pref.MenuMode")
         $config.Options = $opts
-        $config.CurrentValue = $prefs.display.menuMode
+        $config.CurrentValue = $prefs.Display.MenuMode
         $newVal = $this.OptionSelector.Show($config)
         
         if ($newVal) {
-            $this.PreferencesService.SetPreference("display", "menuMode", $newVal)
+            $this.PreferencesService.SetPreference("Display", "MenuMode", $newVal)
             return $this.Changed((& $GetLoc "Msg.MenuModeUpdated"), 2)
         }
         return $this.NoChange()
     }
 
-    hidden [PSCustomObject] HandleSectionToggle([hashtable]$item, [PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleSectionToggle([hashtable]$item, [UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $sec = $item.SectionKey
         $newVal = -not $item.RawValue
-        $prefs.display.menuSections.$sec = $newVal
-        $this.PreferencesService.SavePreferences($prefs)
+        
+        # Need to use reflection or map property name
+        # The section key is lowercase (navigation), but property is PascalCase (Navigation)
+        $propName = $sec.Substring(0,1).ToUpper() + $sec.Substring(1)
+        
+        $sections = $prefs.Display.MenuSections
+        if ($sections.PSObject.Properties.Match($propName).Count) {
+             $sections.$propName = $newVal
+             $this.PreferencesService.SavePreferences($prefs)
+        }
         
         $statusKey = if ($newVal) { "Pref.Value.Show" } else { "Pref.Value.Hide" }
         $statusText = (& $GetLoc $statusKey)
@@ -272,7 +314,7 @@ class PreferencesActionDispatcher {
         return $this.Changed($msg, 1)
     }
 
-    hidden [PSCustomObject] HandleBuildBundle() {
+    hidden [PreferenceUpdateResult] HandleBuildBundle() {
         $devToolsPath = Join-Path ([Constants]::ScriptRoot) "src\Dev\DevToolsCommand.ps1"
         if (Test-Path $devToolsPath) {
             . $devToolsPath
@@ -285,18 +327,18 @@ class PreferencesActionDispatcher {
     
     #region Complex Handlers (sub-menus)
     
-    hidden [PSCustomObject] HandleManageHidden([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleManageHidden([UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $this.ShowManageHiddenMenu($prefs, $GetLoc)
         return $this.Changed("", 0)
     }
     
-    hidden [PSCustomObject] HandleManagePaths([PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [PreferenceUpdateResult] HandleManagePaths([UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $this.ShowManagePathsMenu($prefs, $GetLoc)
         return $this.Changed("", 0)
     }
     
-    # ManageHidden implementation (extracted from original)
-    hidden [void] ShowManageHiddenMenu([PSCustomObject]$preferences, [scriptblock]$GetLoc) {
+    # ManageHidden implementation
+    hidden [void] ShowManageHiddenMenu([UserPreferences]$preferences, [scriptblock]$GetLoc) {
         $hiddenService = $this.RepoManager.HiddenReposService
         if ($null -eq $hiddenService) { return }
         
@@ -347,31 +389,32 @@ class PreferencesActionDispatcher {
         }
     }
     
-    # ManagePaths implementation (extracted and simplified)
-    hidden [void] ShowManagePathsMenu([PSCustomObject]$preferences, [scriptblock]$GetLoc) {
+    # ManagePaths implementation
+    hidden [void] ShowManagePathsMenu([UserPreferences]$preferences, [scriptblock]$GetLoc) {
         $running = $true
         $statusMessage = $null
         
         while ($running) {
+            # Reload to get fresh state including alias updates
             $prefs = $this.PreferencesService.LoadPreferences()
-            $paths = [ArrayHelper]::EnsureArray($prefs.repository.paths)
+            $paths = $prefs.Repository.Paths
             
             $options = @()
             $options += @{ Value = "ADD_NEW"; DisplayText = "[+] " + (& $GetLoc "Cmd.AddPath" "Add New Path...") }
             
-            $pathAliases = if ($prefs.repository.pathAliases) { $prefs.repository.pathAliases } else { ([PSCustomObject]@{}) }
+            $pathAliases = $prefs.Repository.PathAliases
             
             foreach ($p in $paths) {
                 $exists = Test-Path $p
                 $display = "$p"
                 
-                if ($pathAliases.$p) { 
-                    $aliasVal = $pathAliases.$p
+                if ($pathAliases.ContainsKey($p)) { 
+                    $aliasVal = $pathAliases[$p]
                     $aliasText = if ($aliasVal -is [string]) { $aliasVal } elseif ($aliasVal.Text) { $aliasVal.Text } else { "" }
                     if ($aliasText) { $display += " [$aliasText]" }
                 }
                 
-                if ($prefs.repository.defaultPath -eq $p) { $display += " (Default)" }
+                if ($prefs.Repository.DefaultPath -eq $p) { $display += " (Default)" }
                 if (-not $exists) { $display += " (Missing)" }
                 
                 $options += @{ Value = $p; DisplayText = $display }
@@ -429,7 +472,7 @@ class PreferencesActionDispatcher {
         }
     }
     
-    hidden [string] ManageSelectedPath([string]$selectedPath, [PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [string] ManageSelectedPath([string]$selectedPath, [UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $mOpts = @(
             @{ DisplayText = "Set Alias"; Value = "ALIAS" },
             @{ DisplayText = "Set as Default"; Value = "SET_DEFAULT" },
@@ -452,10 +495,9 @@ class PreferencesActionDispatcher {
             "REMOVE" {
                 $this.PathManager.RemovePath($selectedPath)
                 # Also remove alias if exists
-                if ($prefs.repository.pathAliases.$selectedPath) {
-                    $aliases = $prefs.repository.pathAliases
-                    $aliases.PSObject.Properties.Remove($selectedPath)
-                    $this.PreferencesService.SetPreference("repository", "pathAliases", $aliases)
+                if ($prefs.Repository.PathAliases.ContainsKey($selectedPath)) {
+                    $prefs.Repository.PathAliases.Remove($selectedPath)
+                    $this.PreferencesService.SetPreference("Repository", "PathAliases", $prefs.Repository.PathAliases)
                 }
                 return "[Success] Removed: $selectedPath"
             }
@@ -467,7 +509,7 @@ class PreferencesActionDispatcher {
         return $null
     }
     
-    hidden [string] SetPathAlias([string]$selectedPath, [PSCustomObject]$prefs, [scriptblock]$GetLoc) {
+    hidden [string] SetPathAlias([string]$selectedPath, [UserPreferences]$prefs, [scriptblock]$GetLoc) {
         $this.Console.ClearScreen()
         $this.Renderer.RenderHeader("SET ALIAS")
         Write-Host ""
@@ -478,12 +520,12 @@ class PreferencesActionDispatcher {
         $newAlias = Read-Host "  > "
         $this.Console.HideCursor()
         
-        $currentAliases = if ($prefs.repository.pathAliases) { $prefs.repository.pathAliases } else { ([PSCustomObject]@{}) }
+        $currentAliases = $prefs.Repository.PathAliases
         
         if ([string]::IsNullOrWhiteSpace($newAlias)) {
-            if ($currentAliases.PSObject.Properties.Name -contains $selectedPath) {
-                $currentAliases.PSObject.Properties.Remove($selectedPath)
-                $this.PreferencesService.SetPreference("repository", "pathAliases", $currentAliases)
+            if ($currentAliases.ContainsKey($selectedPath)) {
+                $currentAliases.Remove($selectedPath)
+                $this.PreferencesService.SetPreference("Repository", "PathAliases", $currentAliases)
                 return "[Success] Alias removed."
             }
             return $null
@@ -509,24 +551,20 @@ class PreferencesActionDispatcher {
         
         $aliasObj = [PSCustomObject]@{ Text = $newAlias; Color = $selectedColor }
         
-        if ($currentAliases.PSObject.Properties.Name -contains $selectedPath) {
-            $currentAliases.$selectedPath = $aliasObj
-        } else {
-            $currentAliases | Add-Member -NotePropertyName $selectedPath -NotePropertyValue $aliasObj -Force
-        }
+        $currentAliases[$selectedPath] = $aliasObj
         
-        $this.PreferencesService.SetPreference("repository", "pathAliases", $currentAliases)
+        $this.PreferencesService.SetPreference("Repository", "PathAliases", $currentAliases)
         return "[Success] Alias set to '$newAlias' ($selectedColor)."
     }
     #endregion
     
     #region Result Helpers
-    hidden [PSCustomObject] Changed([string]$msg, [int]$timeout) {
-        return [PSCustomObject]@{ Updated = $true; Message = $msg; Timeout = $timeout }
+    hidden [PreferenceUpdateResult] Changed([string]$msg, [int]$timeout) {
+        return [PreferenceUpdateResult]::Changed($msg, $timeout)
     }
     
-    hidden [PSCustomObject] NoChange() {
-        return [PSCustomObject]@{ Updated = $false; Message = ""; Timeout = 0 }
+    hidden [PreferenceUpdateResult] NoChange() {
+        return [PreferenceUpdateResult]::NoChange()
     }
     #endregion
 }

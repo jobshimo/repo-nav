@@ -25,7 +25,6 @@ class RepositoryManager : IRepositoryManager {
     [GitWriteService] $GitWriteService
     [NpmService] $NpmService
     [AliasManager] $AliasManager
-    [ConfigurationService] $ConfigService
     [UserPreferencesService] $PreferencesService
     [FavoriteService] $FavoriteService
     [ParallelGitLoader] $ParallelGitLoader
@@ -51,7 +50,6 @@ class RepositoryManager : IRepositoryManager {
         [GitWriteService]$gitWriteService,
         [NpmService]$npmService,
         [AliasManager]$aliasManager,
-        [ConfigurationService]$configService,
         [UserPreferencesService]$preferencesService,
         [FavoriteService]$favoriteService,
         [ParallelGitLoader]$parallelGitLoader,
@@ -66,7 +64,7 @@ class RepositoryManager : IRepositoryManager {
         $this.GitWriteService = $gitWriteService
         $this.NpmService = $npmService
         $this.AliasManager = $aliasManager
-        $this.ConfigService = $configService
+        $this.AliasManager = $aliasManager
         $this.PreferencesService = $preferencesService
         $this.FavoriteService = $favoriteService
         $this.ParallelGitLoader = $parallelGitLoader

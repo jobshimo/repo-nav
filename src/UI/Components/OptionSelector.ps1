@@ -36,7 +36,8 @@ class OptionSelector : IOptionSelector {
             }
             $this.Renderer.RenderHeader($config.Title)
             $preferences = $this.Renderer.PreferencesService.LoadPreferences()
-            $showHeaders = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+            # With strict types, we access properties directly (PascalCase)
+            $showHeaders = $preferences.Display.ShowHeaders
             if (-not $showHeaders) {
                 $this.WriteLineColored("  $($config.Title)", [Constants]::ColorHighlight)
                 $this.Console.WriteSeparator("-", [Constants]::UIWidth, [Constants]::ColorSeparator)

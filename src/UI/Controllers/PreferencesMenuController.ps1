@@ -10,7 +10,7 @@
     - ViewportManager handles viewport/pagination logic
 #>
 
-class PreferencesMenuController {
+class PreferencesMenuController : IPreferencesMenuController {
     [ConsoleHelper] $Console
     [UserPreferencesService] $PreferencesService
     [IUIRenderer] $Renderer
@@ -156,7 +156,7 @@ class PreferencesMenuController {
     }
 
     # Build menu items (data only, no rendering)
-    hidden [array] GetPreferenceItems($preferences, $GetLoc) {
+    hidden [array] GetPreferenceItems([UserPreferences]$preferences, $GetLoc) {
         $items = @()
 
         # Language
@@ -165,82 +165,86 @@ class PreferencesMenuController {
         $items += @{ Id = "language"; Name = (& $GetLoc "Pref.Language" "Language"); CurrentValue = $langName }
 
         # Show Headers
-        $headersVal = if ($preferences.display.PSObject.Properties.Name -contains 'showHeaders') { $preferences.display.showHeaders } else { $true }
+        $headersVal = $preferences.Display.ShowHeaders
         $headerDisplay = if ($headersVal) { (& $GetLoc "Pref.Value.Show") } else { (& $GetLoc "Pref.Value.Hide") }
         $items += @{ Id = "showHeaders"; Name = (& $GetLoc "Pref.ShowHeaders" "Show Headers"); CurrentValue = $headerDisplay }
 
         # Favorites On Top
-        $favVal = if ($preferences.display.favoritesOnTop) { (& $GetLoc "Pref.Value.Top") } else { (& $GetLoc "Pref.Value.Original") }
+        $favVal = if ($preferences.Display.FavoritesOnTop) { (& $GetLoc "Pref.Value.Top") } else { (& $GetLoc "Pref.Value.Original") }
         $items += @{ Id = "favoritesOnTop"; Name = (& $GetLoc "Pref.FavoritesPos" "Favorites Position"); CurrentValue = $favVal }
 
         # Background
-        $items += @{ Id = "selectedBackground"; Name = (& $GetLoc "Pref.SelectedBg" "Selected Item Background"); CurrentValue = $preferences.display.selectedBackground }
+        $items += @{ Id = "selectedBackground"; Name = (& $GetLoc "Pref.SelectedBg" "Selected Item Background"); CurrentValue = $preferences.Display.SelectedBackground }
 
         # Delimiter
-        $items += @{ Id = "selectedDelimiter"; Name = (& $GetLoc "Pref.SelectedDelim" "Selected Item Delimiter"); CurrentValue = $preferences.display.selectedDelimiter }
+        $items += @{ Id = "selectedDelimiter"; Name = (& $GetLoc "Pref.SelectedDelim" "Selected Item Delimiter"); CurrentValue = $preferences.Display.SelectedDelimiter }
 
         # Alias Position
-        $posValKey = if ($preferences.display.aliasPosition -eq "Before") { "Pref.Value.Before" } else { "Pref.Value.After" }
-        $posVal = & $GetLoc $posValKey $preferences.display.aliasPosition
+        $posValKey = if ($preferences.Display.AliasPosition -eq "Before") { "Pref.Value.Before" } else { "Pref.Value.After" }
+        $posVal = & $GetLoc $posValKey $preferences.Display.AliasPosition
         $items += @{ Id = "aliasPosition"; Name = (& $GetLoc "Pref.AliasPosition" "Alias Position"); CurrentValue = $posVal }
         
         # Alias Separator
         $sepMap = @{ " - " = "Pref.Value.SepHyphen"; " : " = "Pref.Value.SepColon"; " | " = "Pref.Value.SepPipe"; "None" = "Pref.Value.None" }
-        $sepKey = if ($sepMap.ContainsKey($preferences.display.aliasSeparator)) { $sepMap[$preferences.display.aliasSeparator] } else { "Pref.Value.SepHyphen" }
-        $sepVal = & $GetLoc $sepKey $preferences.display.aliasSeparator
+        $sepKey = if ($sepMap.ContainsKey($preferences.Display.AliasSeparator)) { $sepMap[$preferences.Display.AliasSeparator] } else { "Pref.Value.SepHyphen" }
+        $sepVal = & $GetLoc $sepKey $preferences.Display.AliasSeparator
         $items += @{ Id = "aliasSeparator"; Name = (& $GetLoc "Pref.AliasSeparator" "Alias Separator"); CurrentValue = $sepVal }
         
         # Alias Wrapper
         $wrapMap = @{ "None" = "Pref.Value.None"; "Parens" = "Pref.Value.WrapParens"; "Brackets" = "Pref.Value.WrapBrackets"; "Braces" = "Pref.Value.WrapBraces" }
-        $wrapKey = if ($wrapMap.ContainsKey($preferences.display.aliasWrapper)) { $wrapMap[$preferences.display.aliasWrapper] } else { "Pref.Value.None" }
-        $wrapVal = & $GetLoc $wrapKey $preferences.display.aliasWrapper
+        $wrapKey = if ($wrapMap.ContainsKey($preferences.Display.AliasWrapper)) { $wrapMap[$preferences.Display.AliasWrapper] } else { "Pref.Value.None" }
+        $wrapVal = & $GetLoc $wrapKey $preferences.Display.AliasWrapper
         $items += @{ Id = "aliasWrapper"; Name = (& $GetLoc "Pref.AliasWrapper" "Alias Style"); CurrentValue = $wrapVal }
 
         # Auto Git
-        $mode = $preferences.git.autoLoadGitStatusMode
+        $mode = $preferences.Git.AutoLoadGitStatusMode
         if (-not $mode) { $mode = "None" }
         $display = & $GetLoc "Pref.AutoLoadGit.$mode" $mode
         $items += @{ Id = "autoLoadGit"; Name = (& $GetLoc "Pref.AutoLoadGit" "Auto-load Git Status"); CurrentValue = $display }
         
         # Manage Hidden
-        $hiddenCount = if ($preferences.hidden.hiddenRepos) { $preferences.hidden.hiddenRepos.Count } else { 0 }
+        $hiddenCount = if ($preferences.Hidden.HiddenRepos) { $preferences.Hidden.HiddenRepos.Count } else { 0 }
         $items += @{ Id = "manageHidden"; Name = (& $GetLoc "Pref.ManageHidden"); CurrentValue = "($hiddenCount)"; IsAction = $true }
 
         # Manage Paths
-        $pathCount = if ($preferences.repository.paths) { $preferences.repository.paths.Count } else { 0 }
+        $pathCount = if ($preferences.Repository.Paths) { $preferences.Repository.Paths.Count } else { 0 }
         $items += @{ Id = "managePaths"; Name = (& $GetLoc "Pref.ManagePaths" "Manage Repository Paths"); CurrentValue = "($pathCount)"; IsAction = $true }
 
         # Path Display
-        $pathModeDisplay = if ($preferences.display.pathDisplayMode) { $preferences.display.pathDisplayMode } else { "Path" }
+        $pathModeDisplay = if ($preferences.Display.PathDisplayMode) { $preferences.Display.PathDisplayMode } else { "Path" }
         $items += @{ Id = "pathDisplay"; Name = (& $GetLoc "Pref.PathDisplay" "Path Display Mode"); CurrentValue = $pathModeDisplay }
 
         # Menu Mode
-        $menuModeDisplay = if ($preferences.display.menuMode) { $preferences.display.menuMode } else { "Full" }
+        $menuModeDisplay = if ($preferences.Display.MenuMode) { $preferences.Display.MenuMode } else { "Full" }
         $items += @{ Id = "menuMode"; Name = (& $GetLoc "Pref.MenuMode" "Menu Display"); CurrentValue = $menuModeDisplay }
 
         # Custom Menu Sections (if Custom mode)
-        if ($preferences.display.menuMode -eq 'Custom' -and $preferences.display.PSObject.Properties.Name -contains 'menuSections') {
-            $sections = $preferences.display.menuSections
-            $sectionKeys = @("navigation", "alias", "modules", "repository", "git", "tools")
+        if ($preferences.Display.MenuMode -eq 'Custom') {
+            $sections = $preferences.Display.MenuSections
+            $sectionKeys = @("Navigation", "Alias", "Modules", "Repository", "Git", "Tools")
             $sectionLabels = @{
-                "navigation" = (& $GetLoc "UI.Group.Nav" "Navigation")
-                "alias"      = (& $GetLoc "Pref.Group.Alias" "Alias")
-                "modules"    = (& $GetLoc "UI.Group.Modules" "Modules")
-                "repository" = (& $GetLoc "UI.Group.Repo" "Repository")
-                "git"        = (& $GetLoc "Pref.Group.Git" "Git Status")
-                "tools"      = (& $GetLoc "UI.Group.Tools" "Tools")
+                "Navigation" = (& $GetLoc "UI.Group.Nav" "Navigation")
+                "Alias"      = (& $GetLoc "Pref.Group.Alias" "Alias")
+                "Modules"    = (& $GetLoc "UI.Group.Modules" "Modules")
+                "Repository" = (& $GetLoc "UI.Group.Repo" "Repository")
+                "Git"        = (& $GetLoc "Pref.Group.Git" "Git Status")
+                "Tools"      = (& $GetLoc "UI.Group.Tools" "Tools")
             }
 
             foreach ($secKey in $sectionKeys) {
-                $isEnabled = if ($sections.PSObject.Properties.Name -contains $secKey) { $sections.$secKey } else { $true }
+                # Access property directly
+                $isEnabled = $sections.$secKey
                 $valDisplay = if ($isEnabled) { "[x] $(& $GetLoc "Pref.Value.Show")" } else { "[ ] $(& $GetLoc "Pref.Value.Show")" }
                 
+                # Lowercase key for map lookup if needed or keep pascal
+                $itemKey = $secKey.ToLower()
+                
                 $items += @{
-                    Id = "section_$secKey"
+                    Id = "section_$itemKey"
                     Name = "  - $($sectionLabels[$secKey])"
                     CurrentValue = $valDisplay
                     IsSectionToggle = $true
-                    SectionKey = $secKey
+                    SectionKey = $itemKey
                     RawValue = $isEnabled
                 }
             }

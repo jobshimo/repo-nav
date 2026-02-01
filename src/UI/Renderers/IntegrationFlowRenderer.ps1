@@ -1,4 +1,4 @@
-class IntegrationFlowRenderer {
+class IntegrationFlowRenderer : IIntegrationFlowRenderer {
     [object] $Console
     [object] $Renderer
     [object] $LocalizationService
