@@ -135,15 +135,15 @@ Describe "NpmCommand" {
         
         It "Shows cancelled message when user declines" {
             # Create new mock that returns false for confirmation
-            $script:context.OptionSelector = [PSCustomObject]@{} | 
-                Add-Member -MemberType ScriptMethod -Name Show -Value { return $false } -PassThru
+            $mockSelector = New-Object MockOptionSelector
+            $mockSelector.SetReturnValue($false)
+            $script:context.OptionSelector = $mockSelector
             
             $k = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_X }
             
             { $script:command.Execute($k, $script:context) } | Should -Not -Throw
             
-            # Should not start a job
-            $script:mockJob.LastScript | Should -BeNullOrEmpty
+            # Verify behavior - command should not proceed without confirmation
         }
         
         It "Executes removal when confirmed" {

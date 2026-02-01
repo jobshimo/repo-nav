@@ -3,128 +3,46 @@ Describe "GitFlowCommand" {
     BeforeAll {
         $scriptRoot = $PSScriptRoot
         if (-not $scriptRoot) {
-             # Fallback if PSScriptRoot is empty in this scope
-             $scriptRoot = $PSScriptRoot 
-             if (-not $scriptRoot) { $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path }
+             $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
         }
-        Write-Host "DEBUG: scriptRoot = '$scriptRoot'"
         
         $testRoot = (Resolve-Path "$scriptRoot/../../../..").Path
-        Write-Host "DEBUG: testRoot = '$testRoot'"
 
         $setupPath = Join-Path $testRoot "tests\Test-Setup.ps1"
-        Write-Host "DEBUG: Loading Test-Setup from: $setupPath"
         . $setupPath | Out-Null
-
-        # 2. Define Mocks inheriting from Real Interfaces/Classes
-        # We use Invoke-Expression to delay parsing until AFTER Test-Setup has loaded the base types.
-        $mockDefinitions = @'
-        class MockConsoleHelper : ConsoleHelper { 
-            [void] WriteLineColored([string]$msg, [System.ConsoleColor]$color) {} 
-            [void] ReadKey() {}
-            [void] ClearScreen() {}
-            [void] NewLine() {}
-            [void] WriteColored([string]$msg, [System.ConsoleColor]$color) {}
-            [void] HideCursor() {}
-            [void] ShowCursor() {}
-            [void] SetCursorPosition([int]$x, [int]$y) {}
-            [void] WriteSeparator([string]$char, [int]$len, [System.ConsoleColor]$color) {}
-        }
-
-        class MockUIRenderer : IUIRenderer {
-            [void] RenderHeader([string]$title) {}
-            [void] RenderHeader([string]$title, [string]$subtitle) {}
-            [void] RenderHeader([string]$title, [string]$subtitle, [string]$highlight) {}
-            [bool] ShouldShowHeaders() { return $true }
-        }
-
-        class MockNavigationState : NavigationState {
-            [int] $CurrentIndex = 0
-            [array] $Repos = @()
-            
-            MockNavigationState() : base(@()) {}
-            
-            [array] GetRepositories() { return $this.Repos }
-            [int] GetCurrentIndex() { return $this.CurrentIndex }
-            [void] SetCurrentIndex([int]$index) { $this.CurrentIndex = $index }
-            [void] Stop() {}
-            [void] Resume() {}
-            [void] MarkForFullRedraw() {}
-        }
-
-        class MockRepoManager : IRepositoryManager {
-            [object] $GitService
-            
-            MockRepoManager() {}
-
-            [object] GetGitService() { return $this.GitService }
-            [void] Initialize([string]$path) {}
-            [array] GetRepositories() { return @() }
-            [void] Refresh([bool]$force) {}
-            [void] RefreshSingle([string]$path) {}
-            [RepositoryModel] GetRepository([string]$name) { return $null }
-            [OperationResult] CloneRepository([string]$url, [string]$customName) { return $null }
-            
-            # Implementing abstract methods from IRepositoryManager
-            [void] LoadRepositories() {}
-            [void] LoadRepositories([string]$basePath) {}
-            [void] LoadRepositories([string]$basePath, [bool]$forceReload) {}
-            [void] LoadRepositoriesInternal([string]$basePath, [string]$parentPath) {}
-            [void] LoadContainerRepositories([string]$containerPath, [string]$parentPath) {}
-            [RepositoryModel] GetRepositoryByPath([string]$fullPath) { return $null }
-            [array] GetAllRepositoriesRecursive([string]$rootPath) { return @() }
-            [void] AddRepository([string]$path) {}
-            [void] RemoveRepository([string]$path) {}
-            [bool] IsRepository([string]$path) { return $false }
-            [void] SortRepositories([string]$strategy) {}
-            [GitStatusManager] GetStatusManager() { return $null }
-            [PathManager] GetPathManager() { return $null }
-            [OnboardingService] GetOnboardingService() { return $null }
-        }
-'@
-        # Only invoke if types not already defined (to be safe within BeforeAll if run multiple times? Pester runs BeforeAll once per Discovery usually)
-        if (-not ("MockConsoleHelper" -as [type])) {
-            Invoke-Expression $mockDefinitions
-        }
-
-        # DEBUG: Check types again - REMOVED
         
-        # Use New-Object to avoid parse-time type checking issues
+        # Load MockCommonServices instead of defining inline
+        . "$testRoot\tests\Mocks\MockCommonServices.ps1"
+
+        # Load additional mock if needed
+        . "$testRoot\tests\Mocks\MockRepositoryManager.ps1"
+    }
+
+    BeforeEach {
+        # Use New-Object to create command instance
         $command = New-Object GitFlowCommand
         $context = New-Object CommandContext
         
-        # Wire up Mocks
-        $context.Console = [MockConsoleHelper]::new()
-        $context.Renderer = [MockUIRenderer]::new() # Using our new Interface implementation
-        $context.OptionSelector = [OptionSelector]::new($context.Console, $context.Renderer) # Real selector with mocks
+        # Wire up Mocks using MockCommonServices
+        $context.Console = New-Object MockConsoleHelper
+        $context.Renderer = New-Object MockUIRenderer
+        $context.OptionSelector = [OptionSelector]::new($context.Console, $context.Renderer)
         $context.LocalizationService = [LocalizationService]::new()
         
         # Wire up State Mock
-        $mockState = [MockNavigationState]::new()
+        $mockState = New-Object MockNavigationState
         
-        # Create Dummy Repo correctly (RepositoryModel requires DirectoryInfo)
+        # Create Dummy Repo correctly
         $dummyDir = [System.IO.DirectoryInfo]::new("C:\Repo1")
         $repo = [RepositoryModel]::new($dummyDir)
-        # Manually ensure FullPath is what we expect if DirectoryInfo needs it to exist (it doesn't for new object in .NET)
-        # $repo.Name is set from DirectoryInfo.Name
         
         $mockState.Repos = @($repo)
         $context.State = $mockState
         
         # Wire up RepoManager Mock
-        $mockRepoManager = [MockRepoManager]::new()
-        $mockRepoManager.GitService = [PSCustomObject]@{
-                IsGitRepository = { param($path) return $true }
-                GetBranches = { param($path) return @("main", "feature/1") }
-                GetCurrentBranch = { param($path) return "main" }
-                GetBranchTrackingStatus = { param($path, $branch) return [PSCustomObject]@{ Behind = 0; Ahead = 0 } }
-                RemoteBranchExists = { param($path, $branch) return $true }
-                HasUncommittedChanges = { param($path) return $false }
-                Checkout = { param($path, $branch) return [PSCustomObject]@{ Success = $true; Message = "Ok" } }
-                Pull = { param($path) return [PSCustomObject]@{ Success = $true } }
-                DeleteLocalBranch = { param($path, $branch, $force) return [PSCustomObject]@{ Success = $true } }
-                DeleteRemoteBranch = { param($path, $branch) return [PSCustomObject]@{ Success = $true } }
-        }
+        $mockRepoManager = New-Object MockRepositoryManager
+        # Use proper Mock class instead of PSCustomObject
+        $mockRepoManager.GitService = New-Object MockGitServiceExtended
         $context.RepoManager = $mockRepoManager
     }
     

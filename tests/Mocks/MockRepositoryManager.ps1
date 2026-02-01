@@ -8,6 +8,7 @@ class MockRepositoryManager : IRepositoryManager {
     [OperationResult] $OperationResult
     [bool] $BooleanResult
     [int] $IntResult
+    [object] $GitService  # For GitFlowCommand tests
     
     # Tracking method calls (Simple Spy)
     [System.Collections.ArrayList] $MethodCalls

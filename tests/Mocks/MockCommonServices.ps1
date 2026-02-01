@@ -72,30 +72,68 @@ class MockJobService : IJobService {
 # MOCK CONSOLE HELPER
 # ═════════════════════════════════════════════════════════════════════════════
 class MockConsoleHelper : IConsoleHelper {
-    [void] ClearForWorkflow() {}
-    [void] WriteLineColored([string]$message, [string]$color) {}
-    [bool] ConfirmAction([string]$prompt) { return $true }
-    [bool] ConfirmAction([string]$prompt, [bool]$default) { return $true }
-    [void] Clear() {}
-    [void] WriteLine([string]$text) {}
-    [void] Write([string]$text) {}
-    [void] WriteHost([string]$text, [string]$color) {}
+    [void] HideCursor() {}
+    [void] ShowCursor() {}
     [void] SetCursorPosition([int]$x, [int]$y) {}
-    [PSCustomObject] GetCursorPosition() { return [PSCustomObject]@{ X = 0; Y = 0 } }
-    [int] GetWindowWidth() { return 120 }
-    [int] GetWindowHeight() { return 30 }
+    [int] GetCursorLeft() { return 0 }
+    [int] GetCursorTop() { return 0 }
+    [void] ClearScreen() {}
+    [void] ClearForWorkflow() {}
+    [bool] ConfirmAction([string]$prompt, [bool]$defaultYes) { return $true }
     [void] ClearCurrentLine() {}
+    [void] ClearLine() {}
+    [int] GetWindowHeight() { return 30 }
+    [int] GetWindowWidth() { return 120 }
+    [System.Management.Automation.Host.KeyInfo] ReadKey() { return $null }
+    [void] Write([string]$text) {}
+    [void] WriteColored([string]$text, [System.ConsoleColor]$color) {}
+    [void] WriteLineColored([string]$text, [System.ConsoleColor]$color) {}
+    [void] WriteWithBackground([string]$text, [System.ConsoleColor]$foreground, [System.ConsoleColor]$background) {}
+    [void] WriteSeparator([string]$char, [int]$length, [System.ConsoleColor]$color) {}
+    [void] NewLine() {}
+    [void] WritePadded([string]$text, [System.ConsoleColor]$foregroundColor, [System.ConsoleColor]$backgroundColor) {}
+    [void] ClearRestOfLine() {}
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
 # MOCK UI RENDERER
 # ═════════════════════════════════════════════════════════════════════════════
 class MockUIRenderer : IUIRenderer {
-    [void] RenderWorkflowHeader([string]$title, [object]$repo) {}
+    # Header Rendering - All overloads
+    [void] RenderHeader([string]$title) {}
+    [void] RenderHeader([string]$title, [string]$subtitle) {}
+    [void] RenderHeader([string]$title, [string]$subtitle, [string]$highlight) {}
+    [void] RenderHeader([string]$title, [string]$subtitle, [string]$highlight, [ConsoleColor]$highlightColor) {}
+    [void] RenderHeader([string]$title, [string]$subtitle, [string]$highlight, [ConsoleColor]$highlightColor, [ConsoleColor]$borderColor) {}
+
+    # Breadcrumb
+    [void] RenderBreadcrumb([string]$path) {}
+
+    # Workflow Headers - All overloads
+    [void] RenderWorkflowHeader([string]$title) {}
+    [void] RenderWorkflowHeader([string]$title, [RepositoryModel]$repository) {}
+    [void] RenderWorkflowHeaderWithInfo([string]$title, [RepositoryModel]$repository, [string]$infoLabel, [string]$infoValue, [ConsoleColor]$infoColor) {}
+
+    # Menu
+    [int] RenderMenu([string]$mode) { return 0 }
+
+    # Repository List Rendering
+    [void] RenderRepositoryItem([RepositoryModel]$repo, [bool]$isSelected) {}
+    [void] RenderRepositoryList([NavigationState]$state, [int]$startLine) {}
+    [void] UpdateRepositoryItemAt([int]$lineNumber, [RepositoryModel]$repo, [bool]$isSelected) {}
+
+    # Color Picker Rendering
+    [void] RenderColorItem([string]$color, [bool]$isSelected) {}
+    [void] UpdateColorItemAt([int]$lineNumber, [string]$color, [bool]$isSelected) {}
+
+    # Git Status Footer
+    [void] ClearGitStatusFooter([int]$startLine) {}
+    [void] RenderGitStatusFooter([RepositoryModel]$repo, [int]$totalItems, [int]$totalRepos, [int]$loadedRepos, [int]$currentIndex, [bool]$showHidden) {}
+
+    # Messages
     [void] RenderError([string]$message) {}
-    [void] RenderMenu([array]$repos, [int]$selected, [int]$start, [int]$pageSize) {}
-    [void] RenderRepositoryList([array]$repos, [int]$selected, [int]$viewportStart, [int]$pageSize) {}
-    [string] RenderStatusLine([object]$state) { return "" }
+    [void] RenderSuccess([string]$message) {}
+    [void] RenderWarning([string]$message) {}
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -111,6 +149,58 @@ class MockGitService : IGitService {
     }
     [bool] IsValidGitUrl([string]$url) { return $true }
     [string] ExtractRepoNameFromUrl([string]$url) { return "test-repo" }
+}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# MOCK GIT WRITE SERVICE (Extended for GitFlowCommand)
+# ═════════════════════════════════════════════════════════════════════════════
+class MockGitWriteService : IGitWriteService {
+    [bool] IsValidGitUrl([string]$url) { return $true }
+    [object] CloneRepository([string]$url, [string]$targetPath, [string]$folderName = "") {
+        return @{ Success = $true; Output = "Cloned successfully" }
+    }
+    [object] CreateBranch([string]$repoPath, [string]$newBranchName, [string]$sourceBranch) {
+        return @{ Success = $true; Message = "Branch created" }
+    }
+    [object] CheckoutBranch([string]$repoPath, [string]$branchName) {
+        return @{ Success = $true; Message = "Checked out $branchName" }
+    }
+    [object] CommitChanges([string]$repoPath, [string]$message) {
+        return @{ Success = $true; Message = "Committed" }
+    }
+    [object] PushChanges([string]$repoPath, [string]$branchName) {
+        return @{ Success = $true; Message = "Pushed" }
+    }
+    [object] PullChanges([string]$repoPath) {
+        return @{ Success = $true; Message = "Pulled" }
+    }
+}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# MOCK GIT SERVICE WITH FLOW COMMAND METHODS
+# Includes methods needed by GitFlowCommand
+# ═════════════════════════════════════════════════════════════════════════════
+class MockGitServiceExtended {
+    [bool] IsGitRepository([string]$path) { return $true }
+    [array] GetBranches([string]$path) { return @("main", "feature/1") }
+    [string] GetCurrentBranch([string]$path) { return "main" }
+    [object] GetBranchTrackingStatus([string]$path, [string]$branch) { 
+        return [PSCustomObject]@{ Behind = 0; Ahead = 0 } 
+    }
+    [bool] RemoteBranchExists([string]$path, [string]$branch) { return $true }
+    [bool] HasUncommittedChanges([string]$path) { return $false }
+    [object] Checkout([string]$path, [string]$branch) { 
+        return [PSCustomObject]@{ Success = $true; Message = "Ok" } 
+    }
+    [object] Pull([string]$path) { 
+        return [PSCustomObject]@{ Success = $true } 
+    }
+    [object] DeleteLocalBranch([string]$path, [string]$branch, [bool]$force) { 
+        return [PSCustomObject]@{ Success = $true } 
+    }
+    [object] DeleteRemoteBranch([string]$path, [string]$branch) { 
+        return [PSCustomObject]@{ Success = $true } 
+    }
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -160,10 +250,19 @@ class MockLoggerService : ILoggerService {
     [void] LogDebug([string]$message) {}
     [void] LogInfo([string]$message) {}
     [void] LogWarning([string]$message) {}
-    [void] LogError([string]$message) {}
-    [void] LogError([string]$message, [System.Management.Automation.ErrorRecord]$error) {}
-}
-
+    [void] LoadFallback() {}
+    [void] SetLanguage([string]$languageCode) {}
+    [void] LoadLanguage([string]$languageCode) {}
+    [string] Get([string]$key) { return $key }
+    [string] Get([string]$key, [object[]]$args) { 
+        # Format the key with args for testing purposes
+        if ($args -and $args.Count -gt 0) {
+            return "$key : $($args -join ', ')"
+        }
+        return $key 
+    }
+    [string] GetCurrentLanguage() { return "en" }
+    [string[]] GetAvailableLanguages() { return @("en", "es") 
 # ═════════════════════════════════════════════════════════════════════════════
 # MOCK LOCALIZATION SERVICE
 # ═════════════════════════════════════════════════════════════════════════════
@@ -226,4 +325,35 @@ class MockProgressIndicator : IProgressIndicator {
     [void] Complete() {
         $this.CompleteProgressBar()
     }
+}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# MOCK OPTION SELECTOR
+# ═════════════════════════════════════════════════════════════════════════════
+class MockOptionSelector : IOptionSelector {
+    [object] $ReturnValue = $false
+    
+    MockOptionSelector() : base() {}
+    MockOptionSelector([IConsoleHelper]$console) : base($console) {}
+
+    [object] Show([SelectionOptions]$config) { return $this.ReturnValue }
+    [bool] SelectYesNo([string]$question, [object]$localizationService, [bool]$clearScreen) { return [bool]$this.ReturnValue }
+    [bool] SelectYesNo([string]$question) { return [bool]$this.ReturnValue }
+    [bool] SelectYesNo([string]$question, [bool]$clearScreen) { return [bool]$this.ReturnValue }
+    
+    [void] SetReturnValue([object]$value) { $this.ReturnValue = $value }
+}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# MOCK USER PREFERENCES SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+class MockUserPreferencesService : IUserPreferencesService {
+    [PSCustomObject] LoadPreferences() { return [PSCustomObject]@{} }
+    [bool] SavePreferences([PSCustomObject]$preferences) { return $true }
+    [PSCustomObject] CreateDefaultPreferences() { return [PSCustomObject]@{} }
+    [bool] PreferencesExists() { return $true }
+    [object] GetPreference([string]$section, [string]$key) { return $null }
+    [bool] SetPreference([string]$section, [string]$key, [object]$value) { return $true }
+    [bool] TogglePreference([string]$section, [string]$key) { return $true }
+    [void] EnsurePathInPreferences([string]$path) {}
 }
