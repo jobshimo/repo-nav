@@ -262,15 +262,7 @@ class MockLoggerService : ILoggerService {
         return $key 
     }
     [string] GetCurrentLanguage() { return "en" }
-    [string[]] GetAvailableLanguages() { return @("en", "es") 
-# ═════════════════════════════════════════════════════════════════════════════
-# MOCK LOCALIZATION SERVICE
-# ═════════════════════════════════════════════════════════════════════════════
-class MockLocalizationService : ILocalizationService {
-    [string] Get([string]$key) { return $key }
-    [string] Get([string]$key, [hashtable]$params) { return $key }
-    [string] GetCurrentLanguage() { return "en" }
-    [void] SetLanguage([string]$language) {}
+    [string[]] GetAvailableLanguages() { return @("en", "es") }
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
