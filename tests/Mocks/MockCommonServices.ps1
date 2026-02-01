@@ -14,11 +14,35 @@
     $mockNpm = New-Object MockNpmService
     $mockConsole = New-Object MockConsoleHelper
     $mockState = New-Object MockNavigationState
+    $mockKey = New-MockKeyInfo -VirtualKeyCode ([Constants]::KEY_I)
     
 .NOTES
     All mocks implement their corresponding interfaces to ensure type compatibility.
     Load directly like any other PowerShell class file - no Invoke-Expression needed.
 #>
+
+# ═════════════════════════════════════════════════════════════════════════════
+# MOCK KEY INFO FACTORY
+# ═════════════════════════════════════════════════════════════════════════════
+function New-MockKeyInfo {
+    param(
+        [Parameter(Mandatory=$true)]
+        [int]$VirtualKeyCode,
+        
+        [char]$KeyChar = [char]0,
+        
+        [bool]$ShiftPressed = $false,
+        
+        [bool]$ControlPressed = $false
+    )
+    
+    return [PSCustomObject]@{
+        VirtualKeyCode = $VirtualKeyCode
+        KeyChar = $KeyChar
+        ShiftPressed = $ShiftPressed
+        ControlPressed = $ControlPressed
+    }
+}
 
 # ═════════════════════════════════════════════════════════════════════════════
 # MOCK NAVIGATION STATE

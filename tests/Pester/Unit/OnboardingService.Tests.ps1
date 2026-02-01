@@ -1,6 +1,7 @@
 BeforeAll {
     . "$PSScriptRoot/../../Test-Setup.ps1"
     . "$PSScriptRoot/../../../tests/Mocks/MockCommonServices.ps1"
+    . "$PSScriptRoot/../../../tests/Mocks/MockNpmServices.ps1"
     
     # Create mock instances using proper Mock classes
     $script:mockRenderer = New-Object MockUIRenderer
