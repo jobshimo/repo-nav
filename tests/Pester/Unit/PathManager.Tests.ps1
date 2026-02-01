@@ -3,11 +3,8 @@ Describe "PathManager" {
         $srcRoot = Resolve-Path "$PSScriptRoot\..\..\..\src"
         
         # Load dependencies
-        . "$srcRoot\Config\Constants.ps1"
-        . "$srcRoot\Startup\ServiceRegistry.ps1"
-        . "$srcRoot\Services\ArrayHelper.ps1"
-        . "$srcRoot\Services\UserPreferencesService.ps1"
-        . "$srcRoot\Core\Services\PathManager.ps1"
+        # Load dependencies
+        . "$srcRoot\..\tests\Test-Setup.ps1"
     }
 
     BeforeEach {

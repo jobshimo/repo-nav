@@ -67,7 +67,7 @@ class PathManager : IPathManager {
             return $true  # Already exists, not an error
         }
         
-        $newPaths = [ArrayHelper]::AddToArray($currentPaths, $resolvedPath)
+        $newPaths = [string[]]([ArrayHelper]::AddToArray($currentPaths, $resolvedPath))
         $this.PreferencesService.SetPreference("Repository", "Paths", $newPaths)
         
         # If no current path set, set this as default
@@ -83,7 +83,7 @@ class PathManager : IPathManager {
         if ([string]::IsNullOrWhiteSpace($path)) { return }
         
         $currentPaths = $this.GetAllPaths()
-        $newPaths = [ArrayHelper]::RemoveFromArray($currentPaths, $path)
+        $newPaths = [string[]]([ArrayHelper]::RemoveFromArray($currentPaths, $path))
         
         $this.PreferencesService.SetPreference("Repository", "Paths", $newPaths)
         

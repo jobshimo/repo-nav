@@ -20,19 +20,19 @@
 
 class RepositoryManager : IRepositoryManager {
     # Dependencies (injected)
-    [GitService] $GitService
-    [GitReadService] $GitReadService
-    [GitWriteService] $GitWriteService
-    [NpmService] $NpmService
-    [AliasManager] $AliasManager
-    [UserPreferencesService] $PreferencesService
-    [FavoriteService] $FavoriteService
-    [ParallelGitLoader] $ParallelGitLoader
-    [RepositoryOperationsService] $RepoOperationsService
+    [IGitService] $GitService
+    [IGitReadService] $GitReadService
+    [IGitWriteService] $GitWriteService
+    [INpmService] $NpmService
+    [IAliasManager] $AliasManager
+    [IUserPreferencesService] $PreferencesService
+    [IFavoriteService] $FavoriteService
+    [IParallelGitLoader] $ParallelGitLoader
+    [IRepositoryOperationsService] $RepoOperationsService
     [IProgressReporter] $ProgressReporter
-    [GitStatusManager] $GitStatusManager
+    [IGitStatusManager] $GitStatusManager
     [RepositorySorter] $Sorter
-    [HiddenReposService] $HiddenReposService
+    [IHiddenReposService] $HiddenReposService
     
     # Cache for loaded repositories
     [System.Collections.ArrayList] $Repositories
@@ -45,26 +45,26 @@ class RepositoryManager : IRepositoryManager {
     
     # Constructor with dependency injection
     RepositoryManager(
-        [GitService]$gitService,
-        [GitReadService]$gitReadService,
-        [GitWriteService]$gitWriteService,
-        [NpmService]$npmService,
-        [AliasManager]$aliasManager,
-        [UserPreferencesService]$preferencesService,
-        [FavoriteService]$favoriteService,
-        [ParallelGitLoader]$parallelGitLoader,
-        [RepositoryOperationsService]$repoOperationsService,
+        [IGitService]$gitService,
+        [IGitReadService]$gitReadService,
+        [IGitWriteService]$gitWriteService,
+        [INpmService]$npmService,
+        [IAliasManager]$aliasManager,
+        [IUserPreferencesService]$preferencesService,
+        [IFavoriteService]$favoriteService,
+        [IParallelGitLoader]$parallelGitLoader,
+        [IRepositoryOperationsService]$repoOperationsService,
         [IProgressReporter]$progressReporter,
-        [GitStatusManager]$gitStatusManager,
+        [IGitStatusManager]$gitStatusManager,
         [RepositorySorter]$sorter,
-        [HiddenReposService]$hiddenReposService
+        [IHiddenReposService]$hiddenReposService
     ) {
         $this.GitService = $gitService
         $this.GitReadService = $gitReadService
         $this.GitWriteService = $gitWriteService
         $this.NpmService = $npmService
         $this.AliasManager = $aliasManager
-        $this.AliasManager = $aliasManager
+
         $this.PreferencesService = $preferencesService
         $this.FavoriteService = $favoriteService
         $this.ParallelGitLoader = $parallelGitLoader
