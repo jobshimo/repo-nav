@@ -7,9 +7,11 @@ Describe "NavigationState" {
         . "$srcRoot\Config\_index.ps1"
         [Constants]::Initialize("$srcRoot\..")
         . "$srcRoot\Models\_index.ps1"
+        . "$srcRoot\Core\Interfaces\IWindowSizeCalculator.ps1"
         . "$srcRoot\Services\WindowSizeCalculator.ps1"
         # Load ArrayHelper for NavigationState
         . "$srcRoot\Services\ArrayHelper.ps1"
+        . "$srcRoot\Core\Interfaces\INavigationState.ps1"
         . "$srcRoot\Core\State\NavigationState.ps1"
         
         $repos = @(

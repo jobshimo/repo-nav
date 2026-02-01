@@ -5,25 +5,20 @@ Describe "HiddenReposService" {
         $srcRoot = Resolve-Path "$PSScriptRoot\..\..\..\..\src"
         $testRoot = Resolve-Path "$PSScriptRoot\..\..\.."
         
-        # Load logic/interfaces
-        . "$srcRoot\Services\ArrayHelper.ps1"
-        . "$srcRoot\Core\Interfaces\IUserPreferencesService.ps1"
-        . "$srcRoot\Core\Interfaces\IHiddenReposService.ps1"
-        . "$srcRoot\Services\HiddenReposService.ps1"
-
-        # Load centralized mocks
+        $srcRoot = Resolve-Path "$PSScriptRoot\..\..\..\..\src"
+        $testRoot = Resolve-Path "$PSScriptRoot\..\..\.."
+        
+        . "$testRoot\Test-Setup.ps1" | Out-Null
+        
+        # Load centralized mocks if not already loaded by Test-Setup (test-setup doesn't load generic mocks usually)
         . "$testRoot\Mocks\MockUserPreferencesService.ps1"
     }
 
     BeforeEach {
-        # Initial Mock Data
-        $prefs = [PSCustomObject]@{
-            hidden = [PSCustomObject]@{
-                hiddenRepos = @("Repo1", "Repo2")
-            }
-        }
+        $script:mockService = [MockUserPreferencesService]::new()
+        $script:mockService.Preferences.Hidden.HiddenRepos = @("Repo1", "Repo2")
         
-        $script:mockService = [MockUserPreferencesService]::new($prefs)
+        $script:service = [HiddenReposService]::new($script:mockService)
         $script:service = [HiddenReposService]::new($script:mockService)
     }
 
@@ -51,7 +46,7 @@ Describe "HiddenReposService" {
             $script:service.IsHidden("Repo3") | Should -BeTrue
             
             # Verify Persistence in Mock
-            $script:mockService.MockPrefs.hidden.hiddenRepos | Should -Contain "Repo3"
+            $script:mockService.Preferences.Hidden.HiddenRepos | Should -Contain "Repo3"
         }
 
         It "Unhides a repo" {
@@ -141,8 +136,13 @@ Describe "HiddenReposService" {
     
     Context "Hidden Section Initialization" {
         It "Creates hidden section when missing" {
-            $emptyPrefs = [PSCustomObject]@{}
-            $mockServiceEmpty = [MockUserPreferencesService]::new($emptyPrefs)
+            $mockServiceEmpty = [MockUserPreferencesService]::new()
+            # Force hidden to null to simulate missing section? 
+            # Actually UserPreferences constructor makes it non-null. 
+            # But the service uses it.
+            # If we want to simulate empty/null hidden repos, we just ensure it's empty.
+            $mockServiceEmpty.Preferences.Hidden.HiddenRepos = $null
+            
             $serviceEmpty = [HiddenReposService]::new($mockServiceEmpty)
             
             $list = $serviceEmpty.GetHiddenList()
@@ -150,10 +150,9 @@ Describe "HiddenReposService" {
         }
         
         It "Creates hiddenRepos property when missing" {
-            $prefsNoHiddenRepos = [PSCustomObject]@{
-                hidden = [PSCustomObject]@{}
-            }
-            $mockServiceNoRepos = [MockUserPreferencesService]::new($prefsNoHiddenRepos)
+            $mockServiceNoRepos = [MockUserPreferencesService]::new()
+            $mockServiceNoRepos.Preferences.Hidden.HiddenRepos = $null
+            
             $serviceNoRepos = [HiddenReposService]::new($mockServiceNoRepos)
             
             $list = $serviceNoRepos.GetHiddenList()

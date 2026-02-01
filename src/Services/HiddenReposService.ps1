@@ -62,7 +62,7 @@ class HiddenReposService : IHiddenReposService {
         }
         
         $preferences = $this.PreferencesService.LoadPreferences()
-        $this.EnsureHiddenSection($preferences)
+        # EnsureHiddenSection removed - MapToUserPreferences guarantees structure
         
         # Get current list
         $hiddenList = [System.Collections.ArrayList]@($preferences.hidden.hiddenRepos)

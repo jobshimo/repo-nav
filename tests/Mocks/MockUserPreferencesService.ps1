@@ -1,9 +1,11 @@
 # tests/Mocks/MockUserPreferencesService.ps1
 class MockUserPreferencesService : IUserPreferencesService {
     [UserPreferences] $Preferences
+    [hashtable] $KeyValueStore
 
     MockUserPreferencesService() {
         $this.Preferences = [UserPreferences]::new()
+        $this.KeyValueStore = @{}
         # Initialize sub-objects to avoid null reference exceptions in tests
         $this.Preferences.Repository = [RepositoryPreferences]::new()
         $this.Preferences.Display = [DisplayPreferences]::new()
@@ -30,12 +32,16 @@ class MockUserPreferencesService : IUserPreferencesService {
     }
 
     [object] GetPreference([string]$section, [string]$key) {
-        # Simple reflection or manual mapping if needed
-        # For mocks, we usually just access property directly in test setup
+        $fullKey = "$section.$key"
+        if ($this.KeyValueStore.ContainsKey($fullKey)) {
+            return $this.KeyValueStore[$fullKey]
+        }
         return $null
     }
 
     [bool] SetPreference([string]$section, [string]$key, [object]$value) {
+        $fullKey = "$section.$key"
+        $this.KeyValueStore[$fullKey] = $value
         return $true
     }
 

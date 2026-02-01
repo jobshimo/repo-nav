@@ -12,7 +12,19 @@ class Constants {
 
     
     # Script root path
+    # Script root path
     static [string] $ScriptRoot
+    static [string] $AliasFileName = "aliases.json"
+    
+    static [string] GetAliasFilePath() {
+        # Debugging
+        # Write-Host "DEBUG: ScriptRoot is '$([Constants]::ScriptRoot)'"
+        if ([string]::IsNullOrEmpty([Constants]::ScriptRoot)) {
+            return [Constants]::AliasFileName
+        }
+        $result = Join-Path -Path ([Constants]::ScriptRoot) -ChildPath ([Constants]::AliasFileName)
+        return $result
+    }
     
     # Virtual Key Codes
     static [int] $KEY_UP_ARROW = 38
