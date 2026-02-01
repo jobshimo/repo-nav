@@ -107,7 +107,7 @@ class RepositoryManager : IRepositoryManager {
             }
             
             # Remove from favorites
-            $this.FavoriteService.RemoveFavorite($repository.Name)
+            $this.FavoriteService.RemoveFavorite($repository.FullPath)
             
             # Remove from local list
             if ($this.Repositories.Contains($repository)) {

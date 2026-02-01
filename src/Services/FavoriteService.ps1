@@ -89,4 +89,12 @@ class FavoriteService : IFavoriteService {
         $prefs.Repository.Favorites = @()
         return $this.PreferencesService.SavePreferences($prefs)
     }
+    
+    # Updates the favorite status of a RepositoryModel
+    [void] UpdateRepositoryModel([RepositoryModel]$repository) {
+        if ($null -eq $repository) { return }
+        
+        $isFavorite = $this.IsFavorite($repository.FullPath)
+        $repository.MarkAsFavorite($isFavorite)
+    }
 }

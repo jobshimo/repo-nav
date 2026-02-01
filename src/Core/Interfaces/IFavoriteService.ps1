@@ -42,4 +42,9 @@ class IFavoriteService {
     [bool] ClearAllFavorites() {
         throw "Not Implemented: ClearAllFavorites must be overridden"
     }
+    
+    # Updates the favorite status of a RepositoryModel
+    [void] UpdateRepositoryModel([RepositoryModel]$repository) {
+        throw "Not Implemented: UpdateRepositoryModel must be overridden"
+    }
 }

@@ -84,7 +84,6 @@ Write-Host " [Test-Setup] Loading Layer 3: Core Infrastructure" -ForegroundColor
 . "$srcPath\Core\Interfaces\IGitReadService.ps1"
 . "$srcPath\Core\Interfaces\IGitWriteService.ps1"
 . "$srcPath\Core\Interfaces\IViewportManager.ps1"
-. "$srcPath\Core\Interfaces\IViewportManager.ps1"
 . "$srcPath\Core\Interfaces\IArrayHelper.ps1"
 . "$srcPath\Core\Interfaces\IFilteredListRenderer.ps1"
 . "$srcPath\Core\Interfaces\IIntegrationFlowDashboard.ps1"

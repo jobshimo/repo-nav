@@ -119,6 +119,12 @@ $srcPath = Join-Path $scriptRoot "src"
 . "$srcPath\Core\Interfaces\IGitWriteService.ps1"
 . "$srcPath\Core\Interfaces\IViewportManager.ps1"
 . "$srcPath\Core\Interfaces\IArrayHelper.ps1"
+. "$srcPath\Core\Interfaces\IFilteredListRenderer.ps1"
+. "$srcPath\Core\Interfaces\IIntegrationFlowDashboard.ps1"
+. "$srcPath\Core\Interfaces\IIntegrationFlowRenderer.ps1"
+. "$srcPath\Core\Interfaces\IPreferencesMenuRenderer.ps1"
+. "$srcPath\Core\Interfaces\IPreferencesMenuController.ps1"
+. "$srcPath\Core\Interfaces\IPreferencesActionDispatcher.ps1"
 . "$srcPath\Startup\ServiceRegistry.ps1"
 
 # ─────────────────────────────────────────────────────────────────────────────
