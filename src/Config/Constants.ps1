@@ -117,6 +117,7 @@ class Constants {
     static [string] $ColorSuccess = "Green"
     static [string] $ColorWarning = "Yellow"
     static [string] $ColorInfo = "Gray"
+    static [string] $ColorGray = "Gray"
     static [string] $ColorLabel = "Gray"
     static [string] $ColorValue = "White"
     static [string] $ColorHighlight = "Cyan"

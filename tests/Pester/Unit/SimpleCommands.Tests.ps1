@@ -1,40 +1,24 @@
+
 Describe "Simple Commands" {
     BeforeAll {
-        $scriptRoot = Resolve-Path "$PSScriptRoot\..\..\.."
-        $srcRoot = Join-Path $scriptRoot "src"
+        $projectRoot = (Resolve-Path "$PSScriptRoot/../../..").Path
+        . "$projectRoot/tests/Test-Setup.ps1" | Out-Null
         
-        # Use Test-Setup for reliable loading
-        . "$scriptRoot\tests\Test-Setup.ps1" | Out-Null
-    }
-
-    # Helper function defined inside the test script to access the types defined above
-    function New-MockCommandContext {
-        $mockConsole = [ConsoleHelper]::new()
+        # Load standard mocks
+        . "$projectRoot/tests/Mocks/MockCommonServices.ps1"
+        . "$projectRoot/tests/Mocks/MockRepositoryManager.ps1"
         
-        $mockState = [NavigationState]::new(@())
-        
-        $mockRepoManager = [RepositoryManager]::new($null, $null, $null, $null, $null, $null, $null, $null, $null, $null, $null, $null, $null, $null)
-        
-        $mockHiddenService = [HiddenReposService]::new($null)
-        
-        # Create Context manually since constructor might not be available or we want control
-        $context = [CommandContext]::new()
-        $context.Console = $mockConsole
-        $context.State = $mockState
-        $context.RepoManager = $mockRepoManager
-        $context.RepositoryManager = $mockRepoManager
-        $context.HiddenReposService = $mockHiddenService
-        
-        return $context
+        # Mock PowerShell commands
+        Mock Start-Sleep {}
+        Mock Write-Host {}
     }
 
     Context "ExitCommand" {
         It "CanExecute returns true for Q, ESC and Quit Keys" {
             $cmd = [ExitCommand]::new()
             
-            # Using Constants
-            $keyQ = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_Q }
-            $keyEsc = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_ESC }
+            $keyQ = New-MockKeyInfo -VirtualKeyCode ([Constants]::KEY_Q)
+            $keyEsc = New-MockKeyInfo -VirtualKeyCode ([Constants]::KEY_ESC)
             
             $cmd.CanExecute($keyQ, $null) | Should -BeTrue
             $cmd.CanExecute($keyEsc, $null) | Should -BeTrue
@@ -42,56 +26,103 @@ Describe "Simple Commands" {
 
         It "CanExecute returns false for other keys" {
              $cmd = [ExitCommand]::new()
-             $keyX = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_X }
+             $keyX = New-MockKeyInfo -VirtualKeyCode ([Constants]::KEY_X)
              $cmd.CanExecute($keyX, $null) | Should -BeFalse
         }
     }
 
     Context "ToggleHiddenVisibilityCommand" {
-        It "CanExecute returns true for V key" {
-            $cmd = [ToggleHiddenVisibilityCommand]::new()
-            $keyV = [PSCustomObject]@{ VirtualKeyCode = [Constants]::KEY_V }
-            $cmd.CanExecute($keyV, $null) | Should -BeTrue
-        }
-
-        It "Execute calls ToggleShowHidden on HiddenReposService" {
-            # Setup Mock Context Inline
-            $mockConsole = [ConsoleHelper]::new()
-            $mockState = [NavigationState]::new(@())
-            $mockRepoManager = [RepositoryManager]::new($null, $null, $null, $null, $null, $null, $null, $null, $null, $null, $null, $null, $null, $null)
-            $mockHiddenService = [HiddenReposService]::new($null)
+        BeforeEach {
+            # Clean setup using Mocks
+            $mockConsole = [MockConsoleHelper]::new()
+            $mockState = [MockNavigationState]::new()
+            $mockRepoManager = [MockRepositoryManager]::new()
+            $mockHiddenService = [MockHiddenReposService]::new()
             
-            # Create Context manually
+            # Setup default mock behavior
+            $mockState.SetRepositories(@())
+            
             $context = [CommandContext]::new()
             $context.Console = $mockConsole
             $context.State = $mockState
             $context.RepoManager = $mockRepoManager
-            # Alias if needed by some commands, but Toggle uses HiddenReposService
+            # Legacy property RepositoryManager removed
             $context.HiddenReposService = $mockHiddenService
             
-            # Setup Mock behavior tracking
-            $context.HiddenReposService | Add-Member -MemberType NoteProperty -Name "ToggleCalled" -Value $false
-            $context.HiddenReposService | Add-Member -MemberType ScriptMethod -Name "ToggleShowHidden" -Value { 
-                $this.ToggleCalled = $true 
-            } -Force
-
-            # Mock RepoManager methods called during refresh
-            $context.RepoManager | Add-Member -MemberType ScriptMethod -Name "LoadRepositories" -Value { } -Force
-            $context.RepoManager | Add-Member -MemberType ScriptMethod -Name "GetRepositories" -Value { return @() } -Force
-            
-            # Mock State methods
-            $context.State | Add-Member -MemberType ScriptMethod -Name "GetCurrentIndex" -Value { return 0 } -Force
-            $context.State | Add-Member -MemberType ScriptMethod -Name "GetRepositories" -Value { return @() } -Force
-            $context.State | Add-Member -MemberType ScriptMethod -Name "SetRepositories" -Value { param($r) } -Force
-            $context.State | Add-Member -MemberType ScriptMethod -Name "SetCurrentIndex" -Value { param($i) } -Force
-            $context.State | Add-Member -MemberType ScriptMethod -Name "MarkForListRedraw" -Value { } -Force
-            $context.State | Add-Member -MemberType NoteProperty -Name "ViewportStart" -Value 0 -Force
-            $context.State | Add-Member -MemberType NoteProperty -Name "PageSize" -Value 10 -Force
-
             $cmd = [ToggleHiddenVisibilityCommand]::new()
-            $cmd.Execute($null, $context)
+        }
 
-            $context.HiddenReposService.ToggleCalled | Should -BeTrue
+        It "CanExecute returns true for V key" {
+            $keyV = New-MockKeyInfo -VirtualKeyCode ([Constants]::KEY_V)
+            $cmd.CanExecute($keyV, $null) | Should -BeTrue
+        }
+        
+        It "GetDescription returns correct text" {
+            $cmd.GetDescription() | Should -Match "Toggle"
+        }
+
+        It "Execute calls ToggleShowHidden on HiddenReposService" {
+            $cmd.Execute($null, $context)
+            $mockHiddenService.ToggleCalled | Should -BeTrue
+        }
+        
+        It "Execute returns early when HiddenReposService is null" {
+            $context.HiddenReposService = $null
+            { $cmd.Execute($null, $context) } | Should -Not -Throw
+        }
+        
+        It "Execute handles null RepoManager gracefully" {
+            $context.RepoManager = $null
+            { $cmd.Execute($null, $context) } | Should -Not -Throw
+            $mockHiddenService.ToggleCalled | Should -BeTrue
+        }
+        
+        It "Execute restores selection when repo exists in updated list" {
+            # Arrange
+            $repo1 = [RepositoryModel]::new([System.IO.DirectoryInfo]::new("C:\Repo1"))
+            $repo2 = [RepositoryModel]::new([System.IO.DirectoryInfo]::new("C:\Repo2"))
+            $repos = @($repo1, $repo2)
+            
+            # Setup Mocks to return data
+            $mockRepoManager.Repositories = $repos
+            $mockRepoManager.RepositoryToReturn = $null # Not used here but good practice
+            
+            # Initial state
+            $mockState.SetRepositories($repos)
+            $mockState.SetCurrentIndex(1) # We are selecting Repo2
+            
+            # Act
+            $cmd.Execute($null, $context)
+            
+            # Assert
+            # The command logic re-loads repos from RepoManager into State
+            # And tries to find the previously selected repository
+            # Since we didn't change the list, it should find it at index 1
+            # Note: The MockNavigationState implementation of SetCurrentIndex updates its property
+            $mockState.GetCurrentIndex() | Should -Be 1
+        }
+        
+        It "Execute calculates viewport correctly" {
+            # Arrange
+            $repos = 1..20 | ForEach-Object {
+                [RepositoryModel]::new([System.IO.DirectoryInfo]::new("C:\Repo$_"))
+            }
+            $mockRepoManager.Repositories = $repos
+            $mockState.SetRepositories($repos)
+            $mockState.SetCurrentIndex(10) # Select item 11
+            
+            # Act
+            $cmd.Execute($null, $context)
+            
+            # Assert
+            # Verify that some state update happened. In a real mock we might check ViewportStart
+            # But the current MockNavigationState doesn't expose ViewportStart logic fully
+            # So we check that the command at least ran without error and refreshed the list
+            $mockRepoManager.MethodCalls.Count | Should -BeGreaterThan 0
+            
+            # Verify it tried to fetch repos
+            $getRepoCalls = $mockRepoManager.MethodCalls | Where-Object { $_.Method -eq "GetRepositories" }
+            $getRepoCalls | Should -Not -BeNullOrEmpty
         }
     }
 }

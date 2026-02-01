@@ -11,24 +11,25 @@
     - Auto-loading based on preferences
 #>
 
-class GitStatusManager {
+class GitStatusManager : IGitStatusManager {
     # Dependencies
-    [GitService] $GitService
-    [ParallelGitLoader] $ParallelGitLoader
-    [UserPreferencesService] $PreferencesService
+    [IGitService] $GitService
+    [IParallelGitLoader] $ParallelLoader
+    [IUserPreferencesService] $PreferencesService
     [IProgressReporter] $ProgressReporter
     
-    # Global cache for git status by repository path
+    # Cache for git status: [Path] -> [GitStatusModel]
     [hashtable] $GitStatusCache
     
+    # Constructor
     GitStatusManager(
-        [GitService]$gitService,
-        [ParallelGitLoader]$parallelGitLoader,
-        [UserPreferencesService]$preferencesService,
+        [IGitService]$gitService, 
+        [IParallelGitLoader]$parallelLoader, 
+        [IUserPreferencesService]$preferencesService,
         [IProgressReporter]$progressReporter
     ) {
         $this.GitService = $gitService
-        $this.ParallelGitLoader = $parallelGitLoader
+        $this.ParallelLoader = $parallelLoader
         $this.PreferencesService = $preferencesService
         $this.ProgressReporter = $progressReporter
         $this.GitStatusCache = @{}
@@ -71,7 +72,7 @@ class GitStatusManager {
         if ($total -eq 0) { return }
         
         # Delegate to ParallelGitLoader
-        $this.ParallelGitLoader.LoadGitStatusParallel($reposToLoad, $progressCallback)
+        $this.ParallelLoader.LoadGitStatusParallel($reposToLoad, $progressCallback)
         
         # Cache the loaded git status
         foreach ($repo in $reposToLoad) {

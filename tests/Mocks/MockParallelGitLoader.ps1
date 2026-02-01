@@ -1,7 +1,7 @@
 
 # tests/Mocks/MockParallelGitLoader.ps1
 
-class MockParallelGitLoader : ParallelGitLoader {
+class MockParallelGitLoader : IParallelGitLoader {
     [int] $CallCount
     
     MockParallelGitLoader() {

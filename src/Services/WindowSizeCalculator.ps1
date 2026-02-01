@@ -10,7 +10,7 @@
     Extracted from NavigationState to separate UI concerns from state management.
 #>
 
-class WindowSizeCalculator {
+class WindowSizeCalculator : IWindowSizeCalculator {
     # Configuration
     [int] $MinPageSize = 1
     [int] $MaxPageSize = 50 # Increased from 25 to maximize use of screen space
@@ -27,9 +27,20 @@ class WindowSizeCalculator {
     .RETURNS
         The calculated page size (number of items that can be displayed)
     #>
+    <#
+    .SYNOPSIS
+        Wrapper for Host.UI.RawUI to facilitate testing
+    #>
+    [object] GetRawUI() {
+        return $global:Host.UI.RawUI
+    }
+
     [int] CalculatePageSize([int]$headerHeight) {
         try {
-            $windowHeight = $global:Host.UI.RawUI.WindowSize.Height
+            $rawUi = $this.GetRawUI()
+            if ($null -eq $rawUi) { throw "No UI" }
+            $windowHeight = $rawUi.WindowSize.Height
+            
             $reservedLines = $headerHeight + $this.FooterAndSafetyLines
             $calculatedSize = $windowHeight - $reservedLines
             
@@ -58,7 +69,9 @@ class WindowSizeCalculator {
     #>
     [int] GetWindowHeight() {
         try {
-            return $global:Host.UI.RawUI.WindowSize.Height
+            $rawUi = $this.GetRawUI()
+            if ($null -eq $rawUi) { throw "No UI" }
+            return $rawUi.WindowSize.Height
         }
         catch {
             return 30  # Default fallback
@@ -74,7 +87,9 @@ class WindowSizeCalculator {
     #>
     [int] GetWindowWidth() {
         try {
-            return $global:Host.UI.RawUI.WindowSize.Width
+            $rawUi = $this.GetRawUI()
+            if ($null -eq $rawUi) { throw "No UI" }
+            return $rawUi.WindowSize.Width
         }
         catch {
             return 120  # Default fallback
@@ -93,7 +108,10 @@ class WindowSizeCalculator {
         $estimatedReserved = 20
         
         try {
-            $windowHeight = $global:Host.UI.RawUI.WindowSize.Height
+            $rawUi = $this.GetRawUI()
+            if ($null -eq $rawUi) { throw "No UI" }
+            $windowHeight = $rawUi.WindowSize.Height
+            
             $availableLines = $windowHeight - $estimatedReserved
             
             if ($availableLines -lt $this.MinPageSize) { 

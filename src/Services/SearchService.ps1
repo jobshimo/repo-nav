@@ -14,7 +14,7 @@
     - Optimized for real-time filtering as user types
 #>
 
-class SearchService {
+class SearchService : ISearchService {
     
     <#
     .SYNOPSIS

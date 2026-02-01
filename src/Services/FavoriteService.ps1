@@ -15,12 +15,12 @@
     a clean API for favorite operations.
 #>
 
-class FavoriteService {
+class FavoriteService : IFavoriteService {
     # Dependencies
-    [ConfigurationService] $ConfigService
+    [IConfigurationService] $ConfigService
     
     # Constructor with dependency injection
-    FavoriteService([ConfigurationService]$configService) {
+    FavoriteService([IConfigurationService]$configService) {
         $this.ConfigService = $configService
     }
     

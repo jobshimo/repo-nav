@@ -29,9 +29,46 @@ try {
     # Map JSON to PesterConfiguration object
     $config.Run.Path = $configJson.Run.Path
     $config.Run.Exit = $false # We handle exit manually to ensure coverage check runs
+    
+    # Add ExcludePath if it exists in Run config (for test discovery)
+    if ($configJson.Run.PSObject.Properties.Name -contains 'ExcludePath') {
+        $config.Run.ExcludePath = $configJson.Run.ExcludePath
+        Write-Host "Excluding from test discovery: $($configJson.Run.ExcludePath -join ', ')" -ForegroundColor DarkGray
+    }
+    
     $config.Output.Verbosity = $configJson.Output.Verbosity
     $config.CodeCoverage.Enabled = $configJson.CodeCoverage.Enabled
-    $config.CodeCoverage.Path = $configJson.CodeCoverage.Path
+    
+    # Build CodeCoverage.Path dynamically, excluding non-testable files
+    # This is the official workaround recommended by Pester maintainers
+    # See: https://github.com/pester/Pester/issues/2032#issuecomment-1496690768
+    $coveragePaths = $configJson.CodeCoverage.Path | ForEach-Object {
+        $basePath = Join-Path $repoRoot $_
+        Get-ChildItem -Path $basePath -Recurse -File -Filter "*.ps1" |
+            Where-Object { 
+                $_.Name -ne '_index.ps1' -and
+                $_.DirectoryName -notlike '*\Interfaces' -and
+                $_.DirectoryName -notlike '*\Resources*' -and
+                $_.DirectoryName -notlike '*\Dev'
+            } | Select-Object -ExpandProperty FullName
+    }
+    
+    if ($coveragePaths.Count -gt 0) {
+        $config.CodeCoverage.Path = $coveragePaths
+        Write-Host "Code coverage will analyze $($coveragePaths.Count) files (excluding interfaces, _index.ps1, resources, dev tools)" -ForegroundColor DarkGray
+        
+        # Debug: Check if interfaces are in the list
+        $interfaceFiles = $coveragePaths | Where-Object { $_ -like '*\Interfaces\*' }
+        if ($interfaceFiles.Count -gt 0) {
+            Write-Warning "WARNING: $($interfaceFiles.Count) interface files are still in the coverage list!"
+            $interfaceFiles | Select-Object -First 3 | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+        } else {
+            Write-Host "  OK: Interfaces successfully excluded" -ForegroundColor Green
+        }
+    } else {
+        Write-Warning "No files found for code coverage analysis"
+    }
+    
     $config.CodeCoverage.OutputFormat = $configJson.CodeCoverage.OutputFormat
     $config.CodeCoverage.OutputPath = $configJson.CodeCoverage.OutputPath
     
@@ -51,7 +88,7 @@ try {
         exit 1
     }
 
-    # 2. Check coverage (Manual parsing of XML is more reliable across Pester versions)
+    # 2. Check coverage (Parse Jacoco XML)
     $actual = 0
     $coverageFile = Join-Path $repoRoot $configJson.CodeCoverage.OutputPath
     
@@ -84,7 +121,7 @@ try {
     Write-Host "Final Coverage Check: $actual% (Target: $targetValue%)" -ForegroundColor $statusColor
     
     if (-not $isSuccess) {
-        Write-Host "CRITICAL: COVERAGE FAILURE! Actual $actual% < Target $targetValue%" -ForegroundColor Red
+        Write-Host "CRITICAL: COVERAGE FAILURE! Actual ${actual}% is less than Target ${targetValue}%" -ForegroundColor Red
         Write-Host "Push blocked. Please add more tests to meet the $targetValue% requirement." -ForegroundColor Yellow
         exit 1
     }

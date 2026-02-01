@@ -3,10 +3,14 @@ using module "..\..\TestHelper.psm1"
 
 Describe "ConfigurationService" {
     BeforeAll {
-        $srcRoot = Resolve-Path "$PSScriptRoot\..\..\..\src"
-        . "$srcRoot\Config\_index.ps1"
-        [Constants]::Initialize("$srcRoot\..")
-        . "$srcRoot\Services\ConfigurationService.ps1"
+        $scriptRoot = $PSScriptRoot
+        if (-not $scriptRoot) {
+            $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+        }
+        $projectRoot = (Resolve-Path "$scriptRoot\..\..\..").Path
+        
+        . "$projectRoot\tests\Test-Setup.ps1" | Out-Null
+        . "$projectRoot\tests\Mocks\MockCommonServices.ps1"
     }
 
     Context "Empty Configuration" {
@@ -74,6 +78,100 @@ Describe "ConfigurationService" {
             $config.favorites[0] | Should -Be 'C:\Single'
 
             Remove-Item $tempFile -Force
+        }
+    }
+
+    Context "Metadata" {
+        BeforeEach {
+            $tempFile = [System.IO.Path]::GetTempFileName()
+            $service = [ConfigurationService]::new($tempFile)
+        }
+
+        AfterEach {
+            if (Test-Path $tempFile) { Remove-Item $tempFile -Force }
+        }
+
+        It "ConfigurationExists returns true when file exists" {
+            $service.ConfigurationExists() | Should -BeTrue
+        }
+
+        It "ConfigurationExists returns false when file missing" {
+            Remove-Item $tempFile -Force
+            $service.ConfigurationExists() | Should -BeFalse
+        }
+
+        It "GetConfigurationInfo returns existing file info" {
+            "test" | Set-Content $tempFile
+            $info = $service.GetConfigurationInfo()
+            
+            $info.Exists | Should -BeTrue
+            $info.Path | Should -Be $tempFile
+            $info.Size | Should -BeGreaterThan 0
+            $info.LastModified | Should -BeOfType [DateTime]
+        }
+
+        It "GetConfigurationInfo returns empty info for missing file" {
+            Remove-Item $tempFile -Force
+            $info = $service.GetConfigurationInfo()
+            
+            $info.Exists | Should -BeFalse
+            $info.Size | Should -Be 0
+            $info.LastModified | Should -BeNull
+        }
+    }
+
+    Context "Error Handling" {
+        BeforeEach {
+            $tempFile = [System.IO.Path]::GetTempFileName()
+            $service = [ConfigurationService]::new($tempFile)
+        }
+
+        AfterEach {
+            if (Test-Path $tempFile) { Remove-Item $tempFile -Force }
+        }
+
+        It "LoadConfiguration returns empty config on empty file" {
+            "" | Set-Content $tempFile
+            $config = $service.LoadConfiguration()
+            
+            $config | Should -Not -BeNull
+            ($null -eq $config.aliases) | Should -BeFalse
+            # Check properties count using Get-Member
+            ($config.aliases | Get-Member -MemberType NoteProperty).Count | Should -Be 0
+        }
+
+        It "LoadConfiguration handles invalid JSON" {
+            # Mock Write-Warning to suppress output noise
+            Mock Write-Warning { } 
+            
+            "{ invalid json" | Set-Content $tempFile
+            $config = $service.LoadConfiguration()
+            
+            $config | Should -Not -BeNull
+            # Use unary comma to prevent unrolling empty array
+            , $config.favorites | Should -BeOfType [System.Array]
+            $config.favorites.Count | Should -Be 0
+        }
+        
+        It "LoadConfiguration handles valid JSON with missing properties" {
+            "{}" | Set-Content $tempFile
+             $config = $service.LoadConfiguration()
+             
+             ($null -eq $config.aliases) | Should -BeFalse
+             ($null -eq $config.favorites) | Should -BeFalse
+             , $config.favorites | Should -BeOfType [System.Array]
+        }
+
+        It "SaveConfiguration handles write errors gracefully" {
+            # Mock Write-Error to prevent Pester failure
+            Mock Write-Error { }
+            
+            # Using invalid characters for path
+            $badPath = "C:\InvalidDir\<<>>\||\Config.json"
+            $badService = [ConfigurationService]::new($badPath)
+            
+            $result = $badService.SaveConfiguration(@{})
+            $result | Should -BeFalse
         }
     }
 }

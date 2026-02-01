@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd"[]>
+<report name="Pester (01/31/2026 21:41:36)">
+  <sessioninfo id="this" start="1769895695896" dump="1769895696157" />
+  <package name="Models">
+    <class name="Models/RepositoryModel" sourcefilename="RepositoryModel.ps1">
+      <method name="RepositoryModel" desc="()" line="44">
+        <counter type="INSTRUCTION" missed="0" covered="13" />
+        <counter type="LINE" missed="0" covered="13" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="MarkAsHidden" desc="()" line="65">
+        <counter type="INSTRUCTION" missed="0" covered="1" />
+        <counter type="LINE" missed="0" covered="1" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="SetAlias" desc="()" line="70">
+        <counter type="INSTRUCTION" missed="0" covered="3" />
+        <counter type="LINE" missed="0" covered="3" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="RemoveAlias" desc="()" line="78">
+        <counter type="INSTRUCTION" missed="0" covered="2" />
+        <counter type="LINE" missed="0" covered="2" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="SetGitStatus" desc="()" line="84">
+        <counter type="INSTRUCTION" missed="0" covered="1" />
+        <counter type="LINE" missed="0" covered="1" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="HasGitStatusLoaded" desc="()" line="89">
+        <counter type="INSTRUCTION" missed="0" covered="1" />
+        <counter type="LINE" missed="0" covered="1" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="CheckNodeModules" desc="()" line="94">
+        <counter type="INSTRUCTION" missed="0" covered="2" />
+        <counter type="LINE" missed="0" covered="2" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="HasPackageJson" desc="()" line="100">
+        <counter type="INSTRUCTION" missed="0" covered="2" />
+        <counter type="LINE" missed="0" covered="2" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="MarkAsFavorite" desc="()" line="106">
+        <counter type="INSTRUCTION" missed="0" covered="1" />
+        <counter type="LINE" missed="0" covered="1" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="MarkAsContainer" desc="()" line="111">
+        <counter type="INSTRUCTION" missed="0" covered="2" />
+        <counter type="LINE" missed="0" covered="2" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="SetParentPath" desc="()" line="117">
+        <counter type="INSTRUCTION" missed="0" covered="1" />
+        <counter type="LINE" missed="0" covered="1" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="IsContainerFolder" desc="()" line="122">
+        <counter type="INSTRUCTION" missed="0" covered="1" />
+        <counter type="LINE" missed="0" covered="1" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <method name="ToString" desc="()" line="127">
+        <counter type="INSTRUCTION" missed="0" covered="13" />
+        <counter type="LINE" missed="0" covered="10" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <counter type="INSTRUCTION" missed="0" covered="43" />
+      <counter type="LINE" missed="0" covered="40" />
+      <counter type="METHOD" missed="0" covered="13" />
+      <counter type="CLASS" missed="0" covered="1" />
+    </class>
+    <sourcefile name="RepositoryModel.ps1">
+      <line nr="44" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="45" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="46" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="49" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="50" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="51" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="52" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="53" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="54" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="55" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="58" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="59" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="60" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="65" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="70" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="71" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="72" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="78" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="79" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="84" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="89" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="94" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="95" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="100" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="101" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="106" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="111" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="112" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="117" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="122" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="127" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="128" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="129" mi="0" ci="2" mb="0" cb="0" />
+      <line nr="131" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="132" mi="0" ci="2" mb="0" cb="0" />
+      <line nr="134" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="135" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="137" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="138" mi="0" ci="2" mb="0" cb="0" />
+      <line nr="140" mi="0" ci="1" mb="0" cb="0" />
+      <counter type="INSTRUCTION" missed="0" covered="43" />
+      <counter type="LINE" missed="0" covered="40" />
+      <counter type="METHOD" missed="0" covered="13" />
+      <counter type="CLASS" missed="0" covered="1" />
+    </sourcefile>
+    <counter type="INSTRUCTION" missed="0" covered="43" />
+    <counter type="LINE" missed="0" covered="40" />
+    <counter type="METHOD" missed="0" covered="13" />
+    <counter type="CLASS" missed="0" covered="1" />
+  </package>
+  <counter type="INSTRUCTION" missed="0" covered="43" />
+  <counter type="LINE" missed="0" covered="40" />
+  <counter type="METHOD" missed="0" covered="13" />
+  <counter type="CLASS" missed="0" covered="1" />
+</report>

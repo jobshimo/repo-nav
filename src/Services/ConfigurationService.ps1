@@ -13,7 +13,7 @@
     - Favorite repositories
 #>
 
-class ConfigurationService {
+class ConfigurationService : IConfigurationService {
     [string] $ConfigFilePath      # Aliases
     
     # Constructor
@@ -34,6 +34,9 @@ class ConfigurationService {
         
         try {
             $content = Get-Content $this.ConfigFilePath -Raw -ErrorAction Stop
+            if ([string]::IsNullOrWhiteSpace($content)) {
+                return $this.CreateEmptyConfiguration()
+            }
             # -AsHashtable is safer for manipulation in PS 5+ but let's stick to object and rebuild
             $jsonObj = ConvertFrom-Json $content -ErrorAction Stop
             

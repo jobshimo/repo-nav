@@ -14,11 +14,11 @@
     - Querying alias information
 #>
 
-class AliasManager {
-    [ConfigurationService] $ConfigService
+class AliasManager : IAliasManager {
+    [IConfigurationService] $ConfigService
     
     # Constructor with dependency injection
-    AliasManager([ConfigurationService]$configService) {
+    AliasManager([IConfigurationService]$configService) {
         $this.ConfigService = $configService
     }
     
@@ -30,44 +30,56 @@ class AliasManager {
             return $list
         }
 
-        # Check if it's a Hashtable/PSCustomObject (Legacy map format)
+        # Check if it's a Hashtable/PSCustomObject
         if ($config.aliases -is [PSCustomObject] -or $config.aliases -is [hashtable]) {
-            foreach ($property in $config.aliases.PSObject.Properties) {
-                $aliasData = $property.Value
-                $key = $property.Name
-                
-                # Determine if key is path or name based on content
-                $isPath = $key.Contains("\") -or $key.Contains("/")
-                
-                # Normalize data structure
-                $entry = $null
-                
-                # Handle simple string format "alias" (Legacy)
-                if ($aliasData -is [string]) {
-                    $entry = [PSCustomObject]@{
-                        alias = $aliasData
-                        color = [ColorPalette]::DefaultAliasColor
+            # AMBIGUITY CHECK: Is this a legacy MAP or a single ITEM from a simplified JSON array?
+            $hasAliasProp = if ($config.aliases -is [hashtable]) { $config.aliases.ContainsKey('alias') } else { $null -ne $config.aliases.PSObject.Properties['alias'] }
+            
+            if ($hasAliasProp) {
+                # This is a SINGLE ITEM (New format), not a Map
+                [void]$list.Add($config.aliases)
+            } else {
+                # This is a LEGACY MAP
+                foreach ($property in $config.aliases.PSObject.Properties) {
+                    $aliasData = $property.Value
+                    $key = $property.Name
+                    
+                    # Determine if key is path or name based on content
+                    $isPath = $key.Contains("\") -or $key.Contains("/")
+                    
+                    # Normalize data structure
+                    $entry = $null
+                    
+                    # Handle simple string format "alias" (Legacy)
+                    if ($aliasData -is [string]) {
+                        $entry = [PSCustomObject]@{
+                            alias = $aliasData
+                            color = [ColorPalette]::DefaultAliasColor
+                        }
+                    } else {
+                        $entry = [PSCustomObject]@{
+                            alias = $aliasData.alias
+                            color = if ($aliasData.color) { $aliasData.color } else { [ColorPalette]::DefaultAliasColor }
+                        }
                     }
-                } else {
-                    $entry = [PSCustomObject]@{
-                        alias = $aliasData.alias
-                        color = if ($aliasData.color) { $aliasData.color } else { [ColorPalette]::DefaultAliasColor }
+                    
+                    # Add identifier
+                    if ($isPath) {
+                        $entry | Add-Member -NotePropertyName "path" -NotePropertyValue $key -Force
+                    } else {
+                        $entry | Add-Member -NotePropertyName "name" -NotePropertyValue $key -Force
                     }
+                    
+                    [void]$list.Add($entry)
                 }
-                
-                # Add identifier
-                if ($isPath) {
-                    $entry | Add-Member -NotePropertyName "path" -NotePropertyValue $key -Force
-                } else {
-                    $entry | Add-Member -NotePropertyName "name" -NotePropertyValue $key -Force
-                }
-                
-                [void]$list.Add($entry)
             }
         }
-        # Check if it's already an array (New list format)
-        elseif ($config.aliases -is [array]) {
-            $list.AddRange($config.aliases)
+        # Check if it's already an array or single object (New list format)
+        else {
+            $aliasArray = [ArrayHelper]::EnsureArray($config.aliases)
+            if ($aliasArray.Count -gt 0) {
+                $list.AddRange($aliasArray)
+            }
         }
         
         return $list
@@ -86,12 +98,12 @@ class AliasManager {
             $aliasInfo = [AliasInfo]::new($alias, $color)
             
             # Map by path if available
-            if ($item.PSObject.Properties.Name -contains 'path') {
+            if ($item.path) {
                 $result[$item.path] = $aliasInfo
             }
             
-            # Map by name if available
-            if ($item.PSObject.Properties.Name -contains 'name') {
+            # Map by name if available (Legacy/Support)
+            if ($item.name) {
                  $result[$item.name] = $aliasInfo
             }
         }

@@ -16,7 +16,7 @@
     - Git validation
 #>
 
-class GitService {
+class GitService : IGitService {
     
     # Check if a directory is a Git repository
     [bool] IsGitRepository([string]$repoPath) {

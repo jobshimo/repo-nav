@@ -1,7 +1,13 @@
 {
     "Run": {
         "Path": [ "tests/Pester" ],
-        "Exit": true
+        "Exit": true,
+        "ExcludePath": [
+            "src/**/*/_index.ps1",
+            "src/**/Interfaces/*.ps1",
+            "src/**/Resources/**/*.ps1",
+            "src/**/Dev/*.ps1"
+        ]
     },
     "Output": {
         "Verbosity": "Normal"

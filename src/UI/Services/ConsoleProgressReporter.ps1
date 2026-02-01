@@ -7,11 +7,12 @@
 #>
 
 class ConsoleProgressReporter : IProgressReporter {
-    [ProgressIndicator] $ProgressIndicator
-    [object] $ConsoleHelper
+    [IProgressIndicator] $ProgressIndicator
+    [IConsoleHelper] $ConsoleHelper
     
-    ConsoleProgressReporter([object]$consoleHelper) {
+    ConsoleProgressReporter([IConsoleHelper]$consoleHelper) {
         $this.ConsoleHelper = $consoleHelper
+        # Default initialization, but allow override via property for testing
         $this.ProgressIndicator = [ProgressIndicator]::new($consoleHelper)
     }
     

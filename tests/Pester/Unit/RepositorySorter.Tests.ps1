@@ -44,5 +44,18 @@ Describe "RepositorySorter" {
             $sorted[1].Name | Should -Be "Apple"  # Alphabetical rest
             $sorted[2].Name | Should -Be "Cherry"
         }
+
+        It "Handles null repository list gracefully" {
+            $sorter = [RepositorySorter]::new()
+            $sorted = $sorter.Sort($null, $true)
+            $sorted.Count | Should -Be 0
+        }
+
+        It "Handles empty repository list gracefully" {
+            $sorter = [RepositorySorter]::new()
+            $emptyList = [System.Collections.ArrayList]::new()
+            $sorted = $sorter.Sort($emptyList, $true)
+            $sorted.Count | Should -Be 0
+        }
     }
 }

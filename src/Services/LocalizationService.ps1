@@ -99,15 +99,15 @@ class LocalizationService : ILocalizationService {
         return "[$key]"
     }
     
-    [string] Get([string]$key, [object[]]$args) {
+    [string] Get([string]$key, [object[]]$values) {
         $formatString = $this.Get($key)
         
-        if ($null -eq $args -or $args.Count -eq 0) {
+        if ($null -eq $values -or $values.Count -eq 0) {
             return $formatString
         }
         
         try {
-            return [string]::Format($formatString, $args)
+            return $formatString -f $values
         }
         catch {
             return "$formatString (Format Error)"

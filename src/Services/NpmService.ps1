@@ -16,7 +16,7 @@
     - Package.json validation
 #>
 
-class NpmService {
+class NpmService : INpmService {
     
     # Check if package.json exists in repository
     [bool] HasPackageJson([string]$repoPath) {

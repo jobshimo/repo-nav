@@ -77,5 +77,44 @@ Describe "PathManager" {
             
             $pathManager.GetAllPaths() | Should -Not -Contain $tempDir
         }
+
+        It "RemovePath updates defaultPath if removed path was default" {
+            $dir1 = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "dir1")
+            $dir2 = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "dir2")
+            New-Item -Path $dir1, $dir2 -ItemType Directory -Force | Out-Null
+            
+            try {
+                $pathManager.AddPath($dir1)
+                $pathManager.AddPath($dir2)
+                $pathManager.SetCurrentPath($dir1)
+                
+                $pathManager.RemovePath($dir1)
+                
+                $pathManager.GetCurrentPath() | Should -Be $dir2
+            }
+            finally {
+                Remove-Item $dir1, $dir2 -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        It "GetAllPaths returns empty array instead of null" {
+            $pathManager.GetAllPaths().Count | Should -Be 0
+        }
+
+        It "HasPaths returns correct status" {
+            $pathManager.HasPaths() | Should -BeFalse
+            $pathManager.AddPath([System.IO.Path]::GetTempPath())
+            $pathManager.HasPaths() | Should -BeTrue
+        }
+        
+        It "Refresh syncs cache from preferences" {
+            $tempDir = [System.IO.Path]::GetTempPath()
+            # Manually update underlying preference without using PathManager
+            $prefsService.SetPreference("repository", "defaultPath", $tempDir)
+            
+            $pathManager.GetCurrentPath() | Should -Not -Be $tempDir
+            $pathManager.Refresh()
+            $pathManager.GetCurrentPath() | Should -Be $tempDir
+        }
     }
 }
