@@ -1,7 +1,13 @@
 {
     "Run": {
         "Path": [ "tests/Pester" ],
-        "Exit": true
+        "Exit": true,
+        "ExcludePath": [
+            "src/**/*/_index.ps1",
+            "src/**/Interfaces/*.ps1",
+            "src/**/Resources/**/*.ps1",
+            "src/**/Dev/*.ps1"
+        ]
     },
     "Output": {
         "Verbosity": "Normal"
@@ -9,12 +15,6 @@
     "CodeCoverage": {
         "Enabled": true,
         "Path": [ "src" ],
-        "ExcludeTests": [
-            "**/*/_index.ps1",
-            "**/Interfaces/*.ps1",
-            "**/Resources/**/*.ps1",
-            "**/Dev/*.ps1"
-        ],
         "OutputFormat": "Jacoco",
         "OutputPath": "coverage.xml",
         "CoveragePercentTarget": 80
